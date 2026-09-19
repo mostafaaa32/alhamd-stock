@@ -264,7 +264,7 @@
     document.getElementById("productsBody").innerHTML = rows.map(p => `
       <tr>
         <td>${esc(p.code)}</td><td>${esc(p.name)}</td><td>${esc(p.unit)}</td>
-        <td>${money(p.purchase_price)}</td><td>${money(p.sale_price)}</td><td>${p.quantity}</td>
+        <td>${money(p.buy_price)}</td><td>${money(p.sell_price)}</td><td>${p.quantity}</td>
         <td><button class="danger small" onclick="deleteProduct('${p.id}')">حذف</button></td>
       </tr>`).join("");
   }
@@ -275,11 +275,11 @@
     const name = prompt("اسم الصنف:");
     if (name === null) return;
     const unit = prompt("الوحدة (قطعة/كرتونة/متر...):", "قطعة") || "قطعة";
-    const purchase = Number(prompt("سعر الشراء:", "0") || 0);
-    const sale = Number(prompt("سعر البيع:", "0") || 0);
+    const buy = Number(prompt("سعر الشراء:", "0") || 0);
+    const sell = Number(prompt("سعر البيع:", "0") || 0);
     const qty = Number(prompt("الكمية الحالية:", "0") || 0);
     const min = Number(prompt("الحد الأدنى:", "0") || 0);
-    saveProduct({code, name, unit, purchase_price: purchase, sale_price: sale, quantity: qty, min_quantity: min});
+    saveProduct({code, name, unit, buy_price: buy, sell_price: sell, quantity: qty, min_quantity: min});
   }
 
   async function saveProduct(p) {
@@ -301,7 +301,7 @@
     const select = document.getElementById("invoiceProduct");
     if (!select) return;
     select.innerHTML = '<option value="">اختر الصنف</option>' +
-      products.map(p => `<option value="${p.id}">${esc(p.name)} — ${money(p.sale_price)} ج.م — المتاح ${p.quantity}</option>`).join("");
+      products.map(p => `<option value="${p.id}">${esc(p.name)} — ${money(p.sell_price)} ج.م — المتاح ${p.quantity}</option>`).join("");
   }
 
   function addInvoiceItem() {
@@ -312,7 +312,7 @@
     if (qty < 1 || qty > Number(p.quantity)) return alert("الكمية غير متاحة");
     const existing = invoiceItems.find(x => x.product_id === id);
     if (existing) existing.quantity += qty;
-    else invoiceItems.push({product_id:id, name:p.name, quantity:qty, price:Number(p.sale_price||0)});
+    else invoiceItems.push({product_id:id, name:p.name, quantity:qty, price:Number(p.sell_price||0)});
     renderInvoice();
   }
 
@@ -393,26 +393,20 @@
     const w=window.open("","_blank"); w.document.write(html); w.document.close();
   }
 
-  // دالة تحديث بيانات الشاشة الرئيسية بالتفصيل
   async function refreshDashboard() {
-    // 1. جلب بيانات المنتجات
-    const { data: prodData, error: prodErr } = await sb.from("products").select("name, quantity, purchase_price, min_quantity");
-    if (prodErr) console.error("خطأ في جلب بيانات الصفحة الرئيسية:", prodErr);
+    const { data: prodData, error: prodErr } = await sb.from("products").select("name, quantity, buy_price, min_quantity");
+    if (prodErr) console.error("خطأ في جلب البيانات:", prodErr);
 
     const list = prodData || [];
     
-    // عدد الأصناف
     document.getElementById("statProducts").textContent = list.length;
 
-    // قيمة المخزون الحالية (الكمية × سعر الشراء)
-    const totalStock = list.reduce((sum, p) => sum + (Number(p.quantity || 0) * Number(p.purchase_price || 0)), 0);
+    const totalStock = list.reduce((sum, p) => sum + (Number(p.quantity || 0) * Number(p.buy_price || 0)), 0);
     document.getElementById("statStock").textContent = money(totalStock);
 
-    // الأصناف الناقصة (التي كميتها أقل من أو تساوي الحد الأدنى)
     const lowStockItems = list.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
     document.getElementById("statLow").textContent = lowStockItems.length;
 
-    // عرض الأصناف الناقصة في الجدول السفلي
     if (lowStockItems.length > 0) {
       document.getElementById("lowStock").innerHTML = lowStockItems.map(p => 
         `<div class="low-row" style="padding: 8px 0; border-bottom: 1px solid #eee;">
@@ -423,7 +417,6 @@
       document.getElementById("lowStock").innerHTML = "<p style='color:green;'>لا توجد أصناف ناقصة حاليًا 👍</p>";
     }
 
-    // 2. جلب مبيعات اليوم من جدول الفواتير
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
