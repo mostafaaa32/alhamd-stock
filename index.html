@@ -395,7 +395,7 @@
 
   async function refreshDashboard() {
     const { data: prodData, error: prodErr } = await sb.from("products").select("name, quantity, buy_price, min_quantity");
-    if (prodErr) console.error("خطأ في جلب البيانات:", prodErr);
+    if (prodErr) console.error("خطأ المنتجات:", prodErr);
 
     const list = prodData || [];
     
@@ -417,16 +417,18 @@
       document.getElementById("lowStock").innerHTML = "<p style='color:green;'>لا توجد أصناف ناقصة حاليًا 👍</p>";
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
 
     const { data: sales, error: salesErr } = await sb.from("invoices")
-      .select("total, created_at")
-      .eq("type", "sale")
-      .gte("created_at", today.toISOString());
+      .select("total")
+      .gte("created_at", startOfDay.toISOString());
 
-    if (!salesErr && sales) {
-      const todayTotal = sales.reduce((sum, x) => sum + Number(x.total || 0), 0);
+    if (salesErr) {
+      console.error("خطأ الفواتير:", salesErr);
+      document.getElementById("statSales").textContent = "0.00";
+    } else {
+      const todayTotal = (sales || []).reduce((sum, x) => sum + Number(x.total || 0), 0);
       document.getElementById("statSales").textContent = money(todayTotal);
     }
   }
