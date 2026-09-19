@@ -56,6 +56,9 @@
       border: 1px solid #ccc;
       background: #fff;
     }
+    /* تلوين صفوف الأصناف الناقصة والمنتهية تلقائياً */
+    .row-danger { background-color: #fdf2f2 !important; }
+    .row-warning { background-color: #fef9e7 !important; }
   </style>
 </head>
 <body>
@@ -98,6 +101,7 @@
     </nav>
 
     <main>
+      <!-- 1. الرئيسية -->
       <section id="dashboard" class="tab-page">
         <div class="welcome card">
           <img src="logo.png" alt="">
@@ -112,19 +116,20 @@
           <div class="stat card"><span>قيمة الشراء (رأس المال)</span><b id="statStock">٠٫٠٠</b></div>
           <div class="stat card"><span>قيمة البيع المتوقعة</span><b id="statSellStock" style="color: #28a745;">٠٫٠٠</b></div>
           <div class="stat card"><span>مبيعات اليوم (ج.م)</span><b id="statSales">٠٫٠٠</b></div>
-          <div class="stat card"><span>الأصناف الناقصة</span><b id="statLow">٠</b></div>
+          <div class="stat card" style="border-right: 4px solid #e74c3c;"><span>الأصناف الناقصة</span><b id="statLow" style="color:#e74c3c;">٠</b></div>
         </div>
 
         <div class="card">
-          <h2>أصناف وصلت للحد الأدنى</h2>
+          <h2>أصناف وصلت للحد الأدنى أو نفدت</h2>
           <div id="lowStock">جاري تحميل البيانات...</div>
         </div>
       </section>
 
+      <!-- 2. الأصناف -->
       <section id="products" class="tab-page hidden">
         <div class="card">
           <div class="row between">
-            <h2>الأصناف</h2>
+            <h2>الأصناف والمخزون</h2>
             <button id="btnAddProduct" class="can-edit-only hidden" onclick="openProductForm()">+ إضافة صنف جديد</button>
           </div>
           <div class="sort-controls">
@@ -150,6 +155,7 @@
                   <th class="sortable" onclick="sortBy('buy_price')">شراء <span id="sort_buy_price"></span></th>
                   <th class="sortable" onclick="sortBy('sell_price')">بيع <span id="sort_sell_price"></span></th>
                   <th class="sortable" onclick="sortBy('quantity')">الكمية <span id="sort_quantity"></span></th>
+                  <th>إجمالي رأس المال</th>
                   <th>إجراءات</th>
                 </tr>
               </thead>
@@ -159,6 +165,7 @@
         </div>
       </section>
 
+      <!-- 3. فاتورة البيع -->
       <section id="invoice" class="tab-page hidden">
         <div class="card" style="min-height: 70vh; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
@@ -237,12 +244,14 @@
             <div class="row" style="margin-top: 15px;">
               <button onclick="saveInvoice()">حفظ الفاتورة</button>
               <button class="secondary" onclick="printCurrentInvoice()">طباعة / معاينة</button>
-              <button style="background-color: #e74c3c; color: white;" onclick="resetInvoiceForm()">مسح / فاتورة جديدة</button>
+              <button style="background-color: #f39c12; color: white;" onclick="clearInvoiceItemsOnly()">مسح البنود فقط</button>
+              <button style="background-color: #e74c3c; color: white;" onclick="resetInvoiceForm()">مسح الكل / فاتورة جديدة</button>
             </div>
           </div>
         </div>
       </section>
 
+      <!-- باقي الصفحات -->
       <section id="invoices" class="tab-page hidden">
         <div class="card">
           <h2>الفواتير السابقة</h2>
@@ -499,10 +508,24 @@
     const role = currentProfile?.role || "user";
     const canEdit = (role === "admin" || role === "user" || role === "general");
 
-    document.getElementById("productsBody").innerHTML = rows.map(p => `
-      <tr>
-        <td>${esc(p.code)}</td><td>${esc(p.name)}</td><td>${esc(p.unit)}</td>
-        <td>${toArabicDigits(money(p.buy_price))}</td><td>${toArabicDigits(money(p.sell_price))}</td><td><b>${toArabicDigits(p.quantity)}</b></td>
+    document.getElementById("productsBody").innerHTML = rows.map(p => {
+      const qty = Number(p.quantity || 0);
+      const minQty = Number(p.min_quantity || 0);
+      let rowClass = "";
+      if (qty <= 0) rowClass = "row-danger";
+      else if (qty <= minQty) rowClass = "row-warning";
+
+      const totalBuyCapital = qty * (Number(p.buy_price) || 0);
+
+      return `
+      <tr class="${rowClass}">
+        <td>${esc(p.code)}</td>
+        <td>${esc(p.name)}</td>
+        <td>${esc(p.unit)}</td>
+        <td>${toArabicDigits(money(p.buy_price))}</td>
+        <td>${toArabicDigits(money(p.sell_price))}</td>
+        <td><b>${toArabicDigits(p.quantity)}</b></td>
+        <td><b style="color: #2c3e50;">${toArabicDigits(money(totalBuyCapital))} ج.م</b></td>
         <td>
           ${canEdit ? `
             <button class="btn-qty small" onclick="addQuantity('${p.id}',${p.quantity})">+ كمية</button>
@@ -510,7 +533,8 @@
             <button class="danger small" onclick="deleteProduct('${p.id}')">حذف</button>
           ` : '<span class="muted">عرض فقط</span>'}
         </td>
-      </tr>`).join("");
+      </tr>`;
+    }).join("");
   }
 
   async function addQuantity(id, currentQty) {
@@ -599,7 +623,6 @@
     await refreshDashboard();
   }
 
-  // توليد كود فاتورة متسلسل تصاعدياً بناءً على آخر فاتورة مسجلة
   async function initInvoicePage() {
     fillInvoiceProducts();
     if (!document.getElementById("invoiceDateTime").value) {
@@ -610,11 +633,10 @@
     if (document.getElementById("invoiceNo").textContent === "جديدة") {
       try {
         const { data: lastInv } = await sb.from("invoices").select("id").order("created_at", { ascending: false }).limit(1).maybeSingle();
-        let nextNumber = 210; // القيمة الافتراضية الأولى لو لم توجد فواتير سابقة
+        let nextNumber = 210;
         if (lastInv && !isNaN(Number(lastInv.id))) {
           nextNumber = Number(lastInv.id) + 1;
         } else {
-          // فحص لو الكود المخزن سابقاً رقمي
           const { count } = await sb.from("invoices").select('*', { count: 'exact', head: true });
           nextNumber = 210 + (count || 0);
         }
@@ -704,7 +726,6 @@
 
     const { subTotal, discountAmount, finalTotal, paid, remaining } = calculateTotals();
 
-    document.getElementById("invoiceSubSubTotal")?.textContent; // safeguard
     document.getElementById("invoiceSubTotal").textContent = toArabicDigits(money(subTotal));
 
     const discountLine = document.getElementById("discountDisplayLine");
@@ -721,6 +742,15 @@
     document.getElementById("amountRemaining").value = toArabicDigits(money(remaining)) + " ج.م";
   }
 
+  // مسح البنود فقط دون التأثير على بيانات العميل أو التاريخ
+  function clearInvoiceItemsOnly() {
+    invoiceItems = [];
+    document.getElementById("invoiceDiscount").value = "";
+    document.getElementById("amountPaid").value = 0;
+    document.getElementById("invoiceQty").value = 1;
+    renderInvoice();
+  }
+
   async function resetInvoiceForm(showAlert = true) {
     invoiceItems = [];
     document.getElementById("customerName").value = "";
@@ -729,7 +759,6 @@
     document.getElementById("amountPaid").value = 0;
     document.getElementById("invoiceQty").value = 1;
     
-    // جلب الرقم المتسلسل التلي لمسح وإعادة تهيئة الفاتورة الجديدة
     try {
       const { data: lastInv } = await sb.from("invoices").select("id").order("created_at", { ascending: false }).limit(1).maybeSingle();
       let nextNumber = 210;
@@ -1010,7 +1039,7 @@
   }
 
   function money(n) { return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-  function esc(v) { return String(v ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])) }
+  function esc(v) { return String(v ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
 </script>
 </body>
 </html>
