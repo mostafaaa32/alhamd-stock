@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>مكتب الحمد - نظام المخزن والمبيعات</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div id="loginView" class="auth-wrap">
@@ -59,14 +58,14 @@
 
         <div class="grid stats">
           <div class="stat card"><span>عدد الأصناف</span><b id="statProducts">0</b></div>
-          <div class="stat card"><span>قيمة المخزون</span><b id="statStock">0</b></div>
-          <div class="stat card"><span>مبيعات اليوم</span><b id="statSales">0</b></div>
+          <div class="stat card"><span>قيمة المخزون (ج.م)</span><b id="statStock">0.00</b></div>
+          <div class="stat card"><span>مبيعات اليوم (ج.م)</span><b id="statSales">0.00</b></div>
           <div class="stat card"><span>الأصناف الناقصة</span><b id="statLow">0</b></div>
         </div>
 
         <div class="card">
           <h2>أصناف وصلت للحد الأدنى</h2>
-          <div id="lowStock"></div>
+          <div id="lowStock">جاري تحميل البيانات...</div>
         </div>
       </section>
 
@@ -144,272 +143,308 @@
       </section>
     </main>
   </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
   const SUPABASE_URL = "https://ienqyavjyaizxjvrsgbv.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_jRrQIQiQCm4AGyvfV3WMhQ_x9FeWKhV";
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-let currentUser = null;
-let currentProfile = null;
-let products = [];
-let invoiceItems = [];
-let storeSettings = {
-  store_name: "مكتب الحمد للمقاولات العامة",
-  address: "",
-  phone: "",
-  whatsapp: "",
-  logo_url: "",
-  invoice_footer: "شكرًا لتعاملكم معنا"
-};
-
-document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
-  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
-  document.querySelectorAll(".tab-page").forEach(s => s.classList.add("hidden"));
-  btn.classList.add("active");
-  document.getElementById(btn.dataset.tab).classList.remove("hidden");
-  if (btn.dataset.tab === "products") loadProducts();
-  if (btn.dataset.tab === "invoice") fillInvoiceProducts();
-  if (btn.dataset.tab === "invoices") loadInvoices();
-  if (btn.dataset.tab === "dashboard") refreshDashboard();
-  if (btn.dataset.tab === "users") loadUsers();
-  if (btn.dataset.tab === "settings") loadStoreSettings();
-}));
-
-async function login() {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
-  const { error } = await sb.auth.signInWithPassword({email, password});
-  document.getElementById("authMsg").textContent = error ? error.message : "تم الدخول";
-}
-
-async function signup() {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
-  if (!email || !password) return alert("اكتب البريد وكلمة المرور");
-  const { error } = await sb.auth.signUp({email, password});
-  document.getElementById("authMsg").textContent = error ? error.message : "تم إنشاء الحساب. إذا طلب التأكيد، راجع البريد.";
-}
-
-async function logout() { await sb.auth.signOut(); }
-
-sb.auth.onAuthStateChange(async (_event, session) => {
-  currentUser = session?.user || null;
-  if (!currentUser) {
-    document.getElementById("loginView").classList.remove("hidden");
-    document.getElementById("appView").classList.add("hidden");
-    return;
-  }
-  document.getElementById("loginView").classList.add("hidden");
-  document.getElementById("appView").classList.remove("hidden");
-  await loadProfile();
-  await loadStoreSettings();
-  await refreshDashboard();
-  await loadProducts();
-});
-
-async function loadProfile() {
-  const { data: p } = await sb.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
-  currentProfile = p;
-  document.getElementById("userLabel").textContent = currentUser.email + (p?.role === "admin" ? " — مدير النظام" : "");
-  document.querySelectorAll(".admin-only").forEach(el => {
-    el.classList.toggle("hidden", p?.role !== "admin");
-  });
-}
-
-async function loadStoreSettings() {
-  const { data, error } = await sb.from("store_settings").select("*").eq("id", 1).maybeSingle();
-  if (!error && data) storeSettings = {...storeSettings, ...data};
-  document.getElementById("headerStoreName").textContent = storeSettings.store_name || "مكتب الحمد للمقاولات العامة";
-  const fields = {
-    storeName: storeSettings.store_name || "",
-    storeAddress: storeSettings.address || "",
-    storePhone: storeSettings.phone || "",
-    storeWhatsapp: storeSettings.whatsapp || "",
-    logoUrl: storeSettings.logo_url || "",
-    invoiceFooter: storeSettings.invoice_footer || ""
+  let currentUser = null;
+  let currentProfile = null;
+  let products = [];
+  let invoiceItems = [];
+  let storeSettings = {
+    store_name: "مكتب الحمد للمقاولات العامة",
+    address: "",
+    phone: "",
+    whatsapp: "",
+    logo_url: "",
+    invoice_footer: "شكرًا لتعاملكم معنا"
   };
-  for (const [id, val] of Object.entries(fields)) {
-    const el = document.getElementById(id);
-    if (el) el.value = val;
-  }
-}
 
-async function saveStoreSettings() {
-  if (currentProfile?.role !== "admin") return alert("هذه الصفحة للمدير فقط");
-  const payload = {
-    id: 1,
-    store_name: document.getElementById("storeName").value.trim() || "مكتب الحمد للمقاولات العامة",
-    address: document.getElementById("storeAddress").value.trim(),
-    phone: document.getElementById("storePhone").value.trim(),
-    whatsapp: document.getElementById("storeWhatsapp").value.trim(),
-    logo_url: document.getElementById("logoUrl").value.trim(),
-    invoice_footer: document.getElementById("invoiceFooter").value.trim()
-  };
-  const { error } = await sb.from("store_settings").upsert(payload);
-  document.getElementById("settingsMsg").textContent = error ? error.message : "تم حفظ بيانات المكتب بنجاح";
-  if (!error) { storeSettings = {...storeSettings, ...payload}; document.getElementById("headerStoreName").textContent = payload.store_name; }
-}
-
-async function loadProducts() {
-  const { data, error } = await sb.from("products").select("*").order("name");
-  if (error) return console.error(error);
-  products = data || [];
-  renderProducts();
-  fillInvoiceProducts();
-}
-
-function renderProducts() {
-  const q = (document.getElementById("productSearch")?.value || "").toLowerCase();
-  const rows = products.filter(p => (p.name || "").toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q));
-  document.getElementById("productsBody").innerHTML = rows.map(p => `
-    <tr>
-      <td>${esc(p.code)}</td><td>${esc(p.name)}</td><td>${esc(p.unit)}</td>
-      <td>${money(p.purchase_price)}</td><td>${money(p.sale_price)}</td><td>${p.quantity}</td>
-      <td><button class="danger small" onclick="deleteProduct('${p.id}')">حذف</button></td>
-    </tr>`).join("");
-}
-
-function openProductForm() {
-  const code = prompt("كود الصنف:");
-  if (code === null) return;
-  const name = prompt("اسم الصنف:");
-  if (name === null) return;
-  const unit = prompt("الوحدة (قطعة/كرتونة/متر...):", "قطعة") || "قطعة";
-  const purchase = Number(prompt("سعر الشراء:", "0") || 0);
-  const sale = Number(prompt("سعر البيع:", "0") || 0);
-  const qty = Number(prompt("الكمية الحالية:", "0") || 0);
-  const min = Number(prompt("الحد الأدنى:", "0") || 0);
-  saveProduct({code, name, unit, purchase_price: purchase, sale_price: sale, quantity: qty, min_quantity: min});
-}
-
-async function saveProduct(p) {
-  const { error } = await sb.from("products").insert(p);
-  if (error) return alert(error.message);
-  await loadProducts(); await refreshDashboard();
-}
-
-async function deleteProduct(id) {
-  if (!confirm("حذف الصنف؟")) return;
-  const { error } = await sb.from("products").delete().eq("id", id);
-  if (error) return alert(error.message);
-  await loadProducts(); await refreshDashboard();
-}
-
-function fillInvoiceProducts() {
-  const select = document.getElementById("invoiceProduct");
-  if (!select) return;
-  select.innerHTML = '<option value="">اختر الصنف</option>' +
-    products.map(p => `<option value="${p.id}">${esc(p.name)} — ${money(p.sale_price)} ج.م — المتاح ${p.quantity}</option>`).join("");
-}
-
-function addInvoiceItem() {
-  const id = document.getElementById("invoiceProduct").value;
-  const qty = Number(document.getElementById("invoiceQty").value || 1);
-  const p = products.find(x => x.id === id);
-  if (!p) return alert("اختر صنفًا");
-  if (qty < 1 || qty > Number(p.quantity)) return alert("الكمية غير متاحة");
-  const existing = invoiceItems.find(x => x.product_id === id);
-  if (existing) existing.quantity += qty;
-  else invoiceItems.push({product_id:id, name:p.name, quantity:qty, price:Number(p.sale_price||0)});
-  renderInvoice();
-}
-
-function renderInvoice() {
-  document.getElementById("invoiceBody").innerHTML = invoiceItems.map((x,i) => `
-    <tr><td>${esc(x.name)}</td><td>${x.quantity}</td><td>${money(x.price)}</td>
-    <td>${money(x.quantity*x.price)}</td><td><button class="danger small" onclick="invoiceItems.splice(${i},1);renderInvoice()">حذف</button></td></tr>`).join("");
-  const total = invoiceItems.reduce((s,x)=>s+x.quantity*x.price,0);
-  document.getElementById("invoiceTotal").textContent = money(total);
-}
-
-async function saveInvoice() {
-  if (!invoiceItems.length) return alert("أضف صنفًا واحدًا على الأقل");
-  const total = invoiceItems.reduce((s,x)=>s+x.quantity*x.price,0);
-  const customer_name = document.getElementById("customerName").value.trim();
-  const customer_phone = document.getElementById("customerPhone").value.trim();
-  const { data: inv, error } = await sb.from("invoices").insert({
-    type:"sale", customer_name, customer_phone, total, created_by:currentUser.id
-  }).select().single();
-  if (error) return alert(error.message);
-
-  const items = invoiceItems.map(x => ({
-    invoice_id: inv.id, product_id:x.product_id, product_name:x.name,
-    quantity:x.quantity, unit_price:x.price, total:x.quantity*x.price
+  document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-page").forEach(s => s.classList.add("hidden"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.remove("hidden");
+    if (btn.dataset.tab === "products") loadProducts();
+    if (btn.dataset.tab === "invoice") fillInvoiceProducts();
+    if (btn.dataset.tab === "invoices") loadInvoices();
+    if (btn.dataset.tab === "dashboard") refreshDashboard();
+    if (btn.dataset.tab === "users") loadUsers();
+    if (btn.dataset.tab === "settings") loadStoreSettings();
   }));
-  const { error: ie } = await sb.from("invoice_items").insert(items);
-  if (ie) return alert(ie.message);
 
-  for (const x of invoiceItems) {
-    const p = products.find(z => z.id === x.product_id);
-    await sb.from("products").update({quantity:Number(p.quantity)-x.quantity}).eq("id",x.product_id);
+  async function login() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const { error } = await sb.auth.signInWithPassword({email, password});
+    document.getElementById("authMsg").textContent = error ? error.message : "تم الدخول بنجاح";
   }
-  document.getElementById("invoiceNo").textContent = "فاتورة " + String(inv.id).slice(0,8);
-  alert("تم حفظ الفاتورة");
-  invoiceItems=[]; renderInvoice();
-  document.getElementById("customerName").value="";
-  document.getElementById("customerPhone").value="";
-  await loadProducts(); await refreshDashboard();
-}
 
-async function loadInvoices() {
-  const { data, error } = await sb.from("invoices").select("*").order("created_at",{ascending:false}).limit(100);
-  if (error) return;
-  document.getElementById("invoicesBody").innerHTML = (data||[]).map(x => `
-    <tr><td>${esc(String(x.id).slice(0,8))}</td><td>${esc(x.customer_name||"نقدي")}</td>
-    <td>${money(x.total)}</td><td>${new Date(x.created_at).toLocaleString("ar-EG")}</td>
-    <td><button class="small" onclick="printSavedInvoice('${x.id}')">طباعة</button></td></tr>`).join("");
-}
+  async function signup() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    if (!email || !password) return alert("اكتب البريد وكلمة المرور");
+    const { error } = await sb.auth.signUp({email, password});
+    document.getElementById("authMsg").textContent = error ? error.message : "تم إنشاء الحساب. إذا طلب التأكيد، راجع البريد.";
+  }
 
-async function printSavedInvoice(id) {
-  const {data: inv} = await sb.from("invoices").select("*").eq("id",id).single();
-  const {data: items} = await sb.from("invoice_items").select("*").eq("invoice_id",id);
-  printInvoice(inv, items||[]);
-}
+  async function logout() { await sb.auth.signOut(); }
 
-function printCurrentInvoice() {
-  if (!invoiceItems.length) return alert("الفاتورة فارغة");
-  printInvoice({
-    id: "NEW",
-    created_at: new Date().toISOString(),
-    customer_name: document.getElementById("customerName").value.trim(),
-    customer_phone: document.getElementById("customerPhone").value.trim(),
-    total: invoiceItems.reduce((s,x)=>s+x.quantity*x.price,0)
-  }, invoiceItems.map(x=>({product_name:x.name,quantity:x.quantity,unit_price:x.price,total:x.quantity*x.price})));
-}
+  sb.auth.onAuthStateChange(async (_event, session) => {
+    currentUser = session?.user || null;
+    if (!currentUser) {
+      document.getElementById("loginView").classList.remove("hidden");
+      document.getElementById("appView").classList.add("hidden");
+      return;
+    }
+    document.getElementById("loginView").classList.add("hidden");
+    document.getElementById("appView").classList.remove("hidden");
+    await loadProfile();
+    await loadStoreSettings();
+    await refreshDashboard();
+    await loadProducts();
+  });
 
-function printInvoice(inv, items) {
-  const logo = storeSettings.logo_url || "logo.png";
-  const rows = items.map(x => `<tr><td>${esc(x.product_name||x.name)}</td><td>${x.quantity}</td><td>${money(x.unit_price||x.price)}</td><td>${money(x.total)}</td></tr>`).join("");
-  const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>فاتورة ${esc(String(inv.id))}</title>
-  <style>body{font-family:Arial,sans-serif;padding:24px;color:#122b49} .head{display:flex;gap:18px;align-items:center;border-bottom:3px solid #c59b45;padding-bottom:15px}.head img{width:100px;height:100px;object-fit:contain}.head h1{margin:0}.meta{margin:15px 0;line-height:1.8}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:10px;text-align:center}th{background:#f5f1e7}.total{text-align:left;font-size:20px;font-weight:bold;margin-top:20px}.foot{text-align:center;margin-top:30px;color:#666}@media print{button{display:none}}</style></head>
-  <body><div class="head"><img src="${esc(logo)}"><div><h1>${esc(storeSettings.store_name)}</h1><div>${esc(storeSettings.address||"")}</div><div>${esc(storeSettings.phone||"")} ${storeSettings.whatsapp? " — واتساب: "+esc(storeSettings.whatsapp):""}</div></div></div>
-  <div class="meta">رقم الفاتورة: <b>${esc(String(inv.id))}</b><br>التاريخ: ${new Date(inv.created_at).toLocaleString("ar-EG")}<br>العميل: ${esc(inv.customer_name||"نقدي")} ${inv.customer_phone? " — "+esc(inv.customer_phone):""}</div>
-  <table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
-  <div class="total">الإجمالي: ${money(inv.total)} ج.م</div><div class="foot">${esc(storeSettings.invoice_footer||"شكرًا لتعاملكم معنا")}</div><script>window.onload=()=>window.print()<\/script></body></html>`;
-  const w=window.open("","_blank"); w.document.write(html); w.document.close();
-}
+  async function loadProfile() {
+    const { data: p } = await sb.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
+    currentProfile = p;
+    document.getElementById("userLabel").textContent = currentUser.email + (p?.role === "admin" ? " — مدير النظام" : "");
+    document.querySelectorAll(".admin-only").forEach(el => {
+      el.classList.toggle("hidden", p?.role !== "admin");
+    });
+  }
 
-async function refreshDashboard() {
-  const {data} = await sb.from("products").select("quantity,purchase_price,min_quantity");
-  const list=data||[];
-  document.getElementById("statProducts").textContent=list.length;
-  document.getElementById("statStock").textContent=money(list.reduce((s,p)=>s+Number(p.quantity||0)*Number(p.purchase_price||0),0));
-  document.getElementById("statLow").textContent=list.filter(p=>Number(p.quantity||0)<=Number(p.min_quantity||0)).length;
-  const today=new Date(); today.setHours(0,0,0,0);
-  const {data: sales} = await sb.from("invoices").select("total,created_at").eq("type","sale").gte("created_at",today.toISOString());
-  document.getElementById("statSales").textContent=money((sales||[]).reduce((s,x)=>s+Number(x.total||0),0));
-  const low=list.filter(p=>Number(p.quantity||0)<=Number(p.min_quantity||0));
-  document.getElementById("lowStock").innerHTML=low.length?low.map(p=>`<div class="low-row">${esc(p.name||"صنف")} — المتاح: <b>${p.quantity}</b></div>`).join(""):"لا توجد أصناف ناقصة حاليًا";
-}
+  async function loadStoreSettings() {
+    const { data, error } = await sb.from("store_settings").select("*").eq("id", 1).maybeSingle();
+    if (!error && data) storeSettings = {...storeSettings, ...data};
+    document.getElementById("headerStoreName").textContent = storeSettings.store_name || "مكتب الحمد للمقاولات العامة";
+    const fields = {
+      storeName: storeSettings.store_name || "",
+      storeAddress: storeSettings.address || "",
+      storePhone: storeSettings.phone || "",
+      storeWhatsapp: storeSettings.whatsapp || "",
+      logoUrl: storeSettings.logo_url || "",
+      invoiceFooter: storeSettings.invoice_footer || ""
+    };
+    for (const [id, val] of Object.entries(fields)) {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    }
+  }
 
-async function loadUsers() {
-  const {data} = await sb.from("profiles").select("*").order("created_at",{ascending:true});
-  document.getElementById("usersBody").innerHTML=(data||[]).map(p=>`<div class="user-row"><b>${esc(p.id)}</b><span>${esc(p.role||"user")}</span></div>`).join("");
-}
+  async function saveStoreSettings() {
+    if (currentProfile?.role !== "admin") return alert("هذه الصفحة للمدير فقط");
+    const payload = {
+      id: 1,
+      store_name: document.getElementById("storeName").value.trim() || "مكتب الحمد للمقاولات العامة",
+      address: document.getElementById("storeAddress").value.trim(),
+      phone: document.getElementById("storePhone").value.trim(),
+      whatsapp: document.getElementById("storeWhatsapp").value.trim(),
+      logo_url: document.getElementById("logoUrl").value.trim(),
+      invoice_footer: document.getElementById("invoiceFooter").value.trim()
+    };
+    const { error } = await sb.from("store_settings").upsert(payload);
+    document.getElementById("settingsMsg").textContent = error ? error.message : "تم حفظ بيانات المكتب بنجاح";
+    if (!error) { storeSettings = {...storeSettings, ...payload}; document.getElementById("headerStoreName").textContent = payload.store_name; }
+  }
 
-function money(n){return Number(n||0).toLocaleString("ar-EG",{minimumFractionDigits:2,maximumFractionDigits:2})}
-function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+  async function loadProducts() {
+    const { data, error } = await sb.from("products").select("*").order("name");
+    if (error) return console.error(error);
+    products = data || [];
+    renderProducts();
+    fillInvoiceProducts();
+  }
+
+  function renderProducts() {
+    const q = (document.getElementById("productSearch")?.value || "").toLowerCase();
+    const rows = products.filter(p => (p.name || "").toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q));
+    document.getElementById("productsBody").innerHTML = rows.map(p => `
+      <tr>
+        <td>${esc(p.code)}</td><td>${esc(p.name)}</td><td>${esc(p.unit)}</td>
+        <td>${money(p.purchase_price)}</td><td>${money(p.sale_price)}</td><td>${p.quantity}</td>
+        <td><button class="danger small" onclick="deleteProduct('${p.id}')">حذف</button></td>
+      </tr>`).join("");
+  }
+
+  function openProductForm() {
+    const code = prompt("كود الصنف:");
+    if (code === null) return;
+    const name = prompt("اسم الصنف:");
+    if (name === null) return;
+    const unit = prompt("الوحدة (قطعة/كرتونة/متر...):", "قطعة") || "قطعة";
+    const purchase = Number(prompt("سعر الشراء:", "0") || 0);
+    const sale = Number(prompt("سعر البيع:", "0") || 0);
+    const qty = Number(prompt("الكمية الحالية:", "0") || 0);
+    const min = Number(prompt("الحد الأدنى:", "0") || 0);
+    saveProduct({code, name, unit, purchase_price: purchase, sale_price: sale, quantity: qty, min_quantity: min});
+  }
+
+  async function saveProduct(p) {
+    const { error } = await sb.from("products").insert(p);
+    if (error) return alert(error.message);
+    await loadProducts(); 
+    await refreshDashboard();
+  }
+
+  async function deleteProduct(id) {
+    if (!confirm("حذف الصنف؟")) return;
+    const { error } = await sb.from("products").delete().eq("id", id);
+    if (error) return alert(error.message);
+    await loadProducts(); 
+    await refreshDashboard();
+  }
+
+  function fillInvoiceProducts() {
+    const select = document.getElementById("invoiceProduct");
+    if (!select) return;
+    select.innerHTML = '<option value="">اختر الصنف</option>' +
+      products.map(p => `<option value="${p.id}">${esc(p.name)} — ${money(p.sale_price)} ج.م — المتاح ${p.quantity}</option>`).join("");
+  }
+
+  function addInvoiceItem() {
+    const id = document.getElementById("invoiceProduct").value;
+    const qty = Number(document.getElementById("invoiceQty").value || 1);
+    const p = products.find(x => x.id === id);
+    if (!p) return alert("اختر صنفًا");
+    if (qty < 1 || qty > Number(p.quantity)) return alert("الكمية غير متاحة");
+    const existing = invoiceItems.find(x => x.product_id === id);
+    if (existing) existing.quantity += qty;
+    else invoiceItems.push({product_id:id, name:p.name, quantity:qty, price:Number(p.sale_price||0)});
+    renderInvoice();
+  }
+
+  function renderInvoice() {
+    document.getElementById("invoiceBody").innerHTML = invoiceItems.map((x,i) => `
+      <tr><td>${esc(x.name)}</td><td>${x.quantity}</td><td>${money(x.price)}</td>
+      <td>${money(x.quantity*x.price)}</td><td><button class="danger small" onclick="invoiceItems.splice(${i},1);renderInvoice()">حذف</button></td></tr>`).join("");
+    const total = invoiceItems.reduce((s,x)=>s+x.quantity*x.price,0);
+    document.getElementById("invoiceTotal").textContent = money(total);
+  }
+
+  async function saveInvoice() {
+    if (!invoiceItems.length) return alert("أضف صنفًا واحدًا على الأقل");
+    const total = invoiceItems.reduce((s,x)=>s+x.quantity*x.price,0);
+    const customer_name = document.getElementById("customerName").value.trim();
+    const customer_phone = document.getElementById("customerPhone").value.trim();
+    const { data: inv, error } = await sb.from("invoices").insert({
+      type:"sale", customer_name, customer_phone, total, created_by:currentUser.id
+    }).select().single();
+    if (error) return alert(error.message);
+
+    const items = invoiceItems.map(x => ({
+      invoice_id: inv.id, product_id:x.product_id, product_name:x.name,
+      quantity:x.quantity, unit_price:x.price, total:x.quantity*x.price
+    }));
+    const { error: ie } = await sb.from("invoice_items").insert(items);
+    if (ie) return alert(ie.message);
+
+    for (const x of invoiceItems) {
+      const p = products.find(z => z.id === x.product_id);
+      await sb.from("products").update({quantity:Number(p.quantity)-x.quantity}).eq("id",x.product_id);
+    }
+    document.getElementById("invoiceNo").textContent = "فاتورة " + String(inv.id).slice(0,8);
+    alert("تم حفظ الفاتورة بنجاح");
+    invoiceItems=[]; 
+    renderInvoice();
+    document.getElementById("customerName").value="";
+    document.getElementById("customerPhone").value="";
+    await loadProducts(); 
+    await refreshDashboard();
+  }
+
+  async function loadInvoices() {
+    const { data, error } = await sb.from("invoices").select("*").order("created_at",{ascending:false}).limit(100);
+    if (error) return;
+    document.getElementById("invoicesBody").innerHTML = (data||[]).map(x => `
+      <tr><td>${esc(String(x.id).slice(0,8))}</td><td>${esc(x.customer_name||"نقدي")}</td>
+      <td>${money(x.total)}</td><td>${new Date(x.created_at).toLocaleString("ar-EG")}</td>
+      <td><button class="small" onclick="printSavedInvoice('${x.id}')">طباعة</button></td></tr>`).join("");
+  }
+
+  async function printSavedInvoice(id) {
+    const {data: inv} = await sb.from("invoices").select("*").eq("id",id).single();
+    const {data: items} = await sb.from("invoice_items").select("*").eq("invoice_id",id);
+    printInvoice(inv, items||[]);
+  }
+
+  function printCurrentInvoice() {
+    if (!invoiceItems.length) return alert("الفاتورة فارغة");
+    printInvoice({
+      id: "NEW",
+      created_at: new Date().toISOString(),
+      customer_name: document.getElementById("customerName").value.trim(),
+      customer_phone: document.getElementById("customerPhone").value.trim(),
+      total: invoiceItems.reduce((s,x)=>s+x.quantity*x.price,0)
+    }, invoiceItems.map(x=>({product_name:x.name,quantity:x.quantity,unit_price:x.price,total:x.quantity*x.price})));
+  }
+
+  function printInvoice(inv, items) {
+    const logo = storeSettings.logo_url || "logo.png";
+    const rows = items.map(x => `<tr><td>${esc(x.product_name||x.name)}</td><td>${x.quantity}</td><td>${money(x.unit_price||x.price)}</td><td>${money(x.total)}</td></tr>`).join("");
+    const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>فاتورة ${esc(String(inv.id))}</title>
+    <style>body{font-family:Arial,sans-serif;padding:24px;color:#122b49} .head{display:flex;gap:18px;align-items:center;border-bottom:3px solid #c59b45;padding-bottom:15px}.head img{width:100px;height:100px;object-fit:contain}.head h1{margin:0}.meta{margin:15px 0;line-height:1.8}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:10px;text-align:center}th{background:#f5f1e7}.total{text-align:left;font-size:20px;font-weight:bold;margin-top:20px}.foot{text-align:center;margin-top:30px;color:#666}@media print{button{display:none}}</style></head>
+    <body><div class="head"><img src="${esc(logo)}"><div><h1>${esc(storeSettings.store_name)}</h1><div>${esc(storeSettings.address||"")}</div><div>${esc(storeSettings.phone||"")} ${storeSettings.whatsapp? " — واتساب: "+esc(storeSettings.whatsapp):""}</div></div></div>
+    <div class="meta">رقم الفاتورة: <b>${esc(String(inv.id))}</b><br>التاريخ: ${new Date(inv.created_at).toLocaleString("ar-EG")}<br>العميل: ${esc(inv.customer_name||"نقدي")} ${inv.customer_phone? " — "+esc(inv.customer_phone):""}</div>
+    <table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="total">الإجمالي: ${money(inv.total)} ج.م</div><div class="foot">${esc(storeSettings.invoice_footer||"شكرًا لتعاملكم معنا")}</div><script>window.onload=()=>window.print()<\/script></body></html>`;
+    const w=window.open("","_blank"); w.document.write(html); w.document.close();
+  }
+
+  // دالة تحديث بيانات الشاشة الرئيسية بالتفصيل
+  async function refreshDashboard() {
+    // 1. جلب بيانات المنتجات
+    const { data: prodData, error: prodErr } = await sb.from("products").select("name, quantity, purchase_price, min_quantity");
+    if (prodErr) console.error("خطأ في جلب بيانات الصفحة الرئيسية:", prodErr);
+
+    const list = prodData || [];
+    
+    // عدد الأصناف
+    document.getElementById("statProducts").textContent = list.length;
+
+    // قيمة المخزون الحالية (الكمية × سعر الشراء)
+    const totalStock = list.reduce((sum, p) => sum + (Number(p.quantity || 0) * Number(p.purchase_price || 0)), 0);
+    document.getElementById("statStock").textContent = money(totalStock);
+
+    // الأصناف الناقصة (التي كميتها أقل من أو تساوي الحد الأدنى)
+    const lowStockItems = list.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
+    document.getElementById("statLow").textContent = lowStockItems.length;
+
+    // عرض الأصناف الناقصة في الجدول السفلي
+    if (lowStockItems.length > 0) {
+      document.getElementById("lowStock").innerHTML = lowStockItems.map(p => 
+        `<div class="low-row" style="padding: 8px 0; border-bottom: 1px solid #eee;">
+          <b>${esc(p.name || "صنف")}</b> — المتاح حاليًا: <span style="color:red; font-weight:bold;">${p.quantity}</span> (الحد الأدنى: ${p.min_quantity})
+         </div>`
+      ).join("");
+    } else {
+      document.getElementById("lowStock").innerHTML = "<p style='color:green;'>لا توجد أصناف ناقصة حاليًا 👍</p>";
+    }
+
+    // 2. جلب مبيعات اليوم من جدول الفواتير
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { data: sales, error: salesErr } = await sb.from("invoices")
+      .select("total, created_at")
+      .eq("type", "sale")
+      .gte("created_at", today.toISOString());
+
+    if (!salesErr && sales) {
+      const todayTotal = sales.reduce((sum, x) => sum + Number(x.total || 0), 0);
+      document.getElementById("statSales").textContent = money(todayTotal);
+    }
+  }
+
+  async function loadUsers() {
+    const {data} = await sb.from("profiles").select("*").order("created_at",{ascending:true});
+    document.getElementById("usersBody").innerHTML=(data||[]).map(p=>`<div class="user-row"><b>${esc(p.id)}</b><span>${esc(p.role||"user")}</span></div>`).join("");
+  }
+
+  function money(n){return Number(n||0).toLocaleString("ar-EG",{minimumFractionDigits:2,maximumFractionDigits:2})}
+  function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 </script>
 </body>
 </html>
