@@ -139,6 +139,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 15px;
+      margin-bottom: 15px;
     }
     .stat {
       background: white;
@@ -210,7 +211,27 @@
           <div class="stat"><span>عدد الأصناف</span><b id="statProducts">٠</b></div>
           <div class="stat"><span>قيمة الشراء (رأس المال)</span><b id="statStock">٠٫٠٠</b></div>
           <div class="stat"><span>قيمة البيع المتوقعة</span><b id="statSellStock" style="color: #28a745;">٠٫٠٠</b></div>
-          <div class="stat" style="border-right: 4px solid #e74c3c;"><span>الأصناف الناقصة</span><b id="statLow" style="color:#e74c3c;">٠</b></div>
+          <div class="stat" style="border-right: 4px solid #e74c3c;"><span>الأصناف الناقصة (صفر أو أقل)</span><b id="statLow" style="color:#e74c3c;">٠</b></div>
+        </div>
+
+        <div class="card">
+          <h3 style="color: #e74c3c; margin-top: 0;">⚠️ قائمة الأصناف الناقصة (كميتها صفر أو أقل)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>الكود</th>
+                  <th>اسم الصنف</th>
+                  <th>الوحدة</th>
+                  <th>الكمية الحالية</th>
+                  <th>سعر البيع</th>
+                </tr>
+              </thead>
+              <tbody id="lowProductsBody">
+                <tr><td colspan="5">لا توجد أصناف ناقصة حالياً</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -331,7 +352,7 @@
                   <th>المدفوع</th>
                   <th>المتبقي</th>
                   <th>التاريخ</th>
-                  <th>الإجراءات المتفق عليها</th>
+                  <th>الإجراءات</th>
                 </tr>
               </thead>
               <tbody id="invoicesBody"></tbody>
@@ -827,12 +848,29 @@
   }
 
   async function refreshDashboard() {
-    const { data: list } = await sb.from("products").select("quantity, buy_price, sell_price, min_quantity");
+    const { data: list } = await sb.from("products").select("code, name, unit, quantity, buy_price, sell_price");
     const prods = list || [];
     document.getElementById("statProducts").textContent = toArabicDigits(prods.length);
     document.getElementById("statStock").textContent = toArabicDigits(prods.reduce((s, p) => s + (p.quantity * p.buy_price), 0).toFixed(2));
     document.getElementById("statSellStock").textContent = toArabicDigits(prods.reduce((s, p) => s + (p.quantity * p.sell_price), 0).toFixed(2));
-    document.getElementById("statLow").textContent = toArabicDigits(proods = prods.filter(p => p.quantity <= (p.min_quantity || 0)).length);
+    
+    const lowProds = prods.filter(p => Number(p.quantity) <= 0);
+    document.getElementById("statLow").textContent = toArabicDigits(lowProds.length);
+    
+    const lowBody = document.getElementById("lowProductsBody");
+    if (lowProds.length === 0) {
+      lowBody.innerHTML = `<tr><td colspan="5" style="color: #27ae60;">ممتاز! لا توجد أصناف ناقصة أو نفدت كميتها.</td></tr>`;
+    } else {
+      lowBody.innerHTML = lowProds.map(p => `
+        <tr>
+          <td>${esc(p.code)}</td>
+          <td><b>${esc(p.name)}</b></td>
+          <td>${esc(p.unit)}</td>
+          <td style="color: #dc3545; font-weight: bold;">${toArabicDigits(p.quantity)}</td>
+          <td>${toArabicDigits(p.sell_price)} ج.م</td>
+        </tr>
+      `).join("");
+    }
   }
 
   async function loadUsers() {
