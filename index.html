@@ -33,6 +33,12 @@
       cursor: pointer;
       margin-left: 4px;
     }
+    /* جعل شبكة الكروت تتوزع بشكل أفضل مع إضافة الكارت الخامس */
+    .grid.stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+    }
   </style>
 </head>
 <body>
@@ -86,7 +92,8 @@
 
         <div class="grid stats">
           <div class="stat card"><span>عدد الأصناف</span><b id="statProducts">0</b></div>
-          <div class="stat card"><span>قيمة المخزون (ج.م)</span><b id="statStock">0.00</b></div>
+          <div class="stat card"><span>قيمة الشراء (رأس المال)</span><b id="statStock">0.00</b></div>
+          <div class="stat card"><span>قيمة البيع المتوقعة</span><b id="statSellStock" style="color: #28a745;">0.00</b></div>
           <div class="stat card"><span>مبيعات اليوم (ج.م)</span><b id="statSales">0.00</b></div>
           <div class="stat card"><span>الأصناف الناقصة</span><b id="statLow">0</b></div>
         </div>
@@ -505,9 +512,9 @@
     const w=window.open("","_blank"); w.document.write(html); w.document.close();
   }
 
-  // تحديث الشاشة الرئيسية وحساب قيمة المخزون بدقة
+  // تحديث الشاشة الرئيسية وحساب إجمالي الشراء والبيع
   async function refreshDashboard() {
-    const { data: prodData, error: prodErr } = await sb.from("products").select("name, quantity, buy_price, min_quantity");
+    const { data: prodData, error: prodErr } = await sb.from("products").select("name, quantity, buy_price, sell_price, min_quantity");
     if (prodErr) console.error("خطأ المنتجات:", prodErr);
 
     const list = prodData || [];
@@ -515,15 +522,23 @@
     // 1. عدد الأصناف
     document.getElementById("statProducts").textContent = list.length;
 
-    // 2. إجمالي قيمة المخزون الحالية = مجموع (الكمية × سعر الشراء)
-    const totalStock = list.reduce((sum, p) => {
+    // 2. إجمالي قيمة الشراء (رأس المال) = مجموع (الكمية × سعر الشراء)
+    const totalBuyStock = list.reduce((sum, p) => {
       const qty = Number(p.quantity) || 0;
       const price = Number(p.buy_price) || 0;
       return sum + (qty * price);
     }, 0);
-    document.getElementById("statStock").textContent = money(totalStock);
+    document.getElementById("statStock").textContent = money(totalBuyStock);
 
-    // 3. الأصناف الناقصة
+    // 3. إجمالي قيمة البيع المتوقعة = مجموع (الكمية × سعر البيع)
+    const totalSellStock = list.reduce((sum, p) => {
+      const qty = Number(p.quantity) || 0;
+      const price = Number(p.sell_price) || 0;
+      return sum + (qty * price);
+    }, 0);
+    document.getElementById("statSellStock").textContent = money(totalSellStock);
+
+    // 4. الأصناف الناقصة
     const lowStockItems = list.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
     document.getElementById("statLow").textContent = lowStockItems.length;
 
@@ -537,7 +552,7 @@
       document.getElementById("lowStock").innerHTML = "<p style='color:green;'>لا توجد أصناف ناقصة حاليًا 👍</p>";
     }
 
-    // 4. مبيعات اليوم
+    // 5. مبيعات اليوم
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
