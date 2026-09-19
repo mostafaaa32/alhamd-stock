@@ -4,7 +4,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>مكتب الحمد - نظام المخزن والمبيعات</title>
+  <title>مكتب الحمد - نظام المخزن والمبيعات الشامل</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -103,7 +103,7 @@
       overflow-x: auto;
     }
     .tab {
-      padding: 12px 20px;
+      padding: 12px 18px;
       background: none;
       border: none;
       cursor: pointer;
@@ -126,6 +126,8 @@
     }
     button.secondary { background: #6c757d; }
     button.danger { background: #dc3545; }
+    button.success { background: #28a745; }
+    button.warning { background: #e67e22; color: #fff; }
     button.small { padding: 4px 8px; font-size: 12px; }
     input, select {
       padding: 8px;
@@ -191,9 +193,10 @@
       <button class="tab active" data-tab="dashboard">الرئيسية</button>
       <button class="tab" data-tab="products">الأصناف</button>
       <button class="tab" data-tab="invoice">فاتورة بيع</button>
-      <button class="tab" data-tab="invoices">الفواتير</button>
+      <button class="tab" data-tab="invoices">الفواتير والديون</button>
       <button class="tab" data-tab="expenses">المصروفات</button>
       <button class="tab admin-only hidden" data-tab="settings">إعدادات المكتب</button>
+      <button class="tab admin-only hidden" data-tab="users">المستخدمون</button>
     </nav>
 
     <main style="padding: 15px;">
@@ -201,7 +204,7 @@
       <section id="dashboard" class="tab-page">
         <div class="card">
           <h2>مرحبًا بك في نظام مكتب الحمد</h2>
-          <p class="muted">إدارة سهلة للمخزون والمبيعات والفواتير.</p>
+          <p class="muted">إدارة كاملة وسهلة للمخزون والمبيعات وحركة الخزنة.</p>
         </div>
         <div class="grid stats">
           <div class="stat"><span>عدد الأصناف</span><b id="statProducts">٠</b></div>
@@ -249,12 +252,23 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
             <div>
               <label style="font-size: 13px; font-weight: bold;">اسم العميل:</label>
-              <input id="customerName" list="customersList" placeholder="اكتب أو اختر اسم العميل" style="width: 100%;">
+              <input id="customerName" list="customersList" placeholder="اكتب أو اختر اسم العميل" oninput="onCustomerNameInput()" style="width: 100%;">
               <datalist id="customersList"></datalist>
             </div>
             <div>
               <label style="font-size: 13px; font-weight: bold;">هاتف العميل:</label>
               <input id="customerPhone" placeholder="رقم الهاتف" style="width: 100%;">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+            <div>
+              <label style="font-size: 13px; font-weight: bold;">تاريخ ووقت الفاتورة:</label>
+              <input id="invoiceDateTime" type="datetime-local" style="width: 100%;">
+            </div>
+            <div>
+              <label style="font-size: 13px; font-weight: bold;">الخصم (مبلغ):</label>
+              <input id="invoiceDiscount" type="text" placeholder="قيمة الخصم" oninput="renderInvoice()" style="width: 100%;">
             </div>
           </div>
 
@@ -294,17 +308,19 @@
             <div style="font-weight: bold; color: #122b49;">الإجمالي النهائي: <b id="invoiceTotal">٠٫٠٠</b> ج.م</div>
           </div>
 
-          <div style="margin-top: 15px; display: flex; gap: 8px;">
+          <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
             <button onclick="saveInvoice()" style="flex: 1;">حفظ الفاتورة</button>
+            <button class="secondary" onclick="printCurrentInvoice()" style="flex: 1;">طباعة / معاينة</button>
             <button class="danger" onclick="resetInvoiceForm()" style="flex: 1;">مسح الكل</button>
           </div>
         </div>
       </section>
 
-      <!-- 4. الفواتير السابقة -->
+      <!-- 4. الفواتير السابقة والديون -->
       <section id="invoices" class="tab-page hidden">
         <div class="card">
-          <h2>الفواتير السابقة</h2>
+          <h2>الفواتير السابقة وتحصيل الديون الآجلة</h2>
+          <input id="invoiceSearch" placeholder="بحث باسم العميل أو رقم الفاتورة..." oninput="loadInvoices()" style="width: 100%; margin-bottom: 10px;">
           <div class="table-wrap">
             <table>
               <thead>
@@ -315,6 +331,7 @@
                   <th>المدفوع</th>
                   <th>المتبقي</th>
                   <th>التاريخ</th>
+                  <th>الإجراءات المتفق عليها</th>
                 </tr>
               </thead>
               <tbody id="invoicesBody"></tbody>
@@ -330,7 +347,7 @@
           <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
             <input id="expenseReason" placeholder="بيان المصروف">
             <input id="expenseAmount" type="number" step="0.01" placeholder="المبلغ">
-            <button onclick="addExpense()">إضافة</button>
+            <button onclick="addExpense()">إضافة مصروف</button>
           </div>
           <div class="table-wrap">
             <table>
@@ -347,9 +364,22 @@
       <section id="settings" class="tab-page hidden">
         <div class="card">
           <h2>إعدادات المكتب</h2>
-          <input id="storeName" value="مكتب الحمد للمقاولات العامة" style="width:100%; margin-bottom:10px;">
-          <button onclick="saveStoreSettings()">حفظ</button>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <label>اسم المكتب<input id="storeName" value="مكتب الحمد للمقاولات العامة" style="width:100%"></label>
+            <label>عنوان المكتب<input id="storeAddress" placeholder="العنوان" style="width:100%"></label>
+            <label>الهاتف<input id="storePhone" placeholder="الهاتف" style="width:100%"></label>
+            <label>الواتساب<input id="storeWhatsapp" placeholder="واتساب" style="width:100%"></label>
+          </div>
+          <button onclick="saveStoreSettings()">حفظ الإعدادات</button>
           <p id="settingsMsg" class="msg"></p>
+        </div>
+      </section>
+
+      <!-- 7. المستخدمون -->
+      <section id="users" class="tab-page hidden">
+        <div class="card">
+          <h2>المستخدمون والصلاحيات</h2>
+          <div id="usersBody"></div>
         </div>
       </section>
     </main>
@@ -361,10 +391,11 @@
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
   
   let currentUser = null;
+  let currentProfile = null;
   let products = [];
   let invoiceItems = [];
   let allCustomers = [];
-  let storeSettings = { store_name: "مكتب الحمد للمقاولات العامة" };
+  let storeSettings = { store_name: "مكتب الحمد للمقاولات العامة", address: "", phone: "", whatsapp: "" };
 
   function toArabicDigits(input) {
     if (input === null || input === undefined) return "";
@@ -383,6 +414,8 @@
       if (btn.dataset.tab === "invoices") loadInvoices();
       if (btn.dataset.tab === "expenses") loadExpenses();
       if (btn.dataset.tab === "dashboard") refreshDashboard();
+      if (btn.dataset.tab === "users") loadUsers();
+      if (btn.dataset.tab === "settings") loadStoreSettings();
     });
   });
 
@@ -411,21 +444,42 @@
     }
     document.getElementById("loginView").classList.add("hidden");
     document.getElementById("appView").classList.remove("hidden");
+    await loadProfile();
     await loadStoreSettings();
     await refreshDashboard();
     await loadProducts();
+    await loadUniqueCustomers();
   });
+
+  async function loadProfile() {
+    const { data: p } = await sb.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
+    currentProfile = p;
+    const role = p?.role || "user";
+    document.getElementById("userLabel").textContent = currentUser.email + (role === "admin" ? " — مدير" : "");
+    document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", role !== "admin"));
+  }
 
   async function loadStoreSettings() {
     const { data } = await sb.from("store_settings").select("*").eq("id", 1).maybeSingle();
-    if (data) storeSettings = data;
+    if (data) storeSettings = {...storeSettings, ...data};
     document.getElementById("headerStoreName").textContent = storeSettings.store_name;
+    if(document.getElementById("storeName")) document.getElementById("storeName").value = storeSettings.store_name || "";
+    if(document.getElementById("storeAddress")) document.getElementById("storeAddress").value = storeSettings.address || "";
+    if(document.getElementById("storePhone")) document.getElementById("storePhone").value = storeSettings.phone || "";
+    if(document.getElementById("storeWhatsapp")) document.getElementById("storeWhatsapp").value = storeSettings.whatsapp || "";
   }
 
   async function saveStoreSettings() {
-    const store_name = document.getElementById("storeName").value.trim();
-    const { error } = await sb.from("store_settings").upsert({ id: 1, store_name });
-    document.getElementById("settingsMsg").textContent = error ? error.message : "تم الحفظ";
+    const payload = {
+      id: 1,
+      store_name: document.getElementById("storeName").value.trim(),
+      address: document.getElementById("storeAddress").value.trim(),
+      phone: document.getElementById("storePhone").value.trim(),
+      whatsapp: document.getElementById("storeWhatsapp").value.trim()
+    };
+    const { error } = await sb.from("store_settings").upsert(payload);
+    document.getElementById("settingsMsg").textContent = error ? error.message : "تم الحفظ بنجاح";
+    if (!error) storeSettings = {...storeSettings, ...payload};
   }
 
   async function loadProducts() {
@@ -433,6 +487,23 @@
     products = data || [];
     renderProducts();
     fillInvoiceProducts();
+  }
+
+  async function loadUniqueCustomers() {
+    const { data } = await sb.from("invoices").select("customer_name, customer_phone").not("customer_name", "is", null);
+    if (data) {
+      const map = {};
+      data.forEach(x => { if (x.customer_name) map[x.customer_name.trim()] = x.customer_phone || ""; });
+      allCustomers = Object.keys(map).map(name => ({ name, phone: map[name] }));
+      const datalist = document.getElementById("customersList");
+      if (datalist) datalist.innerHTML = allCustomers.map(c => `<option value="${esc(c.name)}">`).join("");
+    }
+  }
+
+  function onCustomerNameInput() {
+    const nameVal = document.getElementById("customerName").value.trim();
+    const found = allCustomers.find(c => c.name === nameVal);
+    if (found && found.phone) document.getElementById("customerPhone").value = found.phone;
   }
 
   function renderProducts() {
@@ -446,7 +517,10 @@
         <td>${toArabicDigits(p.buy_price)}</td>
         <td>${toArabicDigits(p.sell_price)}</td>
         <td><b>${toArabicDigits(p.quantity)}</b></td>
-        <td><button class="danger small" onclick="deleteProduct('${p.id}')">حذف</button></td>
+        <td>
+          <button class="small" onclick="editProduct('${p.id}')">تعديل</button>
+          <button class="danger small" onclick="deleteProduct('${p.id}')">حذف</button>
+        </td>
       </tr>`).join("");
   }
 
@@ -462,6 +536,19 @@
     }
   }
 
+  async function editProduct(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    const name = prompt("اسم الصنف:", p.name);
+    const buy = prompt("سعر الشراء:", p.buy_price);
+    const sell = prompt("سعر البيع:", p.sell_price);
+    const qty = prompt("الكمية:", p.quantity);
+    if (name !== null) {
+      await sb.from("products").update({ name, buy_price: Number(buy), sell_price: Number(sell), quantity: Number(qty) }).eq("id", id);
+      loadProducts();
+    }
+  }
+
   async function deleteProduct(id) {
     if (confirm("حذف الصنف؟")) {
       await sb.from("products").delete().eq("id", id);
@@ -471,6 +558,11 @@
 
   async function initInvoicePage() {
     fillInvoiceProducts();
+    if (!document.getElementById("invoiceDateTime").value) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById("invoiceDateTime").value = now.toISOString().slice(0, 16);
+    }
     const { count } = await sb.from("invoices").select('*', { count: 'exact', head: true });
     document.getElementById("invoiceCodeDisplay").textContent = "فاتورة رقم: " + toArabicDigits((count || 0) + 1);
   }
@@ -487,7 +579,7 @@
     const qty = Number(document.getElementById("invoiceQty").value || 1);
     const p = products.find(x => x.id === id);
     if (!p) return alert("اختر صنفاً");
-    if (qty > Number(p.quantity)) return alert("الكمية غير متاحة");
+    if (qty > Number(p.quantity)) return alert("الكمية غير متاحة في المخزن");
 
     const existing = invoiceItems.find(x => x.product_id === id);
     if (existing) existing.quantity += qty;
@@ -497,9 +589,11 @@
 
   function calculateTotals() {
     const subTotal = invoiceItems.reduce((s, x) => s + x.quantity * x.price, 0);
+    const discount = parseFloat(document.getElementById("invoiceDiscount").value) || 0;
+    let finalTotal = Math.max(0, subTotal - discount);
     let paid = parseFloat(document.getElementById("amountPaid").value) || 0;
-    let remaining = Math.max(0, subTotal - paid);
-    return { subTotal, paid, remaining };
+    let remaining = Math.max(0, finalTotal - paid);
+    return { subTotal, discount, finalTotal, paid, remaining };
   }
 
   function renderInvoice() {
@@ -510,10 +604,10 @@
         <td>${toArabicDigits(x.price)}</td>
         <td>${toArabicDigits(x.quantity * x.price)}</td>
         <td><button class="danger small" onclick="invoiceItems.splice(${i},1);renderInvoice()">حذف</button></td>
-      </tr>`).join("") || `<tr><td colspan="5">لا توجد أصناف</td></tr>`;
+      </tr>`).join("") || `<tr><td colspan="5">لا توجد أصناف مضافة</td></tr>`;
 
     const t = calculateTotals();
-    document.getElementById("invoiceTotal").textContent = toArabicDigits(t.subTotal.toFixed(2));
+    document.getElementById("invoiceTotal").textContent = toArabicDigits(t.finalTotal.toFixed(2));
     document.getElementById("amountRemaining").value = toArabicDigits(t.remaining.toFixed(2)) + " ج.م";
   }
 
@@ -522,7 +616,9 @@
     document.getElementById("customerName").value = "";
     document.getElementById("customerPhone").value = "";
     document.getElementById("amountPaid").value = 0;
+    document.getElementById("invoiceDiscount").value = "";
     renderInvoice();
+    initInvoicePage();
   }
 
   async function saveInvoice() {
@@ -532,7 +628,7 @@
     const customer_phone = document.getElementById("customerPhone").value.trim();
 
     const { data: inv, error } = await sb.from("invoices").insert({
-      customer_name, customer_phone, total: t.subTotal, paid_amount: t.paid, remaining_amount: t.remaining
+      customer_name, customer_phone, total: t.finalTotal, paid_amount: t.paid, remaining_amount: t.remaining
     }).select().single();
 
     if (error) return alert(error.message);
@@ -551,22 +647,174 @@
   }
 
   async function loadInvoices() {
-    const { data } = await sb.from("invoices").select("*").order("created_at", { ascending: false }).limit(50);
-    document.getElementById("invoicesBody").innerHTML = (data || []).map((x, index) => `
+    const q = (document.getElementById("invoiceSearch")?.value || "").toLowerCase();
+    const { data } = await sb.from("invoices").select("*").order("created_at", { ascending: false }).limit(100);
+    const filtered = (data || []).filter(x => (x.customer_name || "").toLowerCase().includes(q) || String(x.id).includes(q));
+    
+    document.getElementById("invoicesBody").innerHTML = filtered.map((x, index) => `
       <tr>
         <td><b>${toArabicDigits(index + 1)}</b></td>
         <td>${esc(x.customer_name || "نقدي")}</td>
         <td><b>${toArabicDigits(x.total)} ج.م</b></td>
         <td style="color: #27ae60;">${toArabicDigits(x.paid_amount || 0)} ج.م</td>
         <td style="color: #c0392b;">${toArabicDigits(x.remaining_amount || 0)} ج.م</td>
-        <td>${toArabicDigits(new Date(x.created_at).toLocaleDateString("ar-EG"))}</td>
+        <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
+        <td>
+          <button class="small" onclick="printSavedInvoice('${x.id}')">طباعة الفاتورة</button>
+          ${x.remaining_amount > 0 ? `<button class="small success" onclick="payDebt('${x.id}',${x.remaining_amount})">تحصيل دين</button>` : ''}
+          <button class="small warning" onclick="editInvoice('${x.id}')">تعديل</button>
+          <button class="danger small" onclick="deleteInvoice('${x.id}')">حذف</button>
+        </td>
       </tr>`).join("");
+  }
+
+  async function payDebt(id, currentRemaining) {
+    const paidNow = parseFloat(prompt(`المبلغ المراد تحصيله (المتبقي: ${currentRemaining}):`, currentRemaining));
+    if (isNaN(paidNow) || paidNow <= 0) return;
+    
+    const { data: inv } = await sb.from("invoices").select("paid_amount, remaining_amount").eq("id", id).single();
+    if (!inv) return;
+
+    const newPaid = (inv.paid_amount || 0) + paidNow;
+    const newRemaining = Math.max(0, (inv.remaining_amount || currentRemaining) - paidNow);
+
+    const { error } = await sb.from("invoices").update({
+      paid_amount: newPaid,
+      remaining_amount: newRemaining
+    }).eq("id", id);
+
+    if (error) alert(error.message);
+    else {
+      alert("تم سداد وتحصيل المبلغ بنجاح!");
+      loadInvoices();
+    }
+  }
+
+  async function editInvoice(id) {
+    const newName = prompt("تعديل اسم العميل:");
+    if (newName !== null) {
+      await sb.from("invoices").update({ customer_name: newName }).eq("id", id);
+      loadInvoices();
+    }
+  }
+
+  async function deleteInvoice(id) {
+    if (confirm("هل أنت متأكد من حذف هذه الفاتورة؟ سيتم حذفها نهائياً.")) {
+      await sb.from("invoice_items").delete().eq("invoice_id", id);
+      await sb.from("invoices").delete().eq("id", id);
+      loadInvoices();
+    }
+  }
+
+  async function printSavedInvoice(id) {
+    const { data: inv } = await sb.from("invoices").select("*").eq("id", id).single();
+    const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
+    printInvoice(inv, items || []);
+  }
+
+  function printCurrentInvoice() {
+    if (!invoiceItems.length) return alert("الفاتورة فارغة");
+    const t = calculateTotals();
+    printInvoice({
+      id: "مؤقت",
+      created_at: new Date().toISOString(),
+      customer_name: document.getElementById("customerName").value,
+      customer_phone: document.getElementById("customerPhone").value,
+      total: t.finalTotal,
+      paid_amount: t.paid,
+      remaining_amount: t.remaining
+    }, invoiceItems.map(x => ({ product_name: x.name, quantity: x.quantity, unit_price: x.price, total: x.quantity * x.price })));
+  }
+
+  function buildInvoiceHtml(inv, items) {
+    const rows = items.map((x, idx) => `
+      <tr>
+        <td>${toArabicDigits(idx + 1)}</td>
+        <td>${esc(x.product_name)}</td>
+        <td>${toArabicDigits(x.quantity)}</td>
+        <td>${toArabicDigits(x.unit_price)} ج.م</td>
+        <td>${toArabicDigits(x.total)} ج.م</td>
+      </tr>`).join("");
+
+    return `<!doctype html>
+    <html lang="ar" dir="rtl">
+    <head>
+      <meta charset="utf-8">
+      <title>فاتورة بيع - ${esc(storeSettings.store_name)}</title>
+      <style>
+        body { font-family: 'Cairo', Tahoma, sans-serif; padding: 25px; color: #111; direction: rtl; }
+        .header { text-align: center; border-bottom: 2px solid #122b49; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { margin: 0; color: #122b49; font-size: 24px; }
+        .header p { margin: 5px 0 0; color: #555; font-size: 14px; }
+        .info { display: flex; justify-content: space-between; margin-bottom: 20px; background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: center; font-size: 13px; }
+        th { background: #122b49; color: #fff; }
+        .totals { float: left; width: 280px; background: #fdfbf7; border: 1px solid #e2dcd5; padding: 12px; border-radius: 6px; font-size: 14px; }
+        .totals div { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .totals div.final { font-weight: bold; color: #122b49; border-top: 1px solid #ccc; padding-top: 6px; font-size: 16px; }
+        .footer { clear: both; text-align: center; margin-top: 50px; font-size: 12px; color: #777; border-top: 1px dashed #ccc; padding-top: 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>${esc(storeSettings.store_name)}</h1>
+        <p>${esc(storeSettings.address || "")} — هاتف: ${toArabicDigits(storeSettings.phone || "")}</p>
+      </div>
+
+      <div class="info">
+        <div>
+          <div><b>رقم الفاتورة:</b> #${toArabicDigits(inv.id)}</div>
+          <div><b>اسم العميل:</b> ${esc(inv.customer_name || "نقدي")}</div>
+          <div><b>الهاتف:</b> ${toArabicDigits(inv.customer_phone || "---")}</div>
+        </div>
+        <div style="text-align: left;">
+          <div><b>التاريخ:</b> ${toArabicDigits(new Date(inv.created_at).toLocaleString("ar-EG"))}</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>م</th>
+            <th>الصنف</th>
+            <th>الكمية</th>
+            <th>سعر الوحدة</th>
+            <th>الإجمالي</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+
+      <div class="totals">
+        <div><span>إجمالي الفاتورة:</span> <b>${toArabicDigits(inv.total)} ج.م</b></div>
+        <div><span>المدفوع:</span> <b style="color: #27ae60;">${toArabicDigits(inv.paid_amount || 0)} ج.م</b></div>
+        <div class="final"><span>المتبقي (آجي):</span> <span>${toArabicDigits(inv.remaining_amount || 0)} ج.م</span></div>
+      </div>
+
+      <div class="footer">
+        <p>شكراً لتعاملكم معنا — ${esc(storeSettings.store_name)}</p>
+      </div>
+    </body>
+    </html>`;
+  }
+
+  function printInvoice(inv, items) {
+    const w = window.open("", "_blank");
+    w.document.write(buildInvoiceHtml(inv, items));
+    w.document.close();
+    w.onload = () => {
+      w.focus();
+      w.print();
+    };
   }
 
   async function addExpense() {
     const reason = document.getElementById("expenseReason").value.trim();
     const amount = Number(document.getElementById("expenseAmount").value);
-    if (!reason || !amount) return alert("أدخل البيان والمبلغ");
+    if (!reason || !amount) return alert("أدخل البيان والمبلغ بشكل صحيح");
     await sb.from("expenses").insert({ reason, amount });
     document.getElementById("expenseReason").value = "";
     document.getElementById("expenseAmount").value = "";
@@ -575,7 +823,7 @@
 
   async function loadExpenses() {
     const { data } = await sb.from("expenses").select("*").order("created_at", { ascending: false });
-    document.getElementById("expensesBody").innerHTML = (data || []).map(x => `<tr><td>${esc(x.reason)}</td><td>${toArabicDigits(x.amount)} ج.م</td><td>${toArabicDigits(new Date(x.created_at).toLocaleDateString("ar-EG"))}</td></tr>`).join("");
+    document.getElementById("expensesBody").innerHTML = (data || []).map(x => `<tr><td>${esc(x.reason)}</td><td><b>${toArabicDigits(x.amount)} ج.م</b></td><td>${toArabicDigits(new Date(x.created_at).toLocaleDateString("ar-EG"))}</td></tr>`).join("");
   }
 
   async function refreshDashboard() {
@@ -584,7 +832,12 @@
     document.getElementById("statProducts").textContent = toArabicDigits(prods.length);
     document.getElementById("statStock").textContent = toArabicDigits(prods.reduce((s, p) => s + (p.quantity * p.buy_price), 0).toFixed(2));
     document.getElementById("statSellStock").textContent = toArabicDigits(prods.reduce((s, p) => s + (p.quantity * p.sell_price), 0).toFixed(2));
-    document.getElementById("statLow").textContent = toArabicDigits(prods.filter(p => p.quantity <= (p.min_quantity || 0)).length);
+    document.getElementById("statLow").textContent = toArabicDigits(proods = prods.filter(p => p.quantity <= (p.min_quantity || 0)).length);
+  }
+
+  async function loadUsers() {
+    const { data } = await sb.from("profiles").select("*");
+    document.getElementById("usersBody").innerHTML = (data || []).map(p => `<div><b>${esc(p.id)}</b> — ${esc(p.role)}</div>`).join("");
   }
 
   function esc(v) { return String(v ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
