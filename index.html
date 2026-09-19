@@ -599,16 +599,31 @@
     await refreshDashboard();
   }
 
-  function initInvoicePage() {
+  // توليد كود فاتورة متسلسل تصاعدياً بناءً على آخر فاتورة مسجلة
+  async function initInvoicePage() {
     fillInvoiceProducts();
     if (!document.getElementById("invoiceDateTime").value) {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       document.getElementById("invoiceDateTime").value = now.toISOString().slice(0, 16);
     }
-    if (document.getElementById("invoiceNo").textContent === "جديدة" && !window.currentInvoiceCode) {
-      window.currentInvoiceCode = "HAMD-" + Math.floor(1000 + Math.random() * 9000);
-      document.getElementById("invoiceCodeDisplay").textContent = "كود الفاتورة: " + toArabicDigits(window.currentInvoiceCode);
+    if (document.getElementById("invoiceNo").textContent === "جديدة") {
+      try {
+        const { data: lastInv } = await sb.from("invoices").select("id").order("created_at", { ascending: false }).limit(1).maybeSingle();
+        let nextNumber = 210; // القيمة الافتراضية الأولى لو لم توجد فواتير سابقة
+        if (lastInv && !isNaN(Number(lastInv.id))) {
+          nextNumber = Number(lastInv.id) + 1;
+        } else {
+          // فحص لو الكود المخزن سابقاً رقمي
+          const { count } = await sb.from("invoices").select('*', { count: 'exact', head: true });
+          nextNumber = 210 + (count || 0);
+        }
+        window.currentInvoiceCode = String(nextNumber);
+        document.getElementById("invoiceCodeDisplay").textContent = "كود الفاتورة: " + toArabicDigits(window.currentInvoiceCode);
+      } catch (e) {
+        window.currentInvoiceCode = "210";
+        document.getElementById("invoiceCodeDisplay").textContent = "كود الفاتورة: " + toArabicDigits(window.currentInvoiceCode);
+      }
     }
   }
 
@@ -689,6 +704,7 @@
 
     const { subTotal, discountAmount, finalTotal, paid, remaining } = calculateTotals();
 
+    document.getElementById("invoiceSubSubTotal")?.textContent; // safeguard
     document.getElementById("invoiceSubTotal").textContent = toArabicDigits(money(subTotal));
 
     const discountLine = document.getElementById("discountDisplayLine");
@@ -705,14 +721,29 @@
     document.getElementById("amountRemaining").value = toArabicDigits(money(remaining)) + " ج.م";
   }
 
-  function resetInvoiceForm(showAlert = true) {
+  async function resetInvoiceForm(showAlert = true) {
     invoiceItems = [];
     document.getElementById("customerName").value = "";
     document.getElementById("customerPhone").value = "";
     document.getElementById("invoiceDiscount").value = "";
     document.getElementById("amountPaid").value = 0;
     document.getElementById("invoiceQty").value = 1;
-    window.currentInvoiceCode = "HAMD-" + Math.floor(1000 + Math.random() * 9000);
+    
+    // جلب الرقم المتسلسل التلي لمسح وإعادة تهيئة الفاتورة الجديدة
+    try {
+      const { data: lastInv } = await sb.from("invoices").select("id").order("created_at", { ascending: false }).limit(1).maybeSingle();
+      let nextNumber = 210;
+      if (lastInv && !isNaN(Number(lastInv.id))) {
+        nextNumber = Number(lastInv.id) + 1;
+      } else {
+        const { count } = await sb.from("invoices").select('*', { count: 'exact', head: true });
+        nextNumber = 210 + (count || 0);
+      }
+      window.currentInvoiceCode = String(nextNumber);
+    } catch (e) {
+      window.currentInvoiceCode = "210";
+    }
+
     document.getElementById("invoiceCodeDisplay").textContent = "كود الفاتورة: " + toArabicDigits(window.currentInvoiceCode);
     document.getElementById("invoiceNo").textContent = "جديدة";
     const now = new Date();
@@ -729,8 +760,9 @@
     const customer_name = document.getElementById("customerName").value.trim();
     const customer_phone = document.getElementById("customerPhone").value.trim();
     const invoiceDateTime = document.getElementById("invoiceDateTime").value;
+    const customId = Number(window.currentInvoiceCode) || undefined;
 
-    const { data: inv, error } = await sb.from("invoices").insert({
+    const payload = {
       type: "sale",
       customer_name,
       customer_phone,
@@ -739,7 +771,10 @@
       remaining_amount: remaining,
       created_by: currentUser.id,
       created_at: invoiceDateTime ? new Date(invoiceDateTime).toISOString() : new Date().toISOString()
-    }).select().single();
+    };
+    if (customId) payload.id = customId;
+
+    const { data: inv, error } = await sb.from("invoices").insert(payload).select().single();
 
     if (error) return alert("خطأ في حفظ الفاتورة: " + error.message);
 
@@ -762,18 +797,18 @@
       }
     }
 
-    document.getElementById("invoiceNo").textContent = "فاتورة " + toArabicDigits(String(inv.id).slice(0, 8));
+    document.getElementById("invoiceNo").textContent = "فاتورة " + toArabicDigits(String(inv.id));
     
     autoSaveInvoiceFile(inv.id, customer_name, finalTotal, paid, remaining);
 
-    alert("تم حفظ الفاتورة وتحديث المخزن بنجاح!");
+    alert("تم حفظ الفاتورة المتسلسلة وتحديث المخزن بنجاح!");
     await loadUniqueCustomers();
     await loadProducts();
     await refreshDashboard();
   }
 
   function autoSaveInvoiceFile(invId, customerName, total, paid, remaining) {
-    const code = window.currentInvoiceCode || ("HAMD-" + invId);
+    const code = String(invId);
     const htmlContent = buildInvoiceHtml({
       id: code,
       created_at: document.getElementById("invoiceDateTime").value,
@@ -799,7 +834,7 @@
     if (error) return;
     document.getElementById("invoicesBody").innerHTML = (data || []).map(x => `
       <tr>
-        <td>${toArabicDigits(String(x.id).slice(0, 8))}</td>
+        <td>${toArabicDigits(String(x.id))}</td>
         <td>${esc(x.customer_name || "نقدي")}</td>
         <td>${toArabicDigits(money(x.total))}</td>
         <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
@@ -818,7 +853,7 @@
     const { subTotal, discountAmount, finalTotal, paid, remaining } = calculateTotals();
 
     printInvoice({
-      id: window.currentInvoiceCode || "NEW",
+      id: window.currentInvoiceCode || "210",
       created_at: document.getElementById("invoiceDateTime").value ? new Date(document.getElementById("invoiceDateTime").value).toISOString() : new Date().toISOString(),
       customer_name: document.getElementById("customerName").value.trim(),
       customer_phone: document.getElementById("customerPhone").value.trim(),
@@ -975,7 +1010,7 @@
   }
 
   function money(n) { return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-  function esc(v) { return String(v ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
+  function esc(v) { return String(v ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])) }
 </script>
 </body>
 </html>
