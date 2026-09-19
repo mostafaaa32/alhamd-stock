@@ -184,12 +184,23 @@
 
             <div class="grid two" style="margin-top: 10px;">
               <div>
-                <label style="font-size: 13px; font-weight: bold; color: #555;">تاريخ الفاتورة:</label>
-                <input id="invoiceDate" type="date">
+                <label style="font-size: 13px; font-weight: bold; color: #555;">تاريخ ووقت الفاتورة:</label>
+                <input id="invoiceDateTime" type="datetime-local">
               </div>
               <div>
                 <label style="font-size: 13px; font-weight: bold; color: #555;">الخصم (مبلغ مثل 50 أو نسبة مثل 10%):</label>
                 <input id="invoiceDiscount" type="text" placeholder="اكتب قيمة أو نسبة الخصم" value="" oninput="renderInvoice()">
+              </div>
+            </div>
+
+            <div class="grid two" style="margin-top: 10px;">
+              <div>
+                <label style="font-size: 13px; font-weight: bold; color: #555;">المبلغ المدفوع:</label>
+                <input id="amountPaid" type="number" step="0.01" placeholder="0.00" value="0" oninput="renderInvoice()">
+              </div>
+              <div>
+                <label style="font-size: 13px; font-weight: bold; color: #555;">المبلغ المتبقي (آجي):</label>
+                <input id="amountRemaining" type="text" readonly style="background: #f9f9f9; font-weight: bold;" value="٠٫٠٠">
               </div>
             </div>
 
@@ -216,10 +227,12 @@
           </div>
 
           <div>
-            <div class="invoice-total" style="text-align: left; font-size: 20px; margin-top: 20px;">
-              <div id="subTotalDisplayLine" style="font-size: 15px; color: #666; margin-bottom: 3px;">إجمالي البنود: <b id="invoiceSubTotal">٠٫٠٠</b> ج.م</div>
-              <div id="discountDisplayLine" class="hidden" style="color: #e67e22; font-size: 16px; margin-bottom: 3px;">الخصم: <b id="invoiceDiscountText">٠٫٠٠</b> ج.م</div>
-              الإجمالي النهائي: <b id="invoiceTotal">٠٫٠٠</b> ج.م
+            <div class="invoice-total" style="text-align: left; font-size: 18px; margin-top: 20px;">
+              <div id="subTotalDisplayLine" style="font-size: 14px; color: #666; margin-bottom: 2px;">إجمالي البنود: <b id="invoiceSubTotal">٠٫٠٠</b> ج.م</div>
+              <div id="discountDisplayLine" class="hidden" style="color: #e67e22; font-size: 14px; margin-bottom: 2px;">الخصم: <b id="invoiceDiscountText">٠٫٠٠</b> ج.م</div>
+              <div style="font-weight: bold; color: #122b49; margin-bottom: 2px;">الإجمالي النهائي: <b id="invoiceTotal">٠٫٠٠</b> ج.م</div>
+              <div style="color: #27ae60; margin-bottom: 2px;">المدفوع: <b id="paidDisplayText">٠٫٠٠</b> ج.م</div>
+              <div style="color: #c0392b;">المتبقي: <b id="remainingDisplayText">٠٫٠٠</b> ج.م</div>
             </div>
             <div class="row" style="margin-top: 15px;">
               <button onclick="saveInvoice()">حفظ الفاتورة</button>
@@ -588,9 +601,10 @@
 
   function initInvoicePage() {
     fillInvoiceProducts();
-    if (!document.getElementById("invoiceDate").value) {
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById("invoiceDate").value = today;
+    if (!document.getElementById("invoiceDateTime").value) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById("invoiceDateTime").value = now.toISOString().slice(0, 16);
     }
     if (document.getElementById("invoiceNo").textContent === "جديدة" && !window.currentInvoiceCode) {
       window.currentInvoiceCode = "HAMD-" + Math.floor(1000 + Math.random() * 9000);
@@ -607,23 +621,20 @@
 
   function addInvoiceItem() {
     const id = document.getElementById("invoiceProduct").value;
-    const qty = Number(document.getElementById("invoiceQty").value || 1);
+    const qtyInput = document.getElementById("invoiceQty");
+    const qty = Number(qtyInput.value || 1);
     const p = products.find(x => x.id === id);
     if (!p) return alert("اختر صنفًا");
     if (qty < 1 || qty > Number(p.quantity)) return alert("الكمية غير متاحة في المخزن");
 
-    let customPrice = prompt(`أدخل سعر البيع لهذا البند (افتراضي: ${p.sell_price}):`, p.sell_price);
-    if (customPrice === null) return;
-    const finalPrice = Number(customPrice);
-    if (isNaN(finalPrice) || finalPrice < 0) return alert("سعر غير صحيح");
-
     const existing = invoiceItems.find(x => x.product_id === id);
     if (existing) {
       existing.quantity += qty;
-      existing.price = finalPrice;
     } else {
-      invoiceItems.push({product_id: id, name: p.name, quantity: qty, price: finalPrice});
+      invoiceItems.push({product_id: id, name: p.name, quantity: qty, price: Number(p.sell_price || 0)});
     }
+    
+    qtyInput.value = 1;
     renderInvoice();
   }
 
@@ -636,7 +647,7 @@
     }
   }
 
-  function calculateDiscountAndTotal() {
+  function calculateTotals() {
     const subTotal = invoiceItems.reduce((s, x) => s + x.quantity * x.price, 0);
     const discountInput = document.getElementById("invoiceDiscount").value.trim();
     let discountAmount = 0;
@@ -651,7 +662,11 @@
     let finalTotal = subTotal - discountAmount;
     if (finalTotal < 0) finalTotal = 0;
 
-    return { subTotal, discountAmount, finalTotal };
+    const paid = parseFloat(document.getElementById("amountPaid").value) || 0;
+    let remaining = finalTotal - paid;
+    if (remaining < 0) remaining = 0;
+
+    return { subTotal, discountAmount, finalTotal, paid, remaining };
   }
 
   function renderInvoice() {
@@ -663,13 +678,16 @@
         <tr>
           <td>${esc(x.name)}</td>
           <td>${toArabicDigits(x.quantity)}</td>
-          <td><span style="cursor:pointer; border-bottom: 1px dashed #007bff;" onclick="updateItemPrice(${i})" title="انقر لتعديل السعر">${toArabicDigits(money(x.price))}</span></td>
+          <td>${toArabicDigits(money(x.price))}</td>
           <td>${toArabicDigits(money(x.quantity * x.price))}</td>
-          <td><button class="danger small" onclick="invoiceItems.splice(${i},1);renderInvoice()">حذف</button></td>
+          <td>
+            <button class="btn-edit small" onclick="updateItemPrice(${i})">تعديل</button>
+            <button class="danger small" onclick="invoiceItems.splice(${i},1);renderInvoice()">حذف</button>
+          </td>
         </tr>`).join("");
     }
 
-    const { subTotal, discountAmount, finalTotal } = calculateDiscountAndTotal();
+    const { subTotal, discountAmount, finalTotal, paid, remaining } = calculateTotals();
 
     document.getElementById("invoiceSubTotal").textContent = toArabicDigits(money(subTotal));
 
@@ -682,6 +700,9 @@
     }
 
     document.getElementById("invoiceTotal").textContent = toArabicDigits(money(finalTotal));
+    document.getElementById("paidDisplayText").textContent = toArabicDigits(money(paid));
+    document.getElementById("remainingDisplayText").textContent = toArabicDigits(money(remaining));
+    document.getElementById("amountRemaining").value = toArabicDigits(money(remaining)) + " ج.م";
   }
 
   function resetInvoiceForm(showAlert = true) {
@@ -689,11 +710,14 @@
     document.getElementById("customerName").value = "";
     document.getElementById("customerPhone").value = "";
     document.getElementById("invoiceDiscount").value = "";
+    document.getElementById("amountPaid").value = 0;
+    document.getElementById("invoiceQty").value = 1;
     window.currentInvoiceCode = "HAMD-" + Math.floor(1000 + Math.random() * 9000);
     document.getElementById("invoiceCodeDisplay").textContent = "كود الفاتورة: " + toArabicDigits(window.currentInvoiceCode);
     document.getElementById("invoiceNo").textContent = "جديدة";
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById("invoiceDate").value = today;
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById("invoiceDateTime").value = now.toISOString().slice(0, 16);
     renderInvoice();
     if (showAlert) alert("تم مسح الفاتورة وبدء فاتورة جديدة بنجاح.");
   }
@@ -701,18 +725,20 @@
   async function saveInvoice() {
     if (!invoiceItems.length) return alert("أضف صنفًا واحدًا على الأقل لحفظ الفاتورة");
     
-    const { subTotal, discountAmount, finalTotal } = calculateDiscountAndTotal();
+    const { subTotal, discountAmount, finalTotal, paid, remaining } = calculateTotals();
     const customer_name = document.getElementById("customerName").value.trim();
     const customer_phone = document.getElementById("customerPhone").value.trim();
-    const invoiceDate = document.getElementById("invoiceDate").value;
+    const invoiceDateTime = document.getElementById("invoiceDateTime").value;
 
     const { data: inv, error } = await sb.from("invoices").insert({
       type: "sale",
       customer_name,
       customer_phone,
       total: finalTotal,
+      paid_amount: paid,
+      remaining_amount: remaining,
       created_by: currentUser.id,
-      created_at: invoiceDate ? new Date(invoiceDate).toISOString() : new Date().toISOString()
+      created_at: invoiceDateTime ? new Date(invoiceDateTime).toISOString() : new Date().toISOString()
     }).select().single();
 
     if (error) return alert("خطأ في حفظ الفاتورة: " + error.message);
@@ -737,10 +763,35 @@
     }
 
     document.getElementById("invoiceNo").textContent = "فاتورة " + toArabicDigits(String(inv.id).slice(0, 8));
+    
+    autoSaveInvoiceFile(inv.id, customer_name, finalTotal, paid, remaining);
+
     alert("تم حفظ الفاتورة وتحديث المخزن بنجاح!");
     await loadUniqueCustomers();
     await loadProducts();
     await refreshDashboard();
+  }
+
+  function autoSaveInvoiceFile(invId, customerName, total, paid, remaining) {
+    const code = window.currentInvoiceCode || ("HAMD-" + invId);
+    const htmlContent = buildInvoiceHtml({
+      id: code,
+      created_at: document.getElementById("invoiceDateTime").value,
+      customer_name: customerName,
+      customer_phone: document.getElementById("customerPhone").value,
+      total: total,
+      paid: paid,
+      remaining: remaining,
+      discount: calculateTotals().discountAmount
+    }, invoiceItems);
+
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `فاتورة_${code}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   async function loadInvoices() {
@@ -764,20 +815,22 @@
 
   function printCurrentInvoice() {
     if (!invoiceItems.length) return alert("الفاتورة فارغة");
-    const { subTotal, discountAmount, finalTotal } = calculateDiscountAndTotal();
+    const { subTotal, discountAmount, finalTotal, paid, remaining } = calculateTotals();
 
     printInvoice({
       id: window.currentInvoiceCode || "NEW",
-      created_at: document.getElementById("invoiceDate").value ? new Date(document.getElementById("invoiceDate").value).toISOString() : new Date().toISOString(),
+      created_at: document.getElementById("invoiceDateTime").value ? new Date(document.getElementById("invoiceDateTime").value).toISOString() : new Date().toISOString(),
       customer_name: document.getElementById("customerName").value.trim(),
       customer_phone: document.getElementById("customerPhone").value.trim(),
       subTotal: subTotal,
       discount: discountAmount,
-      total: finalTotal
+      total: finalTotal,
+      paid: paid,
+      remaining: remaining
     }, invoiceItems.map(x => ({ product_name: x.name, quantity: x.quantity, unit_price: x.price, total: x.quantity * x.price })));
   }
 
-  function printInvoice(inv, items) {
+  function buildInvoiceHtml(inv, items) {
     const logo = storeSettings.logo_url || "logo.png";
     const rows = items.map(x => `
       <tr>
@@ -793,14 +846,15 @@
         <td style="font-weight: bold; background: #faf9f5; color: #e67e22;">- ${toArabicDigits(money(inv.discount))} ج.م</td>
       </tr>` : "";
 
-    const html = `<!doctype html>
+    return `<!doctype html>
     <html lang="ar" dir="rtl">
     <head>
       <meta charset="utf-8">
       <title>فاتورة رقم ${toArabicDigits(String(inv.id))}</title>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
       <style>
-        body { font-family: 'Cairo', sans-serif; padding: 30px; color: #2c3e50; background: #fff; min-height: 90vh; display: flex; flex-direction: column; justify-content: space-between; }
+        @page { size: auto; margin: 0mm; }
+        body { font-family: 'Cairo', sans-serif; padding: 25px; color: #2c3e50; background: #fff; min-height: 95vh; display: flex; flex-direction: column; justify-content: space-between; margin: 0; }
         .invoice-box { border: 2px solid #c59b45; padding: 25px; border-radius: 10px; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
         .head { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #c59b45; padding-bottom: 15px; margin-bottom: 20px; }
         .head img { width: 90px; height: 90px; object-fit: contain; }
@@ -809,9 +863,9 @@
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         th, td { border: 1px solid #dcdcdc; padding: 12px; text-align: center; font-size: 15px; }
         th { background: #f5f1e7; color: #122b49; font-weight: 700; }
-        .total-box { text-align: left; font-size: 22px; font-weight: bold; margin-top: 15px; color: #122b49; background: #fdfbf7; padding: 15px; border-radius: 6px; }
+        .total-box { text-align: left; font-size: 18px; font-weight: bold; margin-top: 15px; color: #122b49; background: #fdfbf7; padding: 15px; border-radius: 6px; line-height: 1.8; }
         .foot { text-align: center; margin-top: 30px; color: #555; font-size: 14px; border-top: 1px dashed #ccc; padding-top: 15px; }
-        @media print { button { display: none; } body { padding: 0; } }
+        @media print { button { display: none; } body { padding: 15px; } }
       </style>
     </head>
     <body>
@@ -827,8 +881,8 @@
         
         <div class="meta">
           <div>
-            رقم الفاتورة: <b>${toArabicDigits(String(inv.id))}</b><br>
-            تاريخ الفاتورة: <b>${toArabicDigits(new Date(inv.created_at).toLocaleDateString("ar-EG"))}</b>
+            كود الفاتورة: <b>${toArabicDigits(String(inv.id))}</b><br>
+            التاريخ والوقت: <b>${toArabicDigits(new Date(inv.created_at).toLocaleString("ar-EG"))}</b>
           </div>
           <div>
             اسم العميل: <b>${esc(inv.customer_name || "عميل نقدي")}</b><br>
@@ -852,23 +906,25 @@
         </table>
 
         <div class="total-box">
-          إجمالي الفاتورة المستحق: ${toArabicDigits(money(inv.total))} ج.م
+          <div>إجمالي الفاتورة المستحق: ${toArabicDigits(money(inv.total))} ج.م</div>
+          <div style="color: #27ae60;">المبلغ المدفوع: ${toArabicDigits(money(inv.paid || 0))} ج.م</div>
+          <div style="color: #c0392b;">المبلغ المتبقي: ${toArabicDigits(money(inv.remaining || 0))} ج.م</div>
         </div>
       </div>
 
       <div class="foot">
         ${esc(storeSettings.invoice_footer || "شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم وتوفير أفضل خامات المقاولات لكم.")}
       </div>
-
-      <script>
-        window.onload = () => { window.print(); }
-      <\/script>
     </body>
     </html>`;
+  }
 
+  function printInvoice(inv, items) {
+    const html = buildInvoiceHtml(inv, items);
     const w = window.open("", "_blank");
     w.document.write(html);
     w.document.close();
+    w.onload = () => { w.print(); };
   }
 
   async function refreshDashboard() {
