@@ -505,17 +505,25 @@
     const w=window.open("","_blank"); w.document.write(html); w.document.close();
   }
 
+  // تحديث الشاشة الرئيسية وحساب قيمة المخزون بدقة
   async function refreshDashboard() {
     const { data: prodData, error: prodErr } = await sb.from("products").select("name, quantity, buy_price, min_quantity");
     if (prodErr) console.error("خطأ المنتجات:", prodErr);
 
     const list = prodData || [];
     
+    // 1. عدد الأصناف
     document.getElementById("statProducts").textContent = list.length;
 
-    const totalStock = list.reduce((sum, p) => sum + (Number(p.quantity || 0) * Number(p.buy_price || 0)), 0);
+    // 2. إجمالي قيمة المخزون الحالية = مجموع (الكمية × سعر الشراء)
+    const totalStock = list.reduce((sum, p) => {
+      const qty = Number(p.quantity) || 0;
+      const price = Number(p.buy_price) || 0;
+      return sum + (qty * price);
+    }, 0);
     document.getElementById("statStock").textContent = money(totalStock);
 
+    // 3. الأصناف الناقصة
     const lowStockItems = list.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
     document.getElementById("statLow").textContent = lowStockItems.length;
 
@@ -529,6 +537,7 @@
       document.getElementById("lowStock").innerHTML = "<p style='color:green;'>لا توجد أصناف ناقصة حاليًا 👍</p>";
     }
 
+    // 4. مبيعات اليوم
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
