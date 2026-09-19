@@ -39,6 +39,26 @@
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 15px;
     }
+    /* تنسيق عناوين الجدول القابلة للترتيب */
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+    th.sortable:hover {
+      background-color: #e2dbca;
+    }
+    .sort-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .sort-controls select {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
   </style>
 </head>
 <body>
@@ -110,10 +130,34 @@
             <h2>الأصناف</h2>
             <button id="btnAddProduct" class="can-edit-only hidden" onclick="openProductForm()">+ إضافة صنف جديد</button>
           </div>
-          <input id="productSearch" placeholder="بحث بالاسم أو الكود" oninput="renderProducts()">
+          <div class="sort-controls">
+            <input id="productSearch" style="flex:1;" placeholder="بحث بالاسم أو الكود" oninput="renderProducts()">
+            <select id="sortSelect" onchange="changeSortFromSelect(this.value)">
+              <option value="name_asc">الترتيب: بالاسم (أ-ي)</option>
+              <option value="name_desc">الترتيب: بالاسم (ي-أ)</option>
+              <option value="qty_desc">الكمية: الأعلى أولاً</option>
+              <option value="qty_asc">الكمية: الأقل أولاً</option>
+              <option value="buy_desc">سعر الشراء: الأعلى أولاً</option>
+              <option value="buy_asc">سعر الشراء: الأقل أولاً</option>
+              <option value="sell_desc">سعر البيع: الأعلى أولاً</option>
+              <option value="sell_asc">سعر البيع: الأقل أولاً</option>
+            </select>
+          </div>
           <div class="table-wrap">
-            <table><thead><tr><th>الكود</th><th>الصنف</th><th>الوحدة</th><th>شراء</th><th>بيع</th><th>الكمية</th><th>إجراءات</th></tr></thead>
-            <tbody id="productsBody"></tbody></table>
+            <table>
+              <thead>
+                <tr>
+                  <th class="sortable" onclick="sortBy('code')">الكود <span id="sort_code"></span></th>
+                  <th class="sortable" onclick="sortBy('name')">الصنف <span id="sort_name">⬍</span></th>
+                  <th class="sortable" onclick="sortBy('unit')">الوحدة <span id="sort_unit"></span></th>
+                  <th class="sortable" onclick="sortBy('buy_price')">شراء <span id="sort_buy_price"></span></th>
+                  <th class="sortable" onclick="sortBy('sell_price')">بيع <span id="sort_sell_price"></span></th>
+                  <th class="sortable" onclick="sortBy('quantity')">الكمية <span id="sort_quantity"></span></th>
+                  <th>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="productsBody"></tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -191,6 +235,8 @@
   let currentProfile = null;
   let products = [];
   let invoiceItems = [];
+  let currentSortKey = "name";
+  let currentSortAsc = true;
   let storeSettings = {
     store_name: "مكتب الحمد للمقاولات العامة",
     address: "",
@@ -305,10 +351,59 @@
     fillInvoiceProducts();
   }
 
+  function sortBy(key) {
+    if (currentSortKey === key) {
+      currentSortAsc = !currentSortAsc;
+    } else {
+      currentSortKey = key;
+      currentSortAsc = true;
+    }
+    renderProducts();
+  }
+
+  function changeSortFromSelect(val) {
+    const parts = val.split("_");
+    const keyMap = { name: "name", qty: "quantity", buy: "buy_price", sell: "sell_price" };
+    currentSortKey = keyMap[parts[0]] || "name";
+    currentSortAsc = (parts[1] === "asc");
+    renderProducts();
+  }
+
   function renderProducts() {
     const q = (document.getElementById("productSearch")?.value || "").toLowerCase();
-    const rows = products.filter(p => (p.name || "").toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q));
+    let rows = products.filter(p => (p.name || "").toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q));
     
+    // الترتيب بحسب العمود المحدد
+    rows.sort((a, b) => {
+      let valA = a[currentSortKey] ?? "";
+      let valB = b[currentSortKey] ?? "";
+
+      // لو الرقم نصي نقوم بتحويله لرقم للمقارنة الصحيحة
+      if (["quantity", "buy_price", "sell_price"].includes(currentSortKey)) {
+        valA = Number(valA) || 0;
+        valB = Number(valB) || 0;
+      } else {
+        valA = String(valA).toLowerCase();
+        valB = String(valB).toLowerCase();
+      }
+
+      if (valA < valB) return currentSortAsc ? -1 : 1;
+      if (valA > valB) return currentSortAsc ? 1 : -1;
+      return 0;
+    });
+
+    // تحديث أسهم الترتيب في العناوين
+    ["code", "name", "unit", "buy_price", "sell_price", "quantity"].forEach(k => {
+      const el = document.getElementById("sort_" + k);
+      if (el) {
+        if (k === currentSortKey) {
+          el.textContent = currentSortAsc ? "⬆️" : "⬇️";
+        } else {
+          el.textContent = "";
+        }
+      }
+    });
+
     // التحقق من صلاحية التعديل للمستخدم الحالي
     const role = currentProfile?.role || "user";
     const canEdit = (role === "admin" || role === "user" || role === "general");
