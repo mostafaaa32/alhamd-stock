@@ -11,7 +11,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    /* تطبيق الخط العربي على كل العناصر */
     * {
       font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
     }
@@ -179,7 +178,7 @@
               </div>
               <div>
                 <label style="font-size: 13px; font-weight: bold; color: #555;">هاتف العميل:</label>
-                <input id="customerPhone" placeholder="رقم الهاتف (اختياري)" oninput="formatInputsOnFly(this)">
+                <input id="customerPhone" placeholder="رقم الهاتف (اختياري)">
               </div>
             </div>
 
@@ -196,7 +195,7 @@
 
             <div class="invoice-add" style="margin-top: 15px;">
               <select id="invoiceProduct"></select>
-              <input id="invoiceQty" type="number" min="1" value="1" placeholder="الكمية" oninput="formatInputsOnFly(this)">
+              <input id="invoiceQty" type="number" min="1" value="1" placeholder="الكمية">
               <button onclick="addInvoiceItem()">إضافة بند</button>
             </div>
 
@@ -248,8 +247,8 @@
           <div class="grid two">
             <label>اسم المكتب<input id="storeName" value="مكتب الحمد للمقاولات العامة"></label>
             <label>العنوان<input id="storeAddress" placeholder="اكتب العنوان"></label>
-            <label>الهاتف<input id="storePhone" placeholder="رقم الهاتف" oninput="formatInputsOnFly(this)"></label>
-            <label>واتساب<input id="storeWhatsapp" placeholder="رقم واتساب" oninput="formatInputsOnFly(this)"></label>
+            <label>الهاتف<input id="storePhone" placeholder="رقم الهاتف"></label>
+            <label>واتساب<input id="storeWhatsapp" placeholder="رقم واتساب"></label>
           </div>
           <label>رابط اللوجو (اختياري إذا أردت رفعه لاحقًا)
             <input id="logoUrl" placeholder="اتركه فارغًا لاستخدام logo.png الموجود داخل الملف">
@@ -297,12 +296,6 @@
     const str = String(input);
     const arabicNumbers = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
     return str.replace(/[0-9]/g, d => arabicNumbers[parseInt(d)]);
-  }
-
-  function formatInputsOnFly(el) {
-    let val = el.value;
-    const engToAr = {'0':'٠','1':'١','2':'٢','3':'٣','4':'٤','5':'٥','6':'٦','7':'٧','8':'٨','9':'٩'};
-    el.value = val.replace(/[0-9]/g, match => engToAr[match]);
   }
 
   document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
@@ -436,7 +429,7 @@
     const nameVal = document.getElementById("customerName").value.trim();
     const found = allCustomers.find(c => c.name === nameVal);
     if (found && found.phone) {
-      document.getElementById("customerPhone").value = toArabicDigits(found.phone);
+      document.getElementById("customerPhone").value = found.phone;
     }
   }
 
@@ -643,7 +636,6 @@
     }
   }
 
-  // حساب تفاصيل الخصم (مبلغ أو نسبة مئوية)
   function calculateDiscountAndTotal() {
     const subTotal = invoiceItems.reduce((s, x) => s + x.quantity * x.price, 0);
     const discountInput = document.getElementById("invoiceDiscount").value.trim();
