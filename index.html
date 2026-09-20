@@ -113,7 +113,7 @@
   </style>
 </head>
 <body>
-  <!-- شاشة تسجيل الدخول بيوزر و باسورد وبدون زر إنشاء حساب -->
+  <!-- شاشة تسجيل الدخول باليوزر والباسورد (بدون إيميل وبدون زر إنشاء حساب) -->
   <div id="loginView" class="auth-wrap">
     <div class="card auth-card" style="width: 90%; max-width: 400px; margin: auto;">
       <img src="logo.png" class="login-logo" alt="لوجو مكتب الحمد">
@@ -425,7 +425,7 @@
         </div>
       </section>
 
-      <!-- صفحة المستخدمين والإنشاء الآمن والصلاحيات -->
+      <!-- صفحة المستخدمين والإنشاء الآمن مع الاسم الحقيقي -->
       <section id="users" class="tab-page hidden">
         <div class="card">
           <h2>المستخدمون والصلاحيات</h2>
@@ -433,8 +433,11 @@
           
           <div class="card" style="margin-top: 15px; background: #fdfbf7; border: 1px solid #e2dbca;">
             <h3>➕ إضافة مستخدم جديد للنظام</h3>
-            <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
-              <input id="newUsername" placeholder="اسم المستخدم (Username)">
+            <div style="margin-top: 10px;">
+              <input id="newFullName" placeholder="الاسم الحقيقي (مثل: مصطفى سيف)" style="width: 100%; margin-bottom: 10px; padding: 8px;">
+            </div>
+            <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <input id="newUsername" placeholder="اسم المستخدم للدخول (Username)">
               <input id="newPassword" type="password" placeholder="كلمة المرور">
             </div>
             <div style="margin-top: 10px;">
@@ -502,9 +505,8 @@
     if (btn.dataset.tab === "settings") loadStoreSettings();
   }));
 
-  // --- نظام تسجيل الدخول باستخدام اسم المستخدم وكلمة المرور (بدون جيميل) ---
   async function loginWithUsername() {
-    const rawUsername = document.getElementById("usernameLogin").value.trim();
+    const rawUsername = document.getElementById("usernameLogin").value.trim().toLowerCase();
     const password = document.getElementById("passwordLogin").value;
     const msgEl = document.getElementById("authMsg");
 
@@ -513,8 +515,7 @@
       return;
     }
 
-    // تحويل اسم المستخدم إلى البريد الافتراضي الداخلي المرتبط به
-    const email = rawUsername.toLowerCase().replace(/[^a-z0-9]/g, '') + "@elhamd.sys";
+    const email = rawUsername.replace(/[^a-z0-9]/g, '') + "@elhamdapp.com";
 
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if (error) {
@@ -550,15 +551,14 @@
     if (role === "admin") roleText = "المدير الأساسي";
     else if (role === "admin2") roleText = "مدير ثانٍ";
 
-    document.getElementById("userLabel").textContent = (p?.username || currentUser.email) + " — " + roleText;
+    const displayName = p?.full_name || p?.username || "مستخدم";
+    document.getElementById("userLabel").textContent = displayName + " — " + roleText;
     
-    // إظهار الأدوات الخاصة بالأدمن الأساسي فقط أو الأدمن 2
     const isAdminOrAdmin2 = (role === "admin" || role === "admin2");
     document.querySelectorAll(".admin-only").forEach(el => {
-      el.classList.toggle("hidden", role !== "admin" && role !== "admin2");
+      el.classList.toggle("hidden", !isAdminOrAdmin2);
     });
 
-    // إظهار خيار إنشاء أدمن أساسي فقط للمدير الأساسي
     const optAdmin = document.getElementById("optionAdminRole");
     if (optAdmin) optAdmin.classList.toggle("hidden", role !== "admin");
 
@@ -568,41 +568,41 @@
     });
   }
 
-  // --- إنشاء مستخدم جديد بواسطة الأدمن أو الأدمن 2 من داخل صفحة المستخدمين ---
+  // --- إنشاء مستخدم جديد مع حفظ الاسم الحقيقي في قاعدة البيانات ---
   async function createNewSystemUser() {
     if (currentProfile?.role !== "admin" && currentProfile?.role !== "admin2") {
       return alert("غير مسموح لك بإنشاء مستخدمين");
     }
 
-    const username = document.getElementById("newUsername").value.trim();
+    const fullName = document.getElementById("newFullName").value.trim();
+    const username = document.getElementById("newUsername").value.trim().toLowerCase();
     const password = document.getElementById("newPassword").value;
     const role = document.getElementById("newRole").value;
 
     if (!username || !password) return alert("أدخل اسم المستخدم وكلمة المرور الجديدة");
 
-    // منع الأدمن 2 من إنشاء أدمن أساسي
     if (currentProfile?.role === "admin2" && role === "admin") {
       return alert("لا يملك المدير الثاني صلاحية إنشاء مدير أساسي جديد!");
     }
 
-    const email = username.toLowerCase().replace(/[^a-z0-9]/g, '') + "@elhamd.sys";
+    const email = username.replace(/[^a-z0-9]/g, '') + "@elhamdapp.com";
 
-    // إنشاء الحساب في نظام التوثيق Supabase Auth
     const { data: authData, error: authErr } = await sb.auth.signUp({ email, password });
     if (authErr) return alert("خطأ أثناء إنشاء الحساب: " + authErr.message);
 
     const newUserId = authData.user ? authData.user.id : null;
     if (newUserId) {
-      // حفظ البيانات في جدول profiles
       await sb.from("profiles").upsert({
         id: newUserId,
         username: username,
+        full_name: fullName || username,
         role: role
       });
     }
 
-    await logActivity("إنشاء مستخدم جديد", `إنشاء حساب باسم: ${username} بصلاحية: ${role}`);
+    await logActivity("إنشاء مستخدم جديد", `إنشاء حساب باسم: ${fullName || username} (يوزر: ${username}) بصلاحية: ${role}`);
     alert("تم إنشاء المستخدم بنجاح!");
+    document.getElementById("newFullName").value = "";
     document.getElementById("newUsername").value = "";
     document.getElementById("newPassword").value = "";
     await loadUsers();
@@ -1615,7 +1615,7 @@
     }
   }
 
-  // --- تحميل قائمة المستخدمين مع تطبيق صلاحيات الحذف والتعديل بحسب نوع الأدمن ---
+  // --- تحميل قائمة المستخدمين مع عرض الاسم الحقيقي ويوزر الدخول وصلاحيات الحذف والتعديل ---
   async function loadUsers() {
     const { data } = await sb.from("profiles").select("*").order("created_at", { ascending: true });
     const myRole = currentProfile?.role || "user";
@@ -1626,16 +1626,16 @@
       if (uRole === "admin") roleBadge = "المدير الأساسي (Admin)";
       else if (uRole === "admin2") roleBadge = "مدير ثانٍ (Admin 2)";
 
-      // هل يمكن تعديل هذا المستخدم؟
-      // الأدمن 2 لا يمكنه تعديل الأدمن الأساسي ولا تغيير صلاحيته
+      const fullName = p.full_name || "بدون اسم";
+      const username = p.username || "غير محدد";
+
       let canModify = false;
       let canDelete = false;
 
       if (myRole === "admin") {
         canModify = true;
-        canDelete = (p.id !== currentUser.id); // الأدمن الأساسي يستطيع حذف أي شخص عدا نفسه
+        canDelete = (p.id !== currentUser.id);
       } else if (myRole === "admin2") {
-        // الأدمن 2 يمكنه تعديل وحذف المستخدمين العاديين فقط، ولا يستطيع لمس أي أدمن أساسي
         if (uRole !== "admin") {
           canModify = true;
           canDelete = (p.id !== currentUser.id);
@@ -1645,12 +1645,13 @@
       return `
       <div class="card" style="margin-bottom: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-          <b>اسم المستخدم:</b> ${esc(p.username || p.id)}<br>
+          <b>الاسم:</b> <span style="color: #122b49; font-size: 16px;">${esc(fullName)}</span><br>
+          <span class="muted">اسم المستخدم (للدخول): <code>${esc(username)}</code></span><br>
           <span class="muted">الصلاحية: <b>${roleBadge}</b></span>
         </div>
         <div>
           ${canModify ? `<button class="btn-edit small" onclick="changeUserRole('${p.id}', '${uRole}')">تغيير الصلاحية</button>` : ''}
-          ${canDelete ? `<button class="danger small" onclick="deleteUser('${p.id}', '${esc(p.username)}')">حذف المستخدم</button>` : ''}
+          ${canDelete ? `<button class="danger small" onclick="deleteUser('${p.id}', '${esc(fullName)}')">حذف المستخدم</button>` : ''}
           {!canModify && !canDelete ? '<span class="muted">محمي / صلاحية مقيدة</span>' : ''}
         </div>
       </div>`;
@@ -1660,7 +1661,6 @@
   async function changeUserRole(userId, currentRole) {
     const myRole = currentProfile?.role || "user";
 
-    // لو الأدمن 2 يحاول تعديل صلاحية أدمن أساسي (حماية إضافية)
     if (myRole === "admin2" && currentRole === "admin") {
       return alert("غير مسموح لك بتعديل صلاحيات المدير الأساسي!");
     }
@@ -1685,17 +1685,16 @@
     await loadUsers();
   }
 
-  async function deleteUser(userId, username) {
+  async function deleteUser(userId, fullName) {
     const myRole = currentProfile?.role || "user";
     if (myRole !== "admin" && myRole !== "admin2") return alert("غير مسموح لك بالحذف");
 
-    if (!confirm(`هل أنت متأكد من حذف المستخدم (${username || userId}) نهائياً من النظام؟`)) return;
+    if (!confirm(`هل أنت متأكد من حذف المستخدم (${fullName}) نهائياً من النظام؟`)) return;
 
-    // حذف السجل من جدول profiles
     const { error } = await sb.from("profiles").delete().eq("id", userId);
     if (error) return alert("حدث خطأ أثناء الحذف: " + error.message);
 
-    await logActivity("حذف مستخدم", `حذف المستخدم: ${username || userId}`);
+    await logActivity("حذف مستخدم", `حذف المستخدم: ${fullName}`);
     alert("تم حذف المستخدم بنجاح!");
     await loadUsers();
   }
