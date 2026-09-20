@@ -219,7 +219,7 @@
           </div>
         </div>
 
-        <!-- خانة المتصلين الآن (تظهر للأدمن الأساسي فقط) -->
+        <!-- خانة المتصلين الآن -->
         <div id="onlineUsersCard" class="card admin-only hidden" style="border-right: 5px solid #27ae60; background: #f4fbf7;">
           <h3>🟢 المستخدمون المتصلون الآن على السيستم</h3>
           <div id="onlineUsersList" style="margin-top: 8px; font-weight: bold; color: #2c3e50;">جاري التحقق من المتصلين...</div>
@@ -235,7 +235,6 @@
           <div class="stat card" style="border-right: 4px solid #e74c3c;"><span>الأصناف الناقصة</span><b id="statLow" style="color:#e74c3c;">٠</b></div>
         </div>
 
-        <!-- بطاقات تقارير الأرباح والخسائر الشاملة -->
         <div class="grid stats admin-only hidden" style="margin-top: 15px;">
           <div class="stat card" style="border-right: 4px solid #2ecc71;">
             <span>إجمالي المبيعات العامة</span>
@@ -496,7 +495,7 @@
           <div class="card" style="margin-top: 15px; background: #fdfbf7; border: 1px solid #e2dbca;">
             <h3>➕ إضافة مستخدم جديد للنظام</h3>
             <div style="margin-top: 10px;">
-              <input id="newFullName" placeholder="الاسم الحقيقي (مثل: مصطفى سيف)" style="width: 100%; margin-bottom: 10px; padding: 8px;">
+              <input id="newFullName" placeholder="اسم المستخدم أو الكنية (مثل: مصطفى سيف)" style="width: 100%; margin-bottom: 10px; padding: 8px;">
             </div>
             <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
               <input id="newUsername" placeholder="اسم المستخدم للدخول (Username)">
@@ -603,20 +602,12 @@
     document.getElementById("loginView").classList.add("hidden");
     document.getElementById("appView").classList.remove("hidden");
     
-    await updateOnlinePresence();
-    setInterval(updateOnlinePresence, 30000);
-
     await loadProfile();
     await loadStoreSettings();
     await refreshDashboard();
     await loadProducts();
     await loadUniqueCustomers();
   });
-
-  async function updateOnlinePresence() {
-    if (!currentUser) return;
-    await sb.from("profiles").update({ last_seen: new Date().toISOString() }).eq("id", currentUser.id);
-  }
 
   async function loadProfile() {
     const { data: p } = await sb.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
@@ -626,8 +617,8 @@
     if (role === "admin") roleText = "المدير الأساسي";
     else if (role === "admin2") roleText = "مدير ثانٍ";
 
-    const fullName = p?.fullname || p?.username || "مستخدم";
-    document.getElementById("userLabel").textContent = fullName + " — " + roleText;
+    const usernameDisplay = p?.username || "مستخدم";
+    document.getElementById("userLabel").textContent = usernameDisplay + " — " + roleText;
     
     const isAdminOrAdmin2 = (role === "admin" || role === "admin2");
     
@@ -647,7 +638,6 @@
       return alert("غير مسموح لك بإنشاء مستخدمين");
     }
 
-    const fullName = document.getElementById("newFullName").value.trim();
     const username = document.getElementById("newUsername").value.trim().toLowerCase();
     const password = document.getElementById("newPassword").value;
     const role = document.getElementById("newRole").value;
@@ -668,14 +658,11 @@
       await sb.from("profiles").upsert({
         id: newUserId,
         username: username,
-        fullname: fullName || username,
         role: role
       });
     }
 
-    await logActivity("إنشاء مستخدم جديد", `إنشاء حساب باسم: ${fullName || username} (يوزر: ${username}) بصلاحية: ${role}`);
     alert("تم إنشاء المستخدم بنجاح!");
-    document.getElementById("newFullName").value = "";
     document.getElementById("newUsername").value = "";
     document.getElementById("newPassword").value = "";
     await loadUsers();
@@ -713,30 +700,6 @@
     const { error } = await sb.from("store_settings").upsert(payload);
     document.getElementById("settingsMsg").textContent = error ? error.message : "تم حفظ بيانات المكتب بنجاح";
     if (!error) { storeSettings = {...storeSettings, ...payload}; document.getElementById("headerStoreName").textContent = payload.store_name; }
-  }
-
-  async function logActivity(action, details) {
-    try {
-      await sb.from("activity_logs").insert([{
-        action: action,
-        details: details,
-        created_by: currentUser ? currentUser.id : null
-      }]);
-    } catch (e) {
-      console.error("خطأ في تسجيل النشاط:", e.message);
-    }
-  }
-
-  async function loadAuditLogs() {
-    const { data, error } = await sb.from("activity_logs").select("*").order("created_at", { ascending: false }).limit(100);
-    if (error) return;
-    document.getElementById("auditLogsBody").innerHTML = (data || []).map(x => `
-      <tr>
-        <td><b>${esc(x.action)}</b></td>
-        <td>${esc(x.details)}</td>
-        <td><span class="muted">${esc(currentUser ? currentUser.email : "مستخدم النظام")}</span></td>
-        <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
-      </tr>`).join("");
   }
 
   async function loadProducts() {
@@ -868,7 +831,6 @@
     const { error } = await sb.from("products").update({ quantity: newQty }).eq("id", id);
     if (error) return alert("حدث خطأ أثناء إضافة الكمية: " + error.message);
     
-    await logActivity("تحديث مخزون", `إضافة كمية (${added}) للصنف ID: ${id}`);
     alert("تم إضافة الكمية بنجاح!");
     await loadProducts();
     await refreshDashboard();
@@ -903,7 +865,6 @@
     const { error } = await sb.from("products").update(updated).eq("id", id);
     if (error) return alert("حدث خطأ أثناء تعديل البيانات: " + error.message);
 
-    await logActivity("تعديل صنف", `تعديل بيانات الصنف: ${name}`);
     alert("تم تعديل الصنف بنجاح!");
     await loadProducts();
     await refreshDashboard();
@@ -928,7 +889,6 @@
   async function saveProduct(p) {
     const { error } = await sb.from("products").insert(p);
     if (error) return alert(error.message);
-    await logActivity("إضافة صنف جديد", `إضافة صنف: ${p.name}`);
     await loadProducts(); 
     await refreshDashboard();
   }
@@ -940,7 +900,6 @@
     if (!confirm("هل أنت تأكد من حذف الصنف؟")) return;
     const { error } = await sb.from("products").delete().eq("id", id);
     if (error) return alert(error.message);
-    await logActivity("حذف صنف", `حذف الصنف ID: ${id}`);
     await loadProducts(); 
     await refreshDashboard();
   }
@@ -1115,10 +1074,7 @@
       }
     }
 
-    const creatorName = currentProfile?.fullname || currentProfile?.username || "مستخدم";
-    await logActivity("حفظ فاتورة مبيعات", `إصدار فاتورة رقم ${inv.id} للعميل: ${customer_name || "نقدي"} بواسطة: ${creatorName}`);
     document.getElementById("invoiceNo").textContent = "فاتورة " + toArabicDigits(String(inv.id));
-    
     autoSaveInvoiceFile(inv.id, customer_name, finalTotal, paid, remaining);
 
     alert("تم حفظ الفاتورة وتحديث المخزن والخزينة بنجاح!");
@@ -1155,7 +1111,6 @@
       created_by: currentUser.id
     }]);
 
-    await logActivity("تحصيل دين", `تحصيل مبلغ ${payAmount} ج.م من العميل (${customerName}) للفاتورة رقم ${id}`);
     alert(`تم تحصيل مبلغ ${payAmount} ج.م بنجاح وتحديث حساب العميل وخزينة اليوم!`);
     await loadInvoices();
     await refreshDashboard();
@@ -1190,7 +1145,6 @@
 
     if (updateErr) return alert("خطأ في التحديث: " + updateErr.message);
 
-    await logActivity("تعديل فاتورة", `تعديل بيانات الفاتورة رقم ${id}`);
     alert("تم تعديل الفاتورة بنجاح!");
     await loadInvoices();
     await refreshDashboard();
@@ -1221,7 +1175,6 @@
 
     if (delErr) return alert("حدث خطأ أثناء إلغاء الفاتورة: " + delErr.message);
 
-    await logActivity("إلغاء فاتورة", `إلغاء الفاتورة رقم ${id} واسترداد البضاعة للمخزن`);
     alert("تم إلغاء الفاتورة واسترداد البضاعة إلى المخزن بنجاح!");
     await loadInvoices();
     await loadProducts();
@@ -1242,7 +1195,6 @@
 
     if (error) return alert("خطأ في تسجيل المصروف: " + error.message);
 
-    await logActivity("تسجيل مصروف", `تسجيل مصروف (${reason}) بمبلغ ${amount} ج.م`);
     document.getElementById("expenseReason").value = "";
     document.getElementById("expenseAmount").value = "";
     alert("تم تسجيل المصروف وخصمه من الخزينة بنجاح!");
@@ -1267,7 +1219,6 @@
     if (!confirm("هل أنت متأكد من حذف هذا المصروف؟")) return;
     const { error } = await sb.from("expenses").delete().eq("id", id);
     if (error) return alert(error.message);
-    await logActivity("حذف مصروف", `حذف مصروف ID: ${id}`);
     loadExpenses();
     refreshDashboard();
   }
@@ -1359,7 +1310,7 @@
   }
 
   async function loadInvoices() {
-    const { data, error } = await sb.from("invoices").select("*, profiles:created_by(fullname, username)").order("created_at", { ascending: false }).limit(100);
+    const { data, error } = await sb.from("invoices").select("*, profiles:created_by(username)").order("created_at", { ascending: false }).limit(100);
     if (error) return;
 
     const role = currentProfile?.role || "user";
@@ -1370,7 +1321,7 @@
       const paidVal = Number(x.paid_amount || 0);
       const customerEsc = esc(x.customer_name);
       const phoneVal = esc(x.customer_phone || "");
-      const creatorName = esc(x.profiles?.fullname || x.profiles?.username || "مستخدم النظام");
+      const creatorName = esc(x.profiles?.username || "مستخدم النظام");
       
       let formattedPhone = phoneVal;
       if (formattedPhone) {
@@ -1608,21 +1559,19 @@
       if (expEl) expEl.textContent = toArabicDigits(money(totalExpenses)) + ' ج.م';
       if (profitEl) profitEl.textContent = toArabicDigits(money(netProfit)) + ' ج.م';
     } catch (e) {
-      console.error("خطأ في جلب التقارير المالية:", e.message);
+      console.error("خطأ في التقارير المالية:", e.message);
     }
   }
 
   async function refreshDashboard() {
     if (currentProfile?.role === "admin") {
-      const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { data: onlineProfiles } = await sb.from("profiles").select("fullname, username, role, last_seen").gte("last_seen", fiveMinsAgo);
-      
+      const { data: onlineProfiles } = await sb.from("profiles").select("username, role");
       const onlineEl = document.getElementById("onlineUsersList");
       if (onlineEl) {
         if (onlineProfiles && onlineProfiles.length > 0) {
-          onlineEl.innerHTML = onlineProfiles.map(u => `<span class="badge" style="background: #27ae60; color: white; margin-left: 5px; padding: 4px 8px; border-radius: 4px;">🟢 ${esc(u.fullname || u.username)} (${u.role})</span>`).join("");
+          onlineEl.innerHTML = onlineProfiles.map(u => `<span class="badge" style="background: #27ae60; color: white; margin-left: 5px; padding: 4px 8px; border-radius: 4px;">🟢 ${esc(u.username)} (${u.role})</span>`).join("");
         } else {
-          onlineEl.innerHTML = "<span class='muted'>لا يوجد مستخدمون متصلون حالياً سواك.</span>";
+          onlineEl.innerHTML = "<span class='muted'>لا يوجد مستخدمون مسجلون.</span>";
         }
       }
     }
@@ -1725,7 +1674,6 @@
       if (uRole === "admin") roleBadge = "المدير الأساسي (Admin)";
       else if (uRole === "admin2") roleBadge = "مدير ثانٍ (Admin 2)";
 
-      const fullName = p.fullname || "بدون اسم";
       const username = p.username || "غير محدد";
 
       let canModify = false;
@@ -1744,13 +1692,12 @@
       return `
       <div class="card" style="margin-bottom: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-          <b>الاسم:</b> <span style="color: #122b49; font-size: 16px;">${esc(fullName)}</span><br>
-          <span class="muted">اسم المستخدم (للدخول): <code>${esc(username)}</code></span><br>
+          <b>اسم المستخدم:</b> <span style="color: #122b49; font-size: 16px;">${esc(username)}</span><br>
           <span class="muted">الصلاحية: <b>${roleBadge}</b></span>
         </div>
         <div>
           ${canModify ? `<button class="btn-edit small" onclick="changeUserRole('${p.id}', '${uRole}')">تغيير الصلاحية</button>` : ''}
-          ${canDelete ? `<button class="danger small" onclick="deleteUser('${p.id}', '${esc(fullName)}')">حذف المستخدم</button>` : ''}
+          ${canDelete ? `<button class="danger small" onclick="deleteUser('${p.id}', '${esc(username)}')">حذف المستخدم</button>` : ''}
           {!canModify && !canDelete ? '<span class="muted">محمي / صلاحية مقيدة</span>' : ''}
         </div>
       </div>`;
@@ -1779,21 +1726,19 @@
     const { error } = await sb.from("profiles").update({ role: newRole }).eq("id", userId);
     if (error) return alert("خطأ في تحديث الصلاحية: " + error.message);
 
-    await logActivity("تغيير صلاحية مستخدم", `تعديل صلاحية المستخدم ID: ${userId} إلى ${newRole}`);
     alert("تم تحديث صلاحية المستخدم بنجاح!");
     await loadUsers();
   }
 
-  async function deleteUser(userId, fullName) {
+  async function deleteUser(userId, username) {
     const myRole = currentProfile?.role || "user";
     if (myRole !== "admin" && myRole !== "admin2") return alert("غير مسموح لك بالحذف");
 
-    if (!confirm(`هل أنت متأكد من حذف المستخدم (${fullName}) نهائياً من النظام؟`)) return;
+    if (!confirm(`هل أنت متأكد من حذف المستخدم (${username}) نهائياً من النظام؟`)) return;
 
     const { error } = await sb.from("profiles").delete().eq("id", userId);
     if (error) return alert("حدث خطأ أثناء الحذف: " + error.message);
 
-    await logActivity("حذف مستخدم", `حذف المستخدم: ${fullName}`);
     alert("تم حذف المستخدم بنجاح!");
     await loadUsers();
   }
