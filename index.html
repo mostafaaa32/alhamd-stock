@@ -49,6 +49,19 @@
       margin-left: 4px;
       margin-bottom: 4px;
     }
+    .btn-whatsapp {
+      background-color: #25d366;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 4px;
+      margin-bottom: 4px;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 13px;
+    }
     .btn-cancel {
       background-color: #dc3545;
       color: white;
@@ -153,7 +166,7 @@
 
         <div class="grid stats">
           <div class="stat card"><span>عدد الأصناف</span><b id="statProducts">٠</b></div>
-          <div class="stat card"><span>قيمة الشراء (رأس المال)</span><b id="statStock">٠٫٠٠</b></div>
+          <div class="stat card admin-only hidden"><span>قيمة الشراء (رأس المال)</span><b id="statStock">٠٫٠٠</b></div>
           <div class="stat card"><span>قيمة البيع المتوقعة</span><b id="statSellStock" style="color: #28a745;">٠٫٠٠</b></div>
           <div class="stat card"><span>مبيعات اليوم الكلية</span><b id="statSales">٠٫٠٠</b></div>
           <div class="stat card" style="border-right: 4px solid #e74c3c;"><span>المصروفات اليومية</span><b id="statExpenses" style="color:#e74c3c;">٠٫٠٠</b></div>
@@ -161,8 +174,8 @@
           <div class="stat card" style="border-right: 4px solid #e74c3c;"><span>الأصناف الناقصة</span><b id="statLow" style="color:#e74c3c;">٠</b></div>
         </div>
 
-        <!-- بطاقات تقارير الأرباح والخسائر الشاملة -->
-        <div class="grid stats" style="margin-top: 15px;">
+        <!-- بطاقات تقارير الأرباح والخسائر الشاملة (للمدير فقط) -->
+        <div class="grid stats admin-only hidden" style="margin-top: 15px;">
           <div class="stat card" style="border-right: 4px solid #2ecc71;">
             <span>إجمالي المبيعات العامة</span>
             <b id="totalSalesElement" style="color: #2ecc71;">٠٫٠٠ ج.م</b>
@@ -208,8 +221,8 @@
               <option value="name_desc">الترتيب: بالاسم (ي-أ)</option>
               <option value="qty_desc">الكمية: الأعلى أولاً</option>
               <option value="qty_asc">الكمية: الأقل أولاً</option>
-              <option value="buy_desc">سعر الشراء: الأعلى أولاً</option>
-              <option value="buy_asc">سعر الشراء: الأقل أولاً</option>
+              <option value="buy_desc" class="admin-only hidden">سعر الشراء: الأعلى أولاً</option>
+              <option value="buy_asc" class="admin-only hidden">سعر الشراء: الأقل أولاً</option>
               <option value="sell_desc">سعر البيع: الأعلى أولاً</option>
               <option value="sell_asc">سعر البيع: الأقل أولاً</option>
             </select>
@@ -221,10 +234,10 @@
                   <th class="sortable" onclick="sortBy('code')">الكود <span id="sort_code"></span></th>
                   <th class="sortable" onclick="sortBy('name')">الصنف <span id="sort_name">⬍</span></th>
                   <th class="sortable" onclick="sortBy('unit')">الوحدة <span id="sort_unit"></span></th>
-                  <th class="sortable" onclick="sortBy('buy_price')">شراء <span id="sort_buy_price"></span></th>
+                  <th class="sortable admin-only hidden" onclick="sortBy('buy_price')">شراء <span id="sort_buy_price"></span></th>
                   <th class="sortable" onclick="sortBy('sell_price')">بيع <span id="sort_sell_price"></span></th>
                   <th class="sortable" onclick="sortBy('quantity')">الكمية <span id="sort_quantity"></span></th>
-                  <th>إجمالي رأس المال</th>
+                  <th class="admin-only hidden">إجمالي رأس المال</th>
                   <th>إجراءات</th>
                 </tr>
               </thead>
@@ -413,8 +426,9 @@
 
       <section id="users" class="tab-page hidden">
         <div class="card">
-          <h2>المستخدمون</h2>
-          <div id="usersBody"></div>
+          <h2>المستخدمون والصلاحيات</h2>
+          <p class="muted">يمكنك هنا مراجعة المستخدمين المسجلين وصلاحياتهم في النظام.</p>
+          <div id="usersBody" style="margin-top: 15px;"></div>
         </div>
       </section>
     </main>
@@ -501,12 +515,14 @@
     await loadUniqueCustomers();
   });
 
+  // --- ميزة 5: إدارة الصلاحيات المتقدمة ---
   async function loadProfile() {
     const { data: p } = await sb.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
     currentProfile = p;
     const role = p?.role || "user";
-    document.getElementById("userLabel").textContent = currentUser.email + (role === "admin" ? " — مدير النظام" : " — مستخدم");
+    document.getElementById("userLabel").textContent = currentUser.email + (role === "admin" ? " — مدير النظام" : " — كاشير / مستخدم");
     
+    // إظهار أو إخفاء العناصر الخاصة بالمدير فقط
     document.querySelectorAll(".admin-only").forEach(el => {
       el.classList.toggle("hidden", role !== "admin");
     });
@@ -660,6 +676,7 @@
     });
 
     const role = currentProfile?.role || "user";
+    const isAdmin = (role === "admin");
     const canEdit = (role === "admin" || role === "user" || role === "general");
 
     document.getElementById("productsBody").innerHTML = rows.map(p => {
@@ -676,10 +693,10 @@
         <td>${esc(p.code)}</td>
         <td>${esc(p.name)}</td>
         <td>${esc(p.unit)}</td>
-        <td>${toArabicDigits(money(p.buy_price))}</td>
+        <td class="admin-only ${isAdmin ? '' : 'hidden'}">${toArabicDigits(money(p.buy_price))}</td>
         <td>${toArabicDigits(money(p.sell_price))}</td>
         <td><b>${toArabicDigits(p.quantity)}</b></td>
-        <td><b style="color: #2c3e50;">${toArabicDigits(money(totalBuyCapital))} ج.م</b></td>
+        <td class="admin-only ${isAdmin ? '' : 'hidden'}"><b style="color: #2c3e50;">${toArabicDigits(money(totalBuyCapital))} ج.م</b></td>
         <td>
           ${canEdit ? `
             <button class="btn-qty small" onclick="addQuantity('${p.id}',${p.quantity})">+ كمية</button>
@@ -917,7 +934,6 @@
     const customer_phone = document.getElementById("customerPhone").value.trim();
     const invoiceDateTime = document.getElementById("invoiceDateTime").value;
 
-    // تم إزالة الرقم المخصص لكي تتولى قاعدة البيانات توليد كود الفاتورة تلقائياً بدون أخطاء تكرار
     const payload = {
       type: "sale",
       customer_name,
@@ -1126,6 +1142,21 @@
     document.body.removeChild(link);
   }
 
+  // --- ميزة 4: إرسال تفاصيل الفاتورة وحساب العملاء عبر واتساب ---
+  function sendWhatsAppMessage(customerPhone, customerName, invoiceId, total, remaining) {
+    let phone = customerPhone ? customerPhone.trim() : "";
+    if (!phone) {
+      phone = prompt("أدخل رقم هاتف العميل (مع كود الدولة مثل 2010...):", "");
+      if (!phone) return;
+    }
+    // تنظيف رقم الهاتف وإزالة أي رموز
+    phone = phone.replace(/\D/g, '');
+    
+    const message = `مرحباً بالعزيز ${customerName || "عميلنا"} 🏗️\nتنبيه من ${storeSettings.store_name}:\nتفاصيل الفاتورة رقم (${invoiceId}):\n- إجمالي الفاتورة: ${total} ج.م\n- المبلغ المتبقي (آجل): ${remaining} ج.م\nنشكر لتعاملكم الدائم معنا.`;
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  }
+
   async function loadInvoices() {
     const { data, error } = await sb.from("invoices").select("*").order("created_at", { ascending: false }).limit(100);
     if (error) return;
@@ -1133,17 +1164,19 @@
       const rem = Number(x.remaining_amount || 0);
       const paidVal = Number(x.paid_amount || 0);
       const customerEsc = esc(x.customer_name);
+      const phoneVal = esc(x.customer_phone || "");
       return `
       <tr>
         <td><b>${toArabicDigits(String(x.id))}</b> ${x.is_edited ? '<span class="badge-edited">تم التعديل</span>' : ''}</td>
-        <td>${esc(x.customer_name || "نقدي")}</td>
+        <td>${customerEsc || "نقدي"}</td>
         <td><b>${toArabicDigits(money(x.total))} ج.م</b></td>
         <td style="color: #27ae60;">${toArabicDigits(money(paidVal))} ج.م</td>
         <td style="color: #c0392b;"><b>${toArabicDigits(money(rem))} ج.م</b></td>
         <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
         <td>
           <button class="small" onclick="printSavedInvoice('${x.id}')">طباعة</button>
-          ${rem > 0 ? `<button class="btn-pay small" onclick="payDebt('${x.id}',${rem}, ${paidVal}, '${customerEsc}')">تحصيل من الدين</button>` : ''}
+          <a class="btn-whatsapp small" href="javascript:void(0)" onclick="sendWhatsAppMessage('${phoneVal}', '${customerEsc}', '${x.id}', '${x.total}', '${rem}')">واتساب</a>
+          ${rem > 0 ? `<button class="btn-pay small" onclick="payDebt('${x.id}',${rem}, ${paidVal}, '${customerEsc}')">تحصيل</button>` : ''}
           <button class="btn-edit small" onclick="editSavedInvoice('${x.id}')">تعديل</button>
           <button class="btn-cancel small" onclick="cancelInvoice('${x.id}')">إلغاء</button>
         </td>
@@ -1263,7 +1296,7 @@
           padding-top: 15px; 
         }
         @media print { 
-          button { display: none; } 
+          button, .btn-whatsapp { display: none; } 
           body { padding: 0; }
           .invoice-container { border: none; padding: 5px; }
         }
@@ -1360,7 +1393,8 @@
     document.getElementById("statProducts").textContent = toArabicDigits(list.length);
 
     const totalBuyStock = list.reduce((sum, p) => sum + ((Number(p.quantity) || 0) * (Number(p.buy_price) || 0)), 0);
-    document.getElementById("statStock").textContent = toArabicDigits(money(totalBuyStock));
+    const stockEl = document.getElementById("statStock");
+    if(stockEl) stockEl.textContent = toArabicDigits(money(totalBuyStock));
 
     const totalSellStock = list.reduce((sum, p) => sum + ((Number(p.quantity) || 0) * (Number(p.sell_price) || 0)), 0);
     document.getElementById("statSellStock").textContent = toArabicDigits(money(totalSellStock));
@@ -1399,7 +1433,9 @@
     document.getElementById("statExpenses").textContent = toArabicDigits(money(todayExpenses));
     document.getElementById("statCashToday").textContent = toArabicDigits(money(netCashToday));
 
-    await loadFinancialSummary();
+    if (currentProfile?.role === "admin") {
+      await loadFinancialSummary();
+    }
 
     const { data: allInvs } = await sb.from("invoices").select("customer_name, total");
     if (allInvs && allInvs.length > 0) {
@@ -1437,7 +1473,25 @@
 
   async function loadUsers() {
     const { data } = await sb.from("profiles").select("*").order("created_at", { ascending: true });
-    document.getElementById("usersBody").innerHTML = (data || []).map(p => `<div class="user-row"><b>${esc(p.id)}</b><span>${esc(p.role || "user")}</span></div>`).join("");
+    document.getElementById("usersBody").innerHTML = (data || []).map(p => `
+      <div class="card" style="margin-bottom: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <b>معرف المستخدم:</b> ${esc(p.id)}<br>
+          <span class="muted">الصلاحية الحالية: <b>${esc(p.role || "user")}</b></span>
+        </div>
+        ${currentProfile?.role === "admin" ? `<button class="btn-edit small" onclick="changeUserRole('${p.id}', '${p.role || "user"}')">تغيير الصلاحية</button>` : ''}
+      </div>`).join("");
+  }
+
+  async function changeUserRole(userId, currentRole) {
+    const newRole = prompt("أدخل الصلاحية الجديدة للمستخدم (admin أو user):", currentRole);
+    if (!newRole || (newRole !== "admin" && newRole !== "user")) return alert("صلاحية غير صالحة");
+
+    const { error } = await sb.from("profiles").update({ role: newRole }).eq("id", userId);
+    if (error) return alert("خطأ في تحديث الصلاحية: " + error.message);
+
+    alert("تم تحديث صلاحية المستخدم بنجاح!");
+    await loadUsers();
   }
 
   function money(n) { return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
