@@ -135,6 +135,7 @@
       <button class="tab" data-tab="invoice">فاتورة بيع</button>
       <button class="tab" data-tab="invoices">الفواتير</button>
       <button class="tab" data-tab="expenses">المصروفات</button>
+      <button class="tab admin-only hidden" data-tab="auditLogs">سجل النشاطات</button>
       <button class="tab admin-only hidden" data-tab="settings">إعدادات المكتب</button>
       <button class="tab admin-only hidden" data-tab="users">المستخدمون</button>
     </nav>
@@ -368,6 +369,27 @@
         </div>
       </section>
 
+      <!-- 6. سجل النشاطات والحركات (Audit Trail) -->
+      <section id="auditLogs" class="tab-page hidden">
+        <div class="card">
+          <h2>سجل الحركة والنشاطات (Audit Trail)</h2>
+          <p class="muted">متابعة كافة العمليات الحساسة في النظام (حفظ فواتير، تحصيل ديون، تسجيل مصروفات).</p>
+          <div class="table-wrap" style="margin-top: 15px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>الحدث / العملية</th>
+                  <th>التفاصيل</th>
+                  <th>المستخدم</th>
+                  <th>التاريخ والوقت</th>
+                </tr>
+              </thead>
+              <tbody id="auditLogsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <section id="settings" class="tab-page hidden">
         <div class="card">
           <h2>بيانات مكتب الحمد</h2>
@@ -440,6 +462,7 @@
     if (btn.dataset.tab === "invoice") initInvoicePage();
     if (btn.dataset.tab === "invoices") loadInvoices();
     if (btn.dataset.tab === "expenses") loadExpenses();
+    if (btn.dataset.tab === "auditLogs") loadAuditLogs();
     if (btn.dataset.tab === "dashboard") refreshDashboard();
     if (btn.dataset.tab === "users") loadUsers();
     if (btn.dataset.tab === "settings") loadStoreSettings();
@@ -526,6 +549,31 @@
     const { error } = await sb.from("store_settings").upsert(payload);
     document.getElementById("settingsMsg").textContent = error ? error.message : "تم حفظ بيانات المكتب بنجاح";
     if (!error) { storeSettings = {...storeSettings, ...payload}; document.getElementById("headerStoreName").textContent = payload.store_name; }
+  }
+
+  // --- 5. دالة تسجيل الأنشطة والحركات (Audit Trail) ---
+  async function logActivity(action, details) {
+    try {
+      await sb.from("activity_logs").insert([{
+        action: action,
+        details: details,
+        created_by: currentUser ? currentUser.id : null
+      }]);
+    } catch (e) {
+      console.error("خطأ في تسجيل النشاط:", e.message);
+    }
+  }
+
+  async function loadAuditLogs() {
+    const { data, error } = await sb.from("activity_logs").select("*").order("created_at", { ascending: false }).limit(100);
+    if (error) return;
+    document.getElementById("auditLogsBody").innerHTML = (data || []).map(x => `
+      <tr>
+        <td><b>${esc(x.action)}</b></td>
+        <td>${esc(x.details)}</td>
+        <td><span class="muted">${esc(currentUser ? currentUser.email : "مستخدم النظام")}</span></td>
+        <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
+      </tr>`).join("");
   }
 
   async function loadProducts() {
@@ -657,6 +705,7 @@
     const { error } = await sb.from("products").update({ quantity: newQty }).eq("id", id);
     if (error) return alert("حدث خطأ أثناء إضافة الكمية: " + error.message);
     
+    await logActivity("تحديث مخزون", `إضافة كمية (${added}) للصنف ID: ${id}`);
     alert("تم إضافة الكمية بنجاح!");
     await loadProducts();
     await refreshDashboard();
@@ -691,6 +740,7 @@
     const { error } = await sb.from("products").update(updated).eq("id", id);
     if (error) return alert("حدث خطأ أثناء تعديل البيانات: " + error.message);
 
+    await logActivity("تعديل صنف", `تعديل بيانات الصنف: ${name}`);
     alert("تم تعديل الصنف بنجاح!");
     await loadProducts();
     await refreshDashboard();
@@ -715,6 +765,7 @@
   async function saveProduct(p) {
     const { error } = await sb.from("products").insert(p);
     if (error) return alert(error.message);
+    await logActivity("إضافة صنف جديد", `إضافة صنف: ${p.name}`);
     await loadProducts(); 
     await refreshDashboard();
   }
@@ -726,6 +777,7 @@
     if (!confirm("هل أنت تأكد من حذف الصنف؟")) return;
     const { error } = await sb.from("products").delete().eq("id", id);
     if (error) return alert(error.message);
+    await logActivity("حذف صنف", `حذف الصنف ID: ${id}`);
     await loadProducts(); 
     await refreshDashboard();
   }
@@ -932,6 +984,7 @@
       }
     }
 
+    await logActivity("حفظ فاتورة مبيعات", `إصدار فاتورة رقم ${inv.id} للعميل: ${customername || "نقدي"} بإجمالي ${finalTotal} ج.م`);
     document.getElementById("invoiceNo").textContent = "فاتورة " + toArabicDigits(String(inv.id));
     
     autoSaveInvoiceFile(inv.id, customer_name, finalTotal, paid, remaining);
@@ -970,6 +1023,7 @@
       created_by: currentUser.id
     }]);
 
+    await logActivity("تحصيل دين", `تحصيل مبلغ ${payAmount} ج.م من العميل (${customerName}) للفاتورة رقم ${id}`);
     alert(`تم تحصيل مبلغ ${payAmount} ج.م بنجاح وتحديث حساب العميل وخزينة اليوم!`);
     await loadInvoices();
     await refreshDashboard();
@@ -1002,6 +1056,7 @@
 
     if (updateErr) return alert("خطأ في التحديث: " + updateErr.message);
 
+    await logActivity("تعديل فاتورة", `تعديل بيانات الفاتورة رقم ${id}`);
     alert("تم تعديل الفاتورة بنجاح وتحديث البيانات!");
     await loadInvoices();
     await refreshDashboard();
@@ -1031,6 +1086,7 @@
 
     if (delErr) return alert("حدث خطأ أثناء إلغاء الفاتورة: " + delErr.message);
 
+    await logActivity("إلغاء فاتورة", `إلغاء الفاتورة رقم ${id} واسترداد البضاعة للمخزن`);
     alert("تم إلغاء الفاتورة واسترداد البضاعة إلى المخزن بنجاح!");
     await loadInvoices();
     await loadProducts();
@@ -1051,6 +1107,7 @@
 
     if (error) return alert("خطأ في تسجيل المصروف: " + error.message);
 
+    await logActivity("تسجيل مصروف", `تسجيل مصروف (${reason}) بمبلغ ${amount} ج.م`);
     document.getElementById("expenseReason").value = "";
     document.getElementById("expenseAmount").value = "";
     alert("تم تسجيل المصروف وخصمه من الخزينة بنجاح!");
@@ -1074,6 +1131,7 @@
     if (!confirm("هل أنت متأكد من حذف هذا المصروف؟")) return;
     const { error } = await sb.from("expenses").delete().eq("id", id);
     if (error) return alert(error.message);
+    await logActivity("حذف مصروف", `حذف مصروف ID: ${id}`);
     await loadExpenses();
     await refreshDashboard();
   }
@@ -1148,7 +1206,7 @@
     }, invoiceItems.map(x => ({ product_name: x.name, quantity: x.quantity, unit_price: x.price, total: x.quantity * x.price })));
   }
 
-  // --- 4. قالب ورقة الطباعة الاحترافي المطور ---
+  // --- قالب ورقة الطباعة الاحترافي المطور ---
   function buildInvoiceHtml(inv, items) {
     const logo = storeSettings.logo_url || "logo.png";
     const rows = items.map(x => `
