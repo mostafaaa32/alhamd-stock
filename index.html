@@ -1115,8 +1115,8 @@
     const { error } = await sb.from("expenses").delete().eq("id", id);
     if (error) return alert(error.message);
     await logActivity("حذف مصروف", `حذف مصروف ID: ${id}`);
-    await loadExpenses();
-    await refreshDashboard();
+    loadExpenses();
+    refreshDashboard();
   }
 
   function autoSaveInvoiceFile(invId, customerName, total, paid, remaining) {
@@ -1141,13 +1141,16 @@
     document.body.removeChild(link);
   }
 
-  // --- دالة إرسال واتساب أعمال (تنزيل ملف الفاتورة + فتح واتساب برقم مصر الدولي + رسالة تفصيلية) ---
-  async function sendWhatsAppBusinessMessage(id, customerPhone, customerName, total, remaining) {
-    // 1. جلب بنود الفاتورة من القاعدة لإنشاء ملف الـ HTML وتحميله تلقائياً
-    const { data: inv } = await sb.from("invoices").select("*").eq("id", id).single();
-    const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
+  // --- دالة إرسال واتساب أعمال متكاملة (تحميل ملف HTML + رسالة نصية بكل الأصناف وتفاصيل الفاتورة) ---
+  async function sendWhatsAppBusinessMessage(id, customerPhone, customerName) {
+    // 1. جلب بنود الفاتورة وفاتورة البيع من قاعدة البيانات
+    const { data: inv, error: invErr } = await sb.from("invoices").select("*").eq("id", id).single();
+    const { data: items, error: itemErr } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
     
-    if (inv && items) {
+    if (invErr || !inv) return alert("تعذر جلب تفاصيل الفاتورة");
+
+    // 2. تحميل ملف الفاتورة HTML على جهازك للأرشيف
+    if (items && items.length > 0) {
       const htmlContent = buildInvoiceHtml(inv, items);
       const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
       const link = document.createElement('a');
@@ -1158,7 +1161,7 @@
       document.body.removeChild(link);
     }
 
-    // 2. تجهيز رقم الهاتف المصري (الكود الدولي +20)
+    // 3. تجهيز رقم الهاتف المصري (الكود الدولي +20)
     let phone = customerPhone ? customerPhone.trim() : "";
     if (!phone) {
       phone = prompt("أدخل رقم هاتف العميل (مثل 01012345678):", "");
@@ -1172,10 +1175,41 @@
       phone = '20' + phone;
     }
     
-    // 3. فتح واتساب أعمال (أو واتساب الويب) بالرسالة الجاهزة
-    const message = `مرحباً بالعزيز ${customerName || "عميلنا"} 🏗️\nتنبيه من ${storeSettings.store_name}:\nتم إصدار الفاتورة رقم (${toArabicDigits(String(id))}):\n- إجمالي الفاتورة: ${toArabicDigits(money(total))} ج.م\n- المبلغ المتبقي (آجل): ${toArabicDigits(money(remaining))} ج.م\n*(مرفق ملف الفاتورة بصيغة HTML تم تحميله على جهازك، يمكنك إرفاقه هنا مباشرة)*\nنشكر لتعاملكم الدائم معنا.`;
+    // 4. بناء نص الرسالة شاملاً الأصناف والكميات والأسعار تفصيلياً
+    let itemsText = "";
+    if (items && items.length > 0) {
+      items.forEach((item, index) => {
+        const itemName = item.product_name || item.name || "صنف";
+        const itemQty = toArabicDigits(item.quantity);
+        const itemPrice = toArabicDigits(money(item.unit_price || item.price));
+        const itemTotal = toArabicDigits(money(item.total));
+        itemsText += `${toArabicDigits(index + 1)}. ${itemName} (الكمية: ${itemQty} | السعر: ${itemPrice} ج.م | الإجمالي: ${itemTotal} ج.م)\n`;
+      });
+    } else {
+      itemsText = "لا توجد أصناف مسجلة.\n";
+    }
+
+    const paidAmt = toArabicDigits(money(inv.paid_amount || 0));
+    const remAmt = toArabicDigits(money(inv.remaining_amount || 0));
+    const totalAmt = toArabicDigits(money(inv.total || 0));
+    const invDate = toArabicDigits(new Date(inv.created_at).toLocaleString("ar-EG"));
+
+    const message = `مرحباً بالعزيز ${customerName || "عميلنا"} 🏗️\n` +
+      `📌 تفاصيل فاتورتك من *${storeSettings.store_name}*:\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `🧾 *رقم الفاتورة:* #${toArabicDigits(String(inv.id))}\n` +
+      `📅 *التاريخ:* ${invDate}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `🛒 *الأصناف المشتراة:*\n${itemsText}` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `💰 *الإجمالي النهائي:* ${totalAmt} ج.م\n` +
+      `💵 *المبلغ المدفوع:* ${paidAmt} ج.م\n` +
+      `⚠️ *المبلغ المتبقي (آجل):* ${remAmt} ج.م\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `*(مرفق ملف الفاتورة HTML على جهاز الكاشير، يمكنك إرفاقه هنا للمراسلة)*\n` +
+      `شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم! 🙏`;
     
-    // رابط واتساب الرسمي لفتح تطبيق واتساب أعمال / ويب مباشر
+    // 5. فتح رابط واتساب أعمال
     const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   }
@@ -1208,7 +1242,7 @@
         <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
         <td>
           <button class="small" onclick="printSavedInvoice('${x.id}')">طباعة</button>
-          <a class="btn-whatsapp small" href="javascript:void(0)" onclick="sendWhatsAppBusinessMessage('${x.id}', '${phoneVal}', '${customerEsc}', '${x.total}', '${rem}')">واتساب أعمال</a>
+          <a class="btn-whatsapp small" href="javascript:void(0)" onclick="sendWhatsAppBusinessMessage('${x.id}', '${phoneVal}', '${customerEsc}')">واتساب أعمال</a>
           ${rem > 0 ? `<button class="btn-pay small" onclick="payDebt('${x.id}',${rem}, ${paidVal}, '${customerEsc}')">تحصيل</button>` : ''}
           <button class="btn-edit small" onclick="editSavedInvoice('${x.id}')">تعديل</button>
           <button class="btn-cancel small" onclick="cancelInvoice('${x.id}')">إلغاء</button>
