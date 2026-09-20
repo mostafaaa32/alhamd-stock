@@ -266,8 +266,8 @@
                 <datalist id="customersList"></datalist>
               </div>
               <div>
-                <label style="font-size: 13px; font-weight: bold; color: #555;">هاتف العميل:</label>
-                <input id="customerPhone" placeholder="رقم الهاتف (اختياري)">
+                <label style="font-size: 13px; font-weight: bold; color: #555;">هاتف العميل (يبدأ بـ 01):</label>
+                <input id="customerPhone" placeholder="مثال: 01012345678">
               </div>
             </div>
 
@@ -343,6 +343,7 @@
                 <tr>
                   <th>رقم الفاتورة</th>
                   <th>العميل</th>
+                  <th>هاتف العميل</th>
                   <th>الإجمالي</th>
                   <th>المدفوع</th>
                   <th>المتبقي (دين)</th>
@@ -515,14 +516,12 @@
     await loadUniqueCustomers();
   });
 
-  // --- ميزة 5: إدارة الصلاحيات المتقدمة ---
   async function loadProfile() {
     const { data: p } = await sb.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
     currentProfile = p;
     const role = p?.role || "user";
     document.getElementById("userLabel").textContent = currentUser.email + (role === "admin" ? " — مدير النظام" : " — كاشير / مستخدم");
     
-    // إظهار أو إخفاء العناصر الخاصة بالمدير فقط
     document.querySelectorAll(".admin-only").forEach(el => {
       el.classList.toggle("hidden", role !== "admin");
     });
@@ -1142,15 +1141,23 @@
     document.body.removeChild(link);
   }
 
-  // --- ميزة 4: إرسال تفاصيل الفاتورة وحساب العملاء عبر واتساب ---
+  // --- دالة إرسال الواتساب مع إضافة كود الدولة المصري تلقائياً (+20) ---
   function sendWhatsAppMessage(customerPhone, customerName, invoiceId, total, remaining) {
     let phone = customerPhone ? customerPhone.trim() : "";
     if (!phone) {
-      phone = prompt("أدخل رقم هاتف العميل (مع كود الدولة مثل 2010...):", "");
+      phone = prompt("أدخل رقم هاتف العميل (مثل 01012345678):", "");
       if (!phone) return;
     }
-    // تنظيف رقم الهاتف وإزالة أي رموز
+    
+    // تنظيف الرقم من أي مسافات أو رموز
     phone = phone.replace(/\D/g, '');
+    
+    // لو الرقم يبدأ بـ 0 (مثل 010...) نشيل الصفر ونحط كود مصر 20
+    if (phone.startsWith('0')) {
+      phone = '20' + phone.substring(1);
+    } else if (!phone.startsWith('20')) {
+      phone = '20' + phone;
+    }
     
     const message = `مرحباً بالعزيز ${customerName || "عميلنا"} 🏗️\nتنبيه من ${storeSettings.store_name}:\nتفاصيل الفاتورة رقم (${invoiceId}):\n- إجمالي الفاتورة: ${total} ج.م\n- المبلغ المتبقي (آجل): ${remaining} ج.م\nنشكر لتعاملكم الدائم معنا.`;
     const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
@@ -1165,10 +1172,20 @@
       const paidVal = Number(x.paid_amount || 0);
       const customerEsc = esc(x.customer_name);
       const phoneVal = esc(x.customer_phone || "");
+      // عرض رقم الهاتف مع كود مصر بصرياً لتوضيح للمستخدم
+      let formattedPhone = phoneVal;
+      if (formattedPhone) {
+        let clean = formattedPhone.replace(/\D/g, '');
+        if (clean.startsWith('0')) clean = '20' + clean.substring(1);
+        else if (!clean.startsWith('20')) clean = '20' + clean;
+        formattedPhone = '+' + clean;
+      }
+
       return `
       <tr>
         <td><b>${toArabicDigits(String(x.id))}</b> ${x.is_edited ? '<span class="badge-edited">تم التعديل</span>' : ''}</td>
         <td>${customerEsc || "نقدي"}</td>
+        <td>${formattedPhone ? toArabicDigits(formattedPhone) : '<span class="muted">بدون هاتف</span>'}</td>
         <td><b>${toArabicDigits(money(x.total))} ج.م</b></td>
         <td style="color: #27ae60;">${toArabicDigits(money(paidVal))} ج.م</td>
         <td style="color: #c0392b;"><b>${toArabicDigits(money(rem))} ج.م</b></td>
@@ -1222,6 +1239,14 @@
         <td colspan="3" style="text-align: left; font-weight: bold; background: #faf9f5;">قيمة الخصم:</td>
         <td style="font-weight: bold; background: #faf9f5; color: #e67e22;">- ${toArabicDigits(money(inv.discount))} ج.م</td>
       </tr>` : "";
+
+    let customerPhonePrint = inv.customer_phone || "";
+    if (customerPhonePrint) {
+      let clean = customerPhonePrint.replace(/\D/g, '');
+      if (clean.startsWith('0')) clean = '20' + clean.substring(1);
+      else if (!clean.startsWith('20')) clean = '20' + clean;
+      customerPhonePrint = '+' + clean;
+    }
 
     return `<!doctype html>
     <html lang="ar" dir="rtl">
@@ -1322,7 +1347,7 @@
           </div>
           <div>
             اسم العميل: <b>${esc(inv.customer_name || "عميل نقدي")}</b><br>
-            هاتف العميل: <b>${toArabicDigits(inv.customer_phone || "---")}</b>
+            هاتف العميل: <b>${toArabicDigits(customerPhonePrint || "---")}</b>
           </div>
         </div>
 
