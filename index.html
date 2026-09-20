@@ -99,7 +99,7 @@
     .row-warning { background-color: #fef9e7 !important; border-right: 4px solid #f39c12; }
     .badge-edited { background: #e67e22; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 5px; }
 
-    /* تصميم النافذة المنبثقة (Modal) */
+    /* تصميم النافذة المنبثقة: صلي على النبي */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -118,7 +118,6 @@
       max-width: 380px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       border-top: 5px solid #c59b45;
-      animation: fadeIn 0.3s ease;
     }
     .modal-card h2 {
       color: #122b49;
@@ -143,11 +142,6 @@
     }
     .modal-card button:hover {
       background: #219653;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-15px); }
-      to { opacity: 1; transform: translateY(0); }
     }
 
     @media (max-width: 768px) {
@@ -609,9 +603,8 @@
     document.getElementById("loginView").classList.add("hidden");
     document.getElementById("appView").classList.remove("hidden");
     
-    // تسجيل الحضور لنظام المتصلين الآن
     await updateOnlinePresence();
-    setInterval(updateOnlinePresence, 30000); // تحديث كل 30 ثانية
+    setInterval(updateOnlinePresence, 30000);
 
     await loadProfile();
     await loadStoreSettings();
@@ -633,17 +626,15 @@
     if (role === "admin") roleText = "المدير الأساسي";
     else if (role === "admin2") roleText = "مدير ثانٍ";
 
-    const fullName = p?.full_name || p?.username || "مستخدم";
+    const fullName = p?.fullname || p?.username || "مستخدم";
     document.getElementById("userLabel").textContent = fullName + " — " + roleText;
     
     const isAdminOrAdmin2 = (role === "admin" || role === "admin2");
     
-    // فقط الأدمن والمدير الثاني يرون الأقسام الإدارية وسجل النشاطات وإعدادات المكتب والمستخدمين
     document.querySelectorAll(".admin-only").forEach(el => {
       el.classList.toggle("hidden", !isAdminOrAdmin2);
     });
 
-    // زر إضافة الأصناف يظهر فقط للأدمن والمدير الثاني
     const btnAddProd = document.getElementById("btnAddProduct");
     if (btnAddProd) btnAddProd.classList.toggle("hidden", !isAdminOrAdmin2);
 
@@ -677,7 +668,7 @@
       await sb.from("profiles").upsert({
         id: newUserId,
         username: username,
-        full_name: fullName || username,
+        fullname: fullName || username,
         role: role
       });
     }
@@ -1124,7 +1115,7 @@
       }
     }
 
-    const creatorName = currentProfile?.full_name || currentProfile?.username || "مستخدم";
+    const creatorName = currentProfile?.fullname || currentProfile?.username || "مستخدم";
     await logActivity("حفظ فاتورة مبيعات", `إصدار فاتورة رقم ${inv.id} للعميل: ${customer_name || "نقدي"} بواسطة: ${creatorName}`);
     document.getElementById("invoiceNo").textContent = "فاتورة " + toArabicDigits(String(inv.id));
     
@@ -1368,8 +1359,7 @@
   }
 
   async function loadInvoices() {
-    // جلب الفواتير مع بيانات المستخدمين لمعرفة اسم من قيد الفاتورة
-    const { data, error } = await sb.from("invoices").select("*, profiles:created_by(full_name, username)").order("created_at", { ascending: false }).limit(100);
+    const { data, error } = await sb.from("invoices").select("*, profiles:created_by(fullname, username)").order("created_at", { ascending: false }).limit(100);
     if (error) return;
 
     const role = currentProfile?.role || "user";
@@ -1380,7 +1370,7 @@
       const paidVal = Number(x.paid_amount || 0);
       const customerEsc = esc(x.customer_name);
       const phoneVal = esc(x.customer_phone || "");
-      const creatorName = esc(x.profiles?.full_name || x.profiles?.username || "مستخدم النظام");
+      const creatorName = esc(x.profiles?.fullname || x.profiles?.username || "مستخدم النظام");
       
       let formattedPhone = phoneVal;
       if (formattedPhone) {
@@ -1623,15 +1613,14 @@
   }
 
   async function refreshDashboard() {
-    // جلب المتصلين الآن وإظهارهم للأدمن
     if (currentProfile?.role === "admin") {
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { data: onlineProfiles } = await sb.from("profiles").select("full_name, username, role, last_seen").gte("last_seen", fiveMinsAgo);
+      const { data: onlineProfiles } = await sb.from("profiles").select("fullname, username, role, last_seen").gte("last_seen", fiveMinsAgo);
       
       const onlineEl = document.getElementById("onlineUsersList");
       if (onlineEl) {
         if (onlineProfiles && onlineProfiles.length > 0) {
-          onlineEl.innerHTML = onlineProfiles.map(u => `<span class="badge" style="background: #27ae60; color: white; margin-left: 5px; padding: 4px 8px; border-radius: 4px;">🟢 ${esc(u.full_name || u.username)} (${u.role})</span>`).join("");
+          onlineEl.innerHTML = onlineProfiles.map(u => `<span class="badge" style="background: #27ae60; color: white; margin-left: 5px; padding: 4px 8px; border-radius: 4px;">🟢 ${esc(u.fullname || u.username)} (${u.role})</span>`).join("");
         } else {
           onlineEl.innerHTML = "<span class='muted'>لا يوجد مستخدمون متصلون حالياً سواك.</span>";
         }
@@ -1721,14 +1710,12 @@
     }
   }
 
-  // --- تحميل قائمة المستخدمين مع حجب بيانات الأدمن عن المدير الثاني ---
   async function loadUsers() {
     const { data } = await sb.from("profiles").select("*").order("created_at", { ascending: true });
     const myRole = currentProfile?.role || "user";
 
     let profilesList = data || [];
     if (myRole === "admin2") {
-      // منع المدير الثاني من رؤية حسابات الأدمن الأساسي تماماً
       profilesList = profilesList.filter(p => p.role !== "admin");
     }
 
@@ -1738,7 +1725,7 @@
       if (uRole === "admin") roleBadge = "المدير الأساسي (Admin)";
       else if (uRole === "admin2") roleBadge = "مدير ثانٍ (Admin 2)";
 
-      const fullName = p.full_name || "بدون اسم";
+      const fullName = p.fullname || "بدون اسم";
       const username = p.username || "غير محدد";
 
       let canModify = false;
