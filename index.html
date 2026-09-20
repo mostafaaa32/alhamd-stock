@@ -82,8 +82,8 @@
       flex: 1;
       min-width: 140px;
     }
-    .row-danger { background-color: #fdf2f2 !important; }
-    .row-warning { background-color: #fef9e7 !important; }
+    .row-danger { background-color: #fdf2f2 !important; border-right: 4px solid #e74c3c; }
+    .row-warning { background-color: #fef9e7 !important; border-right: 4px solid #f39c12; }
     .badge-edited { background: #e67e22; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 5px; }
 
     @media (max-width: 768px) {
@@ -187,8 +187,8 @@
           </div>
         </div>
 
-        <div class="card" style="margin-top: 15px;">
-          <h2>أصناف وصلت للحد الأدنى أو نفدت</h2>
+        <div class="card" style="margin-top: 15px; border-right: 5px solid #e74c3c;">
+          <h2>⚠️ التنبيهات الذكية: أصناف وصلت للحد الأدنى أو نفدت</h2>
           <div id="lowStock">جاري تحميل البيانات...</div>
         </div>
       </section>
@@ -631,7 +631,7 @@
         <td>${esc(p.unit)}</td>
         <td>${toArabicDigits(money(p.buy_price))}</td>
         <td>${toArabicDigits(money(p.sell_price))}</td>
-        <td><b>${toArabicDigits(p.quantity)}</b></td>
+        <td><b>${toArabicDigits(p.quantity)}</b> ${qty <= minQty ? '⚠️' : ''}</td>
         <td><b style="color: #2c3e50;">${toArabicDigits(money(totalBuyCapital))} ج.م</b></td>
         <td>
           ${canEdit ? `
@@ -1332,17 +1332,19 @@
     const totalSellStock = list.reduce((sum, p) => sum + ((Number(p.quantity) || 0) * (Number(p.sell_price) || 0)), 0);
     document.getElementById("statSellStock").textContent = toArabicDigits(money(totalSellStock));
 
+    // ميزة التنبيه الذكي للمخزن والحد الأدنى
     const lowStockItems = list.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
     document.getElementById("statLow").textContent = toArabicDigits(lowStockItems.length);
 
     if (lowStockItems.length > 0) {
       document.getElementById("lowStock").innerHTML = lowStockItems.map(p => 
-        `<div class="low-row" style="padding: 8px 0; border-bottom: 1px solid #eee;">
-          <b>${esc(p.name || "صنف")}</b> — المتاح حاليًا: <span style="color:red; font-weight:bold;">${toArabicDigits(p.quantity)}</span> (الحد الأدنى: ${toArabicDigits(p.min_quantity)})
+        `<div class="low-row" style="padding: 10px; margin-bottom: 6px; background: #fdf2f2; border-right: 4px solid #e74c3c; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <span><b>${esc(p.name || "صنف")}</b></span>
+          <span>المتاح: <strong style="color:red;">${toArabicDigits(p.quantity)}</strong> | الحد الأدنى: ${toArabicDigits(p.min_quantity)}</span>
          </div>`
       ).join("");
     } else {
-      document.getElementById("lowStock").innerHTML = "<p style='color:green;'>لا توجد أصناف ناقصة حاليًا 👍</p>";
+      document.getElementById("lowStock").innerHTML = "<p style='color:green; font-weight: bold; padding: 10px;'>ممتاز! لا توجد أصناف ناقصة أو واصلة للحد الأدنى حالياً 👍</p>";
     }
 
     const startOfDay = new Date();
