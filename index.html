@@ -113,15 +113,15 @@
   </style>
 </head>
 <body>
+  <!-- شاشة تسجيل الدخول بيوزر و باسورد وبدون زر إنشاء حساب -->
   <div id="loginView" class="auth-wrap">
     <div class="card auth-card" style="width: 90%; max-width: 400px; margin: auto;">
       <img src="logo.png" class="login-logo" alt="لوجو مكتب الحمد">
       <h1>مكتب الحمد</h1>
       <p class="muted">نظام المخزن والمبيعات أونلاين</p>
-      <input id="email" type="email" placeholder="البريد الإلكتروني">
-      <input id="password" type="password" placeholder="كلمة المرور">
-      <button onclick="login()">دخول</button>
-      <button class="secondary" onclick="signup()">إنشاء حساب</button>
+      <input id="usernameLogin" type="text" placeholder="اسم المستخدم (Username)">
+      <input id="passwordLogin" type="password" placeholder="كلمة المرور">
+      <button onclick="loginWithUsername()">دخول</button>
       <p id="authMsg" class="msg"></p>
     </div>
   </div>
@@ -174,7 +174,7 @@
           <div class="stat card" style="border-right: 4px solid #e74c3c;"><span>الأصناف الناقصة</span><b id="statLow" style="color:#e74c3c;">٠</b></div>
         </div>
 
-        <!-- بطاقات تقارير الأرباح والخسائر الشاملة (للمدير فقط) -->
+        <!-- بطاقات تقارير الأرباح والخسائر الشاملة (للأدمن فقط) -->
         <div class="grid stats admin-only hidden" style="margin-top: 15px;">
           <div class="stat card" style="border-right: 4px solid #2ecc71;">
             <span>إجمالي المبيعات العامة</span>
@@ -425,11 +425,30 @@
         </div>
       </section>
 
+      <!-- صفحة المستخدمين والإنشاء الآمن والصلاحيات -->
       <section id="users" class="tab-page hidden">
         <div class="card">
           <h2>المستخدمون والصلاحيات</h2>
-          <p class="muted">يمكنك هنا مراجعة المستخدمين المسجلين وصلاحياتهم في النظام.</p>
-          <div id="usersBody" style="margin-top: 15px;"></div>
+          <p class="muted">إدارة حسابات المستخدمين وإنشاء مستخدمين جدد (مدير، مدير ثانٍ، أو مستخدم عادي).</p>
+          
+          <div class="card" style="margin-top: 15px; background: #fdfbf7; border: 1px solid #e2dbca;">
+            <h3>➕ إضافة مستخدم جديد للنظام</h3>
+            <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+              <input id="newUsername" placeholder="اسم المستخدم (Username)">
+              <input id="newPassword" type="password" placeholder="كلمة المرور">
+            </div>
+            <div style="margin-top: 10px;">
+              <label style="font-weight: bold; font-size: 13px;">الصلاحية:</label>
+              <select id="newRole" style="width: 100%; margin-top: 5px; padding: 8px;">
+                <option value="user">مستخدم عادي / كاشير (User)</option>
+                <option value="admin2">مدير ثانٍ (Admin 2 — لا يمكنه حذف المدير الأساسي)</option>
+                <option value="admin" id="optionAdminRole" class="hidden">المدير الأساسي (Admin — كامل الصلاحيات)</option>
+              </select>
+            </div>
+            <button onclick="createNewSystemUser()" style="margin-top: 12px;">إنشاء المستخدم الجديد</button>
+          </div>
+
+          <div id="usersBody" style="margin-top: 20px;"></div>
         </div>
       </section>
     </main>
@@ -483,19 +502,26 @@
     if (btn.dataset.tab === "settings") loadStoreSettings();
   }));
 
-  async function login() {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-    const { error } = await sb.auth.signInWithPassword({email, password});
-    document.getElementById("authMsg").textContent = error ? error.message : "تم الدخول بنجاح";
-  }
+  // --- نظام تسجيل الدخول باستخدام اسم المستخدم وكلمة المرور (بدون جيميل) ---
+  async function loginWithUsername() {
+    const rawUsername = document.getElementById("usernameLogin").value.trim();
+    const password = document.getElementById("passwordLogin").value;
+    const msgEl = document.getElementById("authMsg");
 
-  async function signup() {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-    if (!email || !password) return alert("اكتب البريد وكلمة المرور");
-    const { error } = await sb.auth.signUp({email, password});
-    document.getElementById("authMsg").textContent = error ? error.message : "تم إنشاء الحساب. إذا طلب التأكيد، راجع البريد.";
+    if (!rawUsername || !password) {
+      msgEl.textContent = "يرجى إدخال اسم المستخدم وكلمة المرور";
+      return;
+    }
+
+    // تحويل اسم المستخدم إلى البريد الافتراضي الداخلي المرتبط به
+    const email = rawUsername.toLowerCase().replace(/[^a-z0-9]/g, '') + "@elhamd.sys";
+
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      msgEl.textContent = "خطأ في بيانات الدخول: تأكد من اسم المستخدم وكلمة المرور";
+    } else {
+      msgEl.textContent = "تم الدخول بنجاح";
+    }
   }
 
   async function logout() { await sb.auth.signOut(); }
@@ -520,16 +546,66 @@
     const { data: p } = await sb.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
     currentProfile = p;
     const role = p?.role || "user";
-    document.getElementById("userLabel").textContent = currentUser.email + (role === "admin" ? " — مدير النظام" : " — كاشير / مستخدم");
+    let roleText = "مستخدم / كاشير";
+    if (role === "admin") roleText = "المدير الأساسي";
+    else if (role === "admin2") roleText = "مدير ثانٍ";
+
+    document.getElementById("userLabel").textContent = (p?.username || currentUser.email) + " — " + roleText;
     
+    // إظهار الأدوات الخاصة بالأدمن الأساسي فقط أو الأدمن 2
+    const isAdminOrAdmin2 = (role === "admin" || role === "admin2");
     document.querySelectorAll(".admin-only").forEach(el => {
-      el.classList.toggle("hidden", role !== "admin");
+      el.classList.toggle("hidden", role !== "admin" && role !== "admin2");
     });
 
-    const canEdit = (role === "admin" || role === "user" || role === "general");
+    // إظهار خيار إنشاء أدمن أساسي فقط للمدير الأساسي
+    const optAdmin = document.getElementById("optionAdminRole");
+    if (optAdmin) optAdmin.classList.toggle("hidden", role !== "admin");
+
+    const canEdit = (role === "admin" || role === "admin2" || role === "user" || role === "general");
     document.querySelectorAll(".can-edit-only").forEach(el => {
       el.classList.toggle("hidden", !canEdit);
     });
+  }
+
+  // --- إنشاء مستخدم جديد بواسطة الأدمن أو الأدمن 2 من داخل صفحة المستخدمين ---
+  async function createNewSystemUser() {
+    if (currentProfile?.role !== "admin" && currentProfile?.role !== "admin2") {
+      return alert("غير مسموح لك بإنشاء مستخدمين");
+    }
+
+    const username = document.getElementById("newUsername").value.trim();
+    const password = document.getElementById("newPassword").value;
+    const role = document.getElementById("newRole").value;
+
+    if (!username || !password) return alert("أدخل اسم المستخدم وكلمة المرور الجديدة");
+
+    // منع الأدمن 2 من إنشاء أدمن أساسي
+    if (currentProfile?.role === "admin2" && role === "admin") {
+      return alert("لا يملك المدير الثاني صلاحية إنشاء مدير أساسي جديد!");
+    }
+
+    const email = username.toLowerCase().replace(/[^a-z0-9]/g, '') + "@elhamd.sys";
+
+    // إنشاء الحساب في نظام التوثيق Supabase Auth
+    const { data: authData, error: authErr } = await sb.auth.signUp({ email, password });
+    if (authErr) return alert("خطأ أثناء إنشاء الحساب: " + authErr.message);
+
+    const newUserId = authData.user ? authData.user.id : null;
+    if (newUserId) {
+      // حفظ البيانات في جدول profiles
+      await sb.from("profiles").upsert({
+        id: newUserId,
+        username: username,
+        role: role
+      });
+    }
+
+    await logActivity("إنشاء مستخدم جديد", `إنشاء حساب باسم: ${username} بصلاحية: ${role}`);
+    alert("تم إنشاء المستخدم بنجاح!");
+    document.getElementById("newUsername").value = "";
+    document.getElementById("newPassword").value = "";
+    await loadUsers();
   }
 
   async function loadStoreSettings() {
@@ -551,7 +627,7 @@
   }
 
   async function saveStoreSettings() {
-    if (currentProfile?.role !== "admin") return alert("هذه الصفحة للمدير فقط");
+    if (currentProfile?.role !== "admin") return alert("هذه الصفحة للمدير الأساسي فقط");
     const payload = {
       id: 1,
       store_name: document.getElementById("storeName").value.trim() || "مكتب الحمد للمقاولات العامة",
@@ -675,8 +751,7 @@
     });
 
     const role = currentProfile?.role || "user";
-    const isAdmin = (role === "admin");
-    const canEdit = (role === "admin" || role === "user" || role === "general");
+    const isAdminOrAdmin2 = (role === "admin" || role === "admin2");
 
     document.getElementById("productsBody").innerHTML = rows.map(p => {
       const qty = Number(p.quantity || 0);
@@ -692,12 +767,12 @@
         <td>${esc(p.code)}</td>
         <td>${esc(p.name)}</td>
         <td>${esc(p.unit)}</td>
-        <td class="admin-only ${isAdmin ? '' : 'hidden'}">${toArabicDigits(money(p.buy_price))}</td>
+        <td class="admin-only ${isAdminOrAdmin2 ? '' : 'hidden'}">${toArabicDigits(money(p.buy_price))}</td>
         <td>${toArabicDigits(money(p.sell_price))}</td>
         <td><b>${toArabicDigits(p.quantity)}</b></td>
-        <td class="admin-only ${isAdmin ? '' : 'hidden'}"><b style="color: #2c3e50;">${toArabicDigits(money(totalBuyCapital))} ج.م</b></td>
+        <td class="admin-only ${isAdminOrAdmin2 ? '' : 'hidden'}"><b style="color: #2c3e50;">${toArabicDigits(money(totalBuyCapital))} ج.م</b></td>
         <td>
-          ${canEdit ? `
+          ${isAdminOrAdmin2 ? `
             <button class="btn-qty small" onclick="addQuantity('${p.id}',${p.quantity})">+ كمية</button>
             <button class="btn-edit small" onclick="editProduct('${p.id}')">تعديل</button>
             <button class="danger small" onclick="deleteProduct('${p.id}')">حذف</button>
@@ -709,7 +784,7 @@
 
   async function addQuantity(id, currentQty) {
     const role = currentProfile?.role || "user";
-    if (role !== "admin" && role !== "user" && role !== "general") return alert("غير مسموح لك بالتعديل");
+    if (role !== "admin" && role !== "admin2" && role !== "user") return alert("غير مسموح لك بالتعديل");
 
     const addQty = prompt("أدخل الكمية التي تريد إضافتها للمخزن:", "0");
     if (addQty === null) return;
@@ -728,7 +803,7 @@
 
   async function editProduct(id) {
     const role = currentProfile?.role || "user";
-    if (role !== "admin" && role !== "user" && role !== "general") return alert("غير مسموح لك بالتعديل");
+    if (role !== "admin" && role !== "admin2" && role !== "user") return alert("غير مسموح لك بالتعديل");
 
     const p = products.find(x => x.id === id);
     if (!p) return;
@@ -763,7 +838,7 @@
 
   function openProductForm() {
     const role = currentProfile?.role || "user";
-    if (role !== "admin" && role !== "user" && role !== "general") return alert("غير مسموح لك بالإضافة");
+    if (role !== "admin" && role !== "admin2") return alert("غير مسموح لك بالإضافة");
 
     const code = prompt("كود الصنف:");
     if (code === null) return;
@@ -787,7 +862,7 @@
 
   async function deleteProduct(id) {
     const role = currentProfile?.role || "user";
-    if (role !== "admin" && role !== "user" && role !== "general") return alert("غير مسموح لك بالحذف");
+    if (role !== "admin" && role !== "admin2") return alert("غير مسموح لك بالحذف");
 
     if (!confirm("هل أنت تأكد من حذف الصنف؟")) return;
     const { error } = await sb.from("products").delete().eq("id", id);
@@ -1141,15 +1216,12 @@
     document.body.removeChild(link);
   }
 
-  // --- دالة إرسال واتساب أعمال متكاملة (تحميل ملف HTML + رسالة نصية بكل الأصناف وتفاصيل الفاتورة) ---
   async function sendWhatsAppBusinessMessage(id, customerPhone, customerName) {
-    // 1. جلب بنود الفاتورة وفاتورة البيع من قاعدة البيانات
     const { data: inv, error: invErr } = await sb.from("invoices").select("*").eq("id", id).single();
     const { data: items, error: itemErr } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
     
     if (invErr || !inv) return alert("تعذر جلب تفاصيل الفاتورة");
 
-    // 2. تحميل ملف الفاتورة HTML على جهازك للأرشيف
     if (items && items.length > 0) {
       const htmlContent = buildInvoiceHtml(inv, items);
       const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
@@ -1161,7 +1233,6 @@
       document.body.removeChild(link);
     }
 
-    // 3. تجهيز رقم الهاتف المصري (الكود الدولي +20)
     let phone = customerPhone ? customerPhone.trim() : "";
     if (!phone) {
       phone = prompt("أدخل رقم هاتف العميل (مثل 01012345678):", "");
@@ -1175,7 +1246,6 @@
       phone = '20' + phone;
     }
     
-    // 4. بناء نص الرسالة شاملاً الأصناف والكميات والأسعار تفصيلياً
     let itemsText = "";
     if (items && items.length > 0) {
       items.forEach((item, index) => {
@@ -1209,7 +1279,6 @@
       `*(مرفق ملف الفاتورة HTML على جهاز الكاشير، يمكنك إرفاقه هنا للمراسلة)*\n` +
       `شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم! 🙏`;
     
-    // 5. فتح رابط واتساب أعمال
     const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   }
@@ -1508,7 +1577,7 @@
     document.getElementById("statExpenses").textContent = toArabicDigits(money(todayExpenses));
     document.getElementById("statCashToday").textContent = toArabicDigits(money(netCashToday));
 
-    if (currentProfile?.role === "admin") {
+    if (currentProfile?.role === "admin" || currentProfile?.role === "admin2") {
       await loadFinancialSummary();
     }
 
@@ -1546,26 +1615,88 @@
     }
   }
 
+  // --- تحميل قائمة المستخدمين مع تطبيق صلاحيات الحذف والتعديل بحسب نوع الأدمن ---
   async function loadUsers() {
     const { data } = await sb.from("profiles").select("*").order("created_at", { ascending: true });
-    document.getElementById("usersBody").innerHTML = (data || []).map(p => `
-      <div class="card" style="margin-bottom: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+    const myRole = currentProfile?.role || "user";
+
+    document.getElementById("usersBody").innerHTML = (data || []).map(p => {
+      const uRole = p.role || "user";
+      let roleBadge = "مستخدم عادي";
+      if (uRole === "admin") roleBadge = "المدير الأساسي (Admin)";
+      else if (uRole === "admin2") roleBadge = "مدير ثانٍ (Admin 2)";
+
+      // هل يمكن تعديل هذا المستخدم؟
+      // الأدمن 2 لا يمكنه تعديل الأدمن الأساسي ولا تغيير صلاحيته
+      let canModify = false;
+      let canDelete = false;
+
+      if (myRole === "admin") {
+        canModify = true;
+        canDelete = (p.id !== currentUser.id); // الأدمن الأساسي يستطيع حذف أي شخص عدا نفسه
+      } else if (myRole === "admin2") {
+        // الأدمن 2 يمكنه تعديل وحذف المستخدمين العاديين فقط، ولا يستطيع لمس أي أدمن أساسي
+        if (uRole !== "admin") {
+          canModify = true;
+          canDelete = (p.id !== currentUser.id);
+        }
+      }
+
+      return `
+      <div class="card" style="margin-bottom: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-          <b>معرف المستخدم:</b> ${esc(p.id)}<br>
-          <span class="muted">الصلاحية الحالية: <b>${esc(p.role || "user")}</b></span>
+          <b>اسم المستخدم:</b> ${esc(p.username || p.id)}<br>
+          <span class="muted">الصلاحية: <b>${roleBadge}</b></span>
         </div>
-        ${currentProfile?.role === "admin" ? `<button class="btn-edit small" onclick="changeUserRole('${p.id}', '${p.role || "user"}')">تغيير الصلاحية</button>` : ''}
-      </div>`).join("");
+        <div>
+          ${canModify ? `<button class="btn-edit small" onclick="changeUserRole('${p.id}', '${uRole}')">تغيير الصلاحية</button>` : ''}
+          ${canDelete ? `<button class="danger small" onclick="deleteUser('${p.id}', '${esc(p.username)}')">حذف المستخدم</button>` : ''}
+          {!canModify && !canDelete ? '<span class="muted">محمي / صلاحية مقيدة</span>' : ''}
+        </div>
+      </div>`;
+    }).join("");
   }
 
   async function changeUserRole(userId, currentRole) {
-    const newRole = prompt("أدخل الصلاحية الجديدة للمستخدم (admin أو user):", currentRole);
-    if (!newRole || (newRole !== "admin" && newRole !== "user")) return alert("صلاحية غير صالحة");
+    const myRole = currentProfile?.role || "user";
+
+    // لو الأدمن 2 يحاول تعديل صلاحية أدمن أساسي (حماية إضافية)
+    if (myRole === "admin2" && currentRole === "admin") {
+      return alert("غير مسموح لك بتعديل صلاحيات المدير الأساسي!");
+    }
+
+    let promptMsg = "أدخل الصلاحية الجديدة (admin أو admin2 أو user):";
+    if (myRole === "admin2") {
+      promptMsg = "أدخل الصلاحية الجديدة (admin2 أو user فقط):";
+    }
+
+    const newRole = prompt(promptMsg, currentRole);
+    if (!newRole || !["admin", "admin2", "user"].includes(newRole)) return alert("صلاحية غير صالحة");
+
+    if (myRole === "admin2" && newRole === "admin") {
+      return alert("لا يملك المدير الثاني صلاحية ترقية أي شخص إلى مدير أساسي!");
+    }
 
     const { error } = await sb.from("profiles").update({ role: newRole }).eq("id", userId);
     if (error) return alert("خطأ في تحديث الصلاحية: " + error.message);
 
+    await logActivity("تغيير صلاحية مستخدم", `تعديل صلاحية المستخدم ID: ${userId} إلى ${newRole}`);
     alert("تم تحديث صلاحية المستخدم بنجاح!");
+    await loadUsers();
+  }
+
+  async function deleteUser(userId, username) {
+    const myRole = currentProfile?.role || "user";
+    if (myRole !== "admin" && myRole !== "admin2") return alert("غير مسموح لك بالحذف");
+
+    if (!confirm(`هل أنت متأكد من حذف المستخدم (${username || userId}) نهائياً من النظام؟`)) return;
+
+    // حذف السجل من جدول profiles
+    const { error } = await sb.from("profiles").delete().eq("id", userId);
+    if (error) return alert("حدث خطأ أثناء الحذف: " + error.message);
+
+    await logActivity("حذف مستخدم", `حذف المستخدم: ${username || userId}`);
+    alert("تم حذف المستخدم بنجاح!");
     await loadUsers();
   }
 
