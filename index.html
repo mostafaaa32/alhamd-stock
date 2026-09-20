@@ -241,7 +241,7 @@
             <div class="row between" style="flex-wrap: wrap; gap: 10px;">
               <h2>فاتورة بيع جديدة</h2>
               <div>
-                <span id="invoiceCodeDisplay" class="badge" style="margin-left: 8px;">كود الفاتورة: --</span>
+                <span id="invoiceCodeDisplay" class="badge" style="margin-left: 8px;">كود الفاتورة: تلقائي</span>
                 <span id="invoiceNo" class="badge">جديدة</span>
               </div>
             </div>
@@ -551,7 +551,6 @@
     if (!error) { storeSettings = {...storeSettings, ...payload}; document.getElementById("headerStoreName").textContent = payload.store_name; }
   }
 
-  // --- 5. دالة تسجيل الأنشطة والحركات (Audit Trail) ---
   async function logActivity(action, details) {
     try {
       await sb.from("activity_logs").insert([{
@@ -782,30 +781,14 @@
     await refreshDashboard();
   }
 
-  async function initInvoicePage() {
+  function initInvoicePage() {
     fillInvoiceProducts();
     if (!document.getElementById("invoiceDateTime").value) {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       document.getElementById("invoiceDateTime").value = now.toISOString().slice(0, 16);
     }
-    if (document.getElementById("invoiceNo").textContent === "جديدة") {
-      try {
-        const { data: lastInv } = await sb.from("invoices").select("id").order("created_at", { ascending: false }).limit(1).maybeSingle();
-        let nextNumber = 210;
-        if (lastInv && !isNaN(Number(lastInv.id))) {
-          nextNumber = Number(lastInv.id) + 1;
-        } else {
-          const { count } = await sb.from("invoices").select('*', { count: 'exact', head: true });
-          nextNumber = 210 + (count || 0);
-        }
-        window.currentInvoiceCode = String(nextNumber);
-        document.getElementById("invoiceCodeDisplay").textContent = "كود الفاتورة: " + toArabicDigits(window.currentInvoiceCode);
-      } catch (e) {
-        window.currentInvoiceCode = "210";
-        document.getElementById("invoiceCodeDisplay").textContent = "كود الفاتورة: " + toArabicDigits(window.currentInvoiceCode);
-      }
-    }
+    document.getElementById("invoiceCodeDisplay").textContent = "كود الفاتورة: تلقائي";
   }
 
   function fillInvoiceProducts() {
@@ -917,21 +900,7 @@
     document.getElementById("amountPaid").value = 0;
     document.getElementById("invoiceQty").value = 1;
     
-    try {
-      const { data: lastInv } = await sb.from("invoices").select("id").order("created_at", { ascending: false }).limit(1).maybeSingle();
-      let nextNumber = 210;
-      if (lastInv && !isNaN(Number(lastInv.id))) {
-        nextNumber = Number(lastInv.id) + 1;
-      } else {
-        const { count } = await sb.from("invoices").select('*', { count: 'exact', head: true });
-        nextNumber = 210 + (count || 0);
-      }
-      window.currentInvoiceCode = String(nextNumber);
-    } catch (e) {
-      window.currentInvoiceCode = "210";
-    }
-
-    document.getElementById("invoiceCodeDisplay").textContent = "كود الفاتورة: " + toArabicDigits(window.currentInvoiceCode);
+    document.getElementById("invoiceCodeDisplay").textContent = "كود الفاتورة: تلقائي";
     document.getElementById("invoiceNo").textContent = "جديدة";
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -947,8 +916,8 @@
     const customer_name = document.getElementById("customerName").value.trim();
     const customer_phone = document.getElementById("customerPhone").value.trim();
     const invoiceDateTime = document.getElementById("invoiceDateTime").value;
-    const customId = Number(window.currentInvoiceCode) || undefined;
 
+    // تم إزالة الرقم المخصص لكي تتولى قاعدة البيانات توليد كود الفاتورة تلقائياً بدون أخطاء تكرار
     const payload = {
       type: "sale",
       customer_name,
@@ -959,7 +928,6 @@
       created_by: currentUser.id,
       created_at: invoiceDateTime ? new Date(invoiceDateTime).toISOString() : new Date().toISOString()
     };
-    if (customId) payload.id = customId;
 
     const { data: inv, error } = await sb.from("invoices").insert(payload).select().single();
 
@@ -984,12 +952,12 @@
       }
     }
 
-    await logActivity("حفظ فاتورة مبيعات", `إصدار فاتورة رقم ${inv.id} للعميل: ${customername || "نقدي"} بإجمالي ${finalTotal} ج.م`);
+    await logActivity("حفظ فاتورة مبيعات", `إصدار فاتورة رقم ${inv.id} للعميل: ${customer_name || "نقدي"} بإجمالي ${finalTotal} ج.م`);
     document.getElementById("invoiceNo").textContent = "فاتورة " + toArabicDigits(String(inv.id));
     
     autoSaveInvoiceFile(inv.id, customer_name, finalTotal, paid, remaining);
 
-    alert("تم حفظ الفاتورة المتسلسلة وتحديث المخزن والخزينة بنجاح!");
+    alert("تم حفظ الفاتورة وتحديث المخزن والخزينة بنجاح!");
     
     await loadInvoices();
     await loadUniqueCustomers();
@@ -1194,7 +1162,7 @@
     const { subTotal, discountAmount, finalTotal, paid, remaining } = calculateTotals();
 
     printInvoice({
-      id: window.currentInvoiceCode || "210",
+      id: "جديدة",
       created_at: document.getElementById("invoiceDateTime").value ? new Date(document.getElementById("invoiceDateTime").value).toISOString() : new Date().toISOString(),
       customer_name: document.getElementById("customerName").value.trim(),
       customer_phone: document.getElementById("customerPhone").value.trim(),
@@ -1206,7 +1174,6 @@
     }, invoiceItems.map(x => ({ product_name: x.name, quantity: x.quantity, unit_price: x.price, total: x.quantity * x.price })));
   }
 
-  // --- قالب ورقة الطباعة الاحترافي المطور ---
   function buildInvoiceHtml(inv, items) {
     const logo = storeSettings.logo_url || "logo.png";
     const rows = items.map(x => `
@@ -1363,7 +1330,6 @@
     w.onload = () => { w.print(); };
   }
 
-  // ميزة تقارير الأرباح والخسائر الشاملة
   async function loadFinancialSummary() {
     try {
       const { data: invoices, error: invError } = await sb.from('invoices').select('total');
@@ -1399,7 +1365,6 @@
     const totalSellStock = list.reduce((sum, p) => sum + ((Number(p.quantity) || 0) * (Number(p.sell_price) || 0)), 0);
     document.getElementById("statSellStock").textContent = toArabicDigits(money(totalSellStock));
 
-    // ميزة التنبيه الذكي للمخزن والحد الأدنى
     const lowStockItems = list.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
     document.getElementById("statLow").textContent = toArabicDigits(lowStockItems.length);
 
@@ -1434,7 +1399,6 @@
     document.getElementById("statExpenses").textContent = toArabicDigits(money(todayExpenses));
     document.getElementById("statCashToday").textContent = toArabicDigits(money(netCashToday));
 
-    // استدعاء دالة الأرباح والخسائر العامة
     await loadFinancialSummary();
 
     const { data: allInvs } = await sb.from("invoices").select("customer_name, total");
