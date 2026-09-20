@@ -160,6 +160,22 @@
           <div class="stat card" style="border-right: 4px solid #e74c3c;"><span>الأصناف الناقصة</span><b id="statLow" style="color:#e74c3c;">٠</b></div>
         </div>
 
+        <!-- بطاقات تقارير الأرباح والخسائر الشاملة -->
+        <div class="grid stats" style="margin-top: 15px;">
+          <div class="stat card" style="border-right: 4px solid #2ecc71;">
+            <span>إجمالي المبيعات العامة</span>
+            <b id="totalSalesElement" style="color: #2ecc71;">٠٫٠٠ ج.م</b>
+          </div>
+          <div class="stat card" style="border-right: 4px solid #e74c3c;">
+            <span>إجمالي المصروفات العامة</span>
+            <b id="totalExpensesElement" style="color: #e74c3c;">٠٫٠٠ ج.م</b>
+          </div>
+          <div class="stat card" style="border-right: 4px solid #3498db;">
+            <span>صافي الربح الحقيقي</span>
+            <b id="netProfitElement" style="color: #3498db;">٠٫٠٠ ج.م</b>
+          </div>
+        </div>
+
         <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
           <div class="card">
             <h2>أهم العملاء (حسب أعلى قيمة فاتورة)</h2>
@@ -1280,6 +1296,31 @@
     w.onload = () => { w.print(); };
   }
 
+  // ميزة تقارير الأرباح والخسائر الشاملة
+  async function loadFinancialSummary() {
+    try {
+      const { data: invoices, error: invError } = await sb.from('invoices').select('total');
+      if (invError) throw invError;
+      const totalSales = (invoices || []).reduce((sum, inv) => sum + Number(inv.total || 0), 0);
+
+      const { data: expenses, error: expError } = await sb.from('expenses').select('amount');
+      if (expError) throw expError;
+      const totalExpenses = (expenses || []).reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+
+      const netProfit = totalSales - totalExpenses;
+
+      const salesEl = document.getElementById('totalSalesElement');
+      const expEl = document.getElementById('totalExpensesElement');
+      const profitEl = document.getElementById('netProfitElement');
+
+      if (salesEl) salesEl.textContent = toArabicDigits(money(totalSales)) + ' ج.م';
+      if (expEl) expEl.textContent = toArabicDigits(money(totalExpenses)) + ' ج.م';
+      if (profitEl) profitEl.textContent = toArabicDigits(money(netProfit)) + ' ج.م';
+    } catch (e) {
+      console.error("خطأ في جلب التقارير المالية:", e.message);
+    }
+  }
+
   async function refreshDashboard() {
     const { data: prodData } = await sb.from("products").select("name, quantity, buy_price, sell_price, min_quantity");
     const list = prodData || [];
@@ -1323,6 +1364,9 @@
     document.getElementById("statSales").textContent = toArabicDigits(money(todayTotal));
     document.getElementById("statExpenses").textContent = toArabicDigits(money(todayExpenses));
     document.getElementById("statCashToday").textContent = toArabicDigits(money(netCashToday));
+
+    // استدعاء دالة الأرباح والخسائر العامة
+    await loadFinancialSummary();
 
     const { data: allInvs } = await sb.from("invoices").select("customer_name, total");
     if (allInvs && allInvs.length > 0) {
