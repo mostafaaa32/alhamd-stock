@@ -319,10 +319,10 @@
         </div>
       </section>
 
-      <!-- 4. الفواتير السابقة -->
+      <!-- 4. الفواتير السابقة وإدارة الديون -->
       <section id="invoices" class="tab-page hidden">
         <div class="card">
-          <h2>الفواتير السابقة وتحصيل الديون الآجلة</h2>
+          <h2>الفواتير السابقة وإدارة حسابات وديون العملاء</h2>
           <div class="table-wrap">
             <table>
               <thead>
@@ -331,7 +331,7 @@
                   <th>العميل</th>
                   <th>الإجمالي</th>
                   <th>المدفوع</th>
-                  <th>المتبقي</th>
+                  <th>المتبقي (دين)</th>
                   <th>التاريخ والوقت</th>
                   <th>الإجراءات</th>
                 </tr>
@@ -631,7 +631,7 @@
         <td>${esc(p.unit)}</td>
         <td>${toArabicDigits(money(p.buy_price))}</td>
         <td>${toArabicDigits(money(p.sell_price))}</td>
-        <td><b>${toArabicDigits(p.quantity)}</b> ${qty <= minQty ? '⚠️' : ''}</td>
+        <td><b>${toArabicDigits(p.quantity)}</b></td>
         <td><b style="color: #2c3e50;">${toArabicDigits(money(totalBuyCapital))} ج.م</b></td>
         <td>
           ${canEdit ? `
@@ -944,16 +944,18 @@
     await refreshDashboard();
   }
 
+  // ميزة إدارة الديون وحسابات العملاء المتقدمة (سداد الديون وتسجيل الحركات)
   async function payDebt(id, currentRemaining, currentPaid, customerName) {
-    const payInput = prompt(`العميل: (${customerName || "نقدي"})\nالمبلغ المتبقي عليه: ${currentRemaining} ج.م\nأدخل المبلغ المراد تحصيله وسداده الآن:`, currentRemaining);
+    const payInput = prompt(`إدارة ديون العميل: (${customerName || "نقدي"})\nالمبلغ المتبقي على الفاتورة: ${currentRemaining} ج.م\nأدخل المبلغ المراد تحصيله وسداده الآن:`, currentRemaining);
     if (payInput === null) return;
     const payAmount = Number(payInput);
-    if (isNaN(payAmount) || payAmount <= 0) return alert("أدخل مبلغاً صحيحاً");
+    if (isNaN(payAmount) || payAmount <= 0) return alert("أدخل مبلغاً صحيحاً أكبر من الصفر");
     if (payAmount > currentRemaining) return alert("المبلغ المدفوع أكبر من المتبقي على الفاتورة");
 
     const newPaid = Number(currentPaid || 0) + payAmount;
     const newRemaining = currentRemaining - payAmount;
 
+    // تحديث الفاتورة
     const { error } = await sb.from("invoices").update({
       paid_amount: newPaid,
       remaining_amount: newRemaining,
@@ -962,7 +964,16 @@
 
     if (error) return alert("خطأ أثناء تحديث السداد: " + error.message);
 
-    alert(`تم تحصيل مبلغ ${payAmount} ج.م وإضافته لخزينة اليوم بنجاح!`);
+    // تسجيل معاملة السداد في جدول السدادات والدفعات (Payments) لتوثيق حركة الحسابات
+    await sb.from("payments").insert([{
+      invoice_id: id,
+      customer_name: customerName || "عميل نقدي",
+      amount: payAmount,
+      notes: `سداد جزئي/كلي لدين الفاتورة رقم ${id}`,
+      created_by: currentUser.id
+    }]);
+
+    alert(`تم تحصيل مبلغ ${payAmount} ج.م بنجاح وتحديث حساب العميل وخزينة اليوم!`);
     await loadInvoices();
     await refreshDashboard();
   }
@@ -1105,11 +1116,11 @@
         <td>${esc(x.customer_name || "نقدي")}</td>
         <td><b>${toArabicDigits(money(x.total))} ج.م</b></td>
         <td style="color: #27ae60;">${toArabicDigits(money(paidVal))} ج.م</td>
-        <td style="color: #c0392b;">${toArabicDigits(money(rem))} ج.م</td>
+        <td style="color: #c0392b;"><b>${toArabicDigits(money(rem))} ج.م</b></td>
         <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
         <td>
           <button class="small" onclick="printSavedInvoice('${x.id}')">طباعة</button>
-          ${rem > 0 ? `<button class="btn-pay small" onclick="payDebt('${x.id}',${rem}, ${paidVal}, '${customerEsc}')">سداد من الدين</button>` : ''}
+          ${rem > 0 ? `<button class="btn-pay small" onclick="payDebt('${x.id}',${rem}, ${paidVal}, '${customerEsc}')">تحصيل من الدين</button>` : ''}
           <button class="btn-edit small" onclick="editSavedInvoice('${x.id}')">تعديل</button>
           <button class="btn-cancel small" onclick="cancelInvoice('${x.id}')">إلغاء</button>
         </td>
