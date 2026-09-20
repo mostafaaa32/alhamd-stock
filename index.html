@@ -1081,17 +1081,19 @@
     if (error) return;
     document.getElementById("invoicesBody").innerHTML = (data || []).map(x => {
       const rem = Number(x.remaining_amount || 0);
+      const paidVal = Number(x.paid_amount || 0);
+      const customerEsc = esc(x.customer_name);
       return `
       <tr>
         <td><b>${toArabicDigits(String(x.id))}</b> ${x.is_edited ? '<span class="badge-edited">تم التعديل</span>' : ''}</td>
         <td>${esc(x.customer_name || "نقدي")}</td>
         <td><b>${toArabicDigits(money(x.total))} ج.م</b></td>
-        <td style="color: #27ae60;">${toArabicDigits(money(x.paid_amount || 0))} ج.م</td>
+        <td style="color: #27ae60;">${toArabicDigits(money(paidVal))} ج.م</td>
         <td style="color: #c0392b;">${toArabicDigits(money(rem))} ج.م</td>
         <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
         <td>
           <button class="small" onclick="printSavedInvoice('${x.id}')">طباعة</button>
-          ${rem > 0 ? `<button class="btn-pay small" onclick="payDebt('${x.id}',${rem}, ${x.paid_amount \vert{}\vert{} 0}, '${esc(x.customer_name)}')">سداد من الدين</button>` : ''}
+          ${rem > 0 ? `<button class="btn-pay small" onclick="payDebt('${x.id}',${rem}, ${paidVal}, '${customerEsc}')">سداد من الدين</button>` : ''}
           <button class="btn-edit small" onclick="editSavedInvoice('${x.id}')">تعديل</button>
           <button class="btn-cancel small" onclick="cancelInvoice('${x.id}')">إلغاء</button>
         </td>
@@ -1122,7 +1124,6 @@
     }, invoiceItems.map(x => ({ product_name: x.name, quantity: x.quantity, unit_price: x.price, total: x.quantity * x.price })));
   }
 
-  // --- تصميم ورقة الطباعة المحترفة الجديد ---
   function buildInvoiceHtml(inv, items) {
     const logo = storeSettings.logo_url || "logo.png";
     const rows = items.map(x => `
@@ -1324,7 +1325,7 @@
     document.getElementById("statCashToday").textContent = toArabicDigits(money(netCashToday));
 
     const { data: allInvs } = await sb.from("invoices").select("customer_name, total");
-    if (allInvs && allInvs.length >.0) {
+    if (allInvs && allInvs.length > 0) {
       const clientStats = {};
       allInvs.forEach(inv => {
         const cName = inv.customer_name ? inv.customer_name.trim() : "عميل نقدي";
