@@ -99,6 +99,57 @@
     .row-warning { background-color: #fef9e7 !important; border-right: 4px solid #f39c12; }
     .badge-edited { background: #e67e22; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 5px; }
 
+    /* تصميم النافذة المنبثقة (Modal) */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .modal-card {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      width: 90%;
+      max-width: 380px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      border-top: 5px solid #c59b45;
+      animation: fadeIn 0.3s ease;
+    }
+    .modal-card h2 {
+      color: #122b49;
+      margin-top: 0;
+      font-size: 24px;
+    }
+    .modal-card p {
+      color: #555;
+      font-size: 18px;
+      margin: 15px 0 25px 0;
+    }
+    .modal-card button {
+      background: #27ae60;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+    }
+    .modal-card button:hover {
+      background: #219653;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     @media (max-width: 768px) {
       body { padding: 5px; }
       .topbar { flex-direction: column; align-items: flex-start; gap: 10px; padding: 10px; }
@@ -113,7 +164,17 @@
   </style>
 </head>
 <body>
-  <!-- شاشة تسجيل الدخول باليوزر والباسورد (بدون إيميل وبدون زر إنشاء حساب) -->
+
+  <!-- رسالة منبثقة: صلي على النبي -->
+  <div id="blessModal" class="modal-overlay">
+    <div class="modal-card">
+      <h2>✨ تذكرة طيبة ✨</h2>
+      <p><b>صلى على النبي</b> ﷺ</p>
+      <button onclick="closeBlessModal()">أفضل الصلاة والسلام</button>
+    </div>
+  </div>
+
+  <!-- شاشة تسجيل الدخول -->
   <div id="loginView" class="auth-wrap">
     <div class="card auth-card" style="width: 90%; max-width: 400px; margin: auto;">
       <img src="logo.png" class="login-logo" alt="لوجو مكتب الحمد">
@@ -137,7 +198,7 @@
       </div>
       <div class="header-right">
         <span class="connection"><i></i> متصل بقاعدة البيانات</span>
-        <span id="userLabel" class="muted"></span>
+        <span id="userLabel" class="muted" style="font-weight: bold; color: #122b49;"></span>
         <button class="secondary small" onclick="logout()">خروج</button>
       </div>
     </header>
@@ -164,6 +225,12 @@
           </div>
         </div>
 
+        <!-- خانة المتصلين الآن (تظهر للأدمن الأساسي فقط) -->
+        <div id="onlineUsersCard" class="card admin-only hidden" style="border-right: 5px solid #27ae60; background: #f4fbf7;">
+          <h3>🟢 المستخدمون المتصلون الآن على السيستم</h3>
+          <div id="onlineUsersList" style="margin-top: 8px; font-weight: bold; color: #2c3e50;">جاري التحقق من المتصلين...</div>
+        </div>
+
         <div class="grid stats">
           <div class="stat card"><span>عدد الأصناف</span><b id="statProducts">٠</b></div>
           <div class="stat card admin-only hidden"><span>قيمة الشراء (رأس المال)</span><b id="statStock">٠٫٠٠</b></div>
@@ -174,7 +241,7 @@
           <div class="stat card" style="border-right: 4px solid #e74c3c;"><span>الأصناف الناقصة</span><b id="statLow" style="color:#e74c3c;">٠</b></div>
         </div>
 
-        <!-- بطاقات تقارير الأرباح والخسائر الشاملة (للأدمن فقط) -->
+        <!-- بطاقات تقارير الأرباح والخسائر الشاملة -->
         <div class="grid stats admin-only hidden" style="margin-top: 15px;">
           <div class="stat card" style="border-right: 4px solid #2ecc71;">
             <span>إجمالي المبيعات العامة</span>
@@ -212,7 +279,7 @@
         <div class="card">
           <div class="row between" style="flex-wrap: wrap; gap: 10px;">
             <h2>الأصناف والمخزون</h2>
-            <button id="btnAddProduct" class="can-edit-only hidden" onclick="openProductForm()">+ إضافة صنف جديد</button>
+            <button id="btnAddProduct" class="admin-only hidden" onclick="openProductForm()">+ إضافة صنف جديد</button>
           </div>
           <div class="sort-controls">
             <input id="productSearch" placeholder="بحث بالاسم أو الكود" oninput="renderProducts()">
@@ -347,6 +414,7 @@
                   <th>الإجمالي</th>
                   <th>المدفوع</th>
                   <th>المتبقي (دين)</th>
+                  <th>المستخدم (المسؤول)</th>
                   <th>التاريخ والوقت</th>
                   <th>الإجراءات</th>
                 </tr>
@@ -383,11 +451,11 @@
         </div>
       </section>
 
-      <!-- 6. سجل النشاطات والحركات (Audit Trail) -->
+      <!-- 6. سجل النشاطات والحركات -->
       <section id="auditLogs" class="tab-page hidden">
         <div class="card">
           <h2>سجل الحركة والنشاطات (Audit Trail)</h2>
-          <p class="muted">متابعة كافة العمليات الحساسة في النظام (حفظ فواتير، تحصيل ديون، تسجيل مصروفات).</p>
+          <p class="muted">متابعة كافة العمليات الحساسة في النظام.</p>
           <div class="table-wrap" style="margin-top: 15px;">
             <table>
               <thead>
@@ -414,8 +482,8 @@
             <label>الهاتف<input id="storePhone" placeholder="رقم الهاتف"></label>
             <label>واتساب<input id="storeWhatsapp" placeholder="رقم واتساب"></label>
           </div>
-          <label>رابط اللوجو (اختياري إذا أردت رفعه لاحقًا)
-            <input id="logoUrl" placeholder="اتركه فارغًا لاستخدام logo.png الموجود داخل الملف">
+          <label>رابط اللوجو (اختياري)
+            <input id="logoUrl" placeholder="اتركه فارغًا لاستخدام logo.png">
           </label>
           <label>عبارة أسفل الفاتورة
             <input id="invoiceFooter" value="شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم وتوفير أفضل خامات المقاولات لكم.">
@@ -425,11 +493,11 @@
         </div>
       </section>
 
-      <!-- صفحة المستخدمين والإنشاء الآمن مع الاسم الحقيقي -->
+      <!-- صفحة المستخدمين -->
       <section id="users" class="tab-page hidden">
         <div class="card">
           <h2>المستخدمون والصلاحيات</h2>
-          <p class="muted">إدارة حسابات المستخدمين وإنشاء مستخدمين جدد (مدير، مدير ثانٍ، أو مستخدم عادي).</p>
+          <p class="muted">إدارة حسابات المستخدمين وإنشاء مستخدمين جدد.</p>
           
           <div class="card" style="margin-top: 15px; background: #fdfbf7; border: 1px solid #e2dbca;">
             <h3>➕ إضافة مستخدم جديد للنظام</h3>
@@ -477,6 +545,10 @@
     logo_url: "",
     invoice_footer: "شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم وتوفير أفضل خامات المقاولات لكم."
   };
+
+  function closeBlessModal() {
+    document.getElementById("blessModal").style.display = "none";
+  }
 
   function toArabicDigits(input) {
     if (input === null || input === undefined) return "";
@@ -536,12 +608,22 @@
     }
     document.getElementById("loginView").classList.add("hidden");
     document.getElementById("appView").classList.remove("hidden");
+    
+    // تسجيل الحضور لنظام المتصلين الآن
+    await updateOnlinePresence();
+    setInterval(updateOnlinePresence, 30000); // تحديث كل 30 ثانية
+
     await loadProfile();
     await loadStoreSettings();
     await refreshDashboard();
     await loadProducts();
     await loadUniqueCustomers();
   });
+
+  async function updateOnlinePresence() {
+    if (!currentUser) return;
+    await sb.from("profiles").update({ last_seen: new Date().toISOString() }).eq("id", currentUser.id);
+  }
 
   async function loadProfile() {
     const { data: p } = await sb.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
@@ -551,24 +633,24 @@
     if (role === "admin") roleText = "المدير الأساسي";
     else if (role === "admin2") roleText = "مدير ثانٍ";
 
-    const displayName = p?.full_name || p?.username || "مستخدم";
-    document.getElementById("userLabel").textContent = displayName + " — " + roleText;
+    const fullName = p?.full_name || p?.username || "مستخدم";
+    document.getElementById("userLabel").textContent = fullName + " — " + roleText;
     
     const isAdminOrAdmin2 = (role === "admin" || role === "admin2");
+    
+    // فقط الأدمن والمدير الثاني يرون الأقسام الإدارية وسجل النشاطات وإعدادات المكتب والمستخدمين
     document.querySelectorAll(".admin-only").forEach(el => {
       el.classList.toggle("hidden", !isAdminOrAdmin2);
     });
 
+    // زر إضافة الأصناف يظهر فقط للأدمن والمدير الثاني
+    const btnAddProd = document.getElementById("btnAddProduct");
+    if (btnAddProd) btnAddProd.classList.toggle("hidden", !isAdminOrAdmin2);
+
     const optAdmin = document.getElementById("optionAdminRole");
     if (optAdmin) optAdmin.classList.toggle("hidden", role !== "admin");
-
-    const canEdit = (role === "admin" || role === "admin2" || role === "user" || role === "general");
-    document.querySelectorAll(".can-edit-only").forEach(el => {
-      el.classList.toggle("hidden", !canEdit);
-    });
   }
 
-  // --- إنشاء مستخدم جديد مع حفظ الاسم الحقيقي في قاعدة البيانات ---
   async function createNewSystemUser() {
     if (currentProfile?.role !== "admin" && currentProfile?.role !== "admin2") {
       return alert("غير مسموح لك بإنشاء مستخدمين");
@@ -627,7 +709,7 @@
   }
 
   async function saveStoreSettings() {
-    if (currentProfile?.role !== "admin") return alert("هذه الصفحة للمدير الأساسي فقط");
+    if (currentProfile?.role !== "admin" && currentProfile?.role !== "admin2") return alert("غير مسموح لك بالتعديل");
     const payload = {
       id: 1,
       store_name: document.getElementById("storeName").value.trim() || "مكتب الحمد للمقاولات العامة",
@@ -784,7 +866,7 @@
 
   async function addQuantity(id, currentQty) {
     const role = currentProfile?.role || "user";
-    if (role !== "admin" && role !== "admin2" && role !== "user") return alert("غير مسموح لك بالتعديل");
+    if (role !== "admin" && role !== "admin2") return alert("غير مسموح لك بالتعديل");
 
     const addQty = prompt("أدخل الكمية التي تريد إضافتها للمخزن:", "0");
     if (addQty === null) return;
@@ -803,7 +885,7 @@
 
   async function editProduct(id) {
     const role = currentProfile?.role || "user";
-    if (role !== "admin" && role !== "admin2" && role !== "user") return alert("غير مسموح لك بالتعديل");
+    if (role !== "admin" && role !== "admin2") return alert("غير مسموح لك بالتعديل");
 
     const p = products.find(x => x.id === id);
     if (!p) return;
@@ -1042,7 +1124,8 @@
       }
     }
 
-    await logActivity("حفظ فاتورة مبيعات", `إصدار فاتورة رقم ${inv.id} للعميل: ${customer_name || "نقدي"} بإجمالي ${finalTotal} ج.م`);
+    const creatorName = currentProfile?.full_name || currentProfile?.username || "مستخدم";
+    await logActivity("حفظ فاتورة مبيعات", `إصدار فاتورة رقم ${inv.id} للعميل: ${customer_name || "نقدي"} بواسطة: ${creatorName}`);
     document.getElementById("invoiceNo").textContent = "فاتورة " + toArabicDigits(String(inv.id));
     
     autoSaveInvoiceFile(inv.id, customer_name, finalTotal, paid, remaining);
@@ -1088,6 +1171,8 @@
   }
 
   async function editSavedInvoice(id) {
+    if (currentProfile?.role !== "admin" && currentProfile?.role !== "admin2") return alert("غير مسموح لك بالتعديل");
+
     const { data: inv, error } = await sb.from("invoices").select("*").eq("id", id).single();
     if (error || !inv) return alert("لم يتم العثور على الفاتورة");
 
@@ -1115,13 +1200,14 @@
     if (updateErr) return alert("خطأ في التحديث: " + updateErr.message);
 
     await logActivity("تعديل فاتورة", `تعديل بيانات الفاتورة رقم ${id}`);
-    alert("تم تعديل الفاتورة بنجاح وتحديث البيانات!");
+    alert("تم تعديل الفاتورة بنجاح!");
     await loadInvoices();
     await refreshDashboard();
     await loadProducts();
   }
 
   async function cancelInvoice(id) {
+    if (currentProfile?.role !== "admin" && currentProfile?.role !== "admin2") return alert("غير مسموح لك بالحذف أو الإلغاء");
     if (!confirm("هل أنت متأكد من إلغاء هذه الفاتورة؟ سيتم حذفها واسترداد الكميات المباعة إلى المخزن تلقائياً.")) return;
 
     const { data: items, error: itemErr } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
@@ -1181,11 +1267,12 @@
         <td>${esc(x.reason)}</td>
         <td style="color: #e74c3c;"><b>${toArabicDigits(money(x.amount))} ج.م</b></td>
         <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
-        <td><button class="danger small" onclick="deleteExpense('${x.id}')">حذف</button></td>
+        <td>${(currentProfile?.role === 'admin' || currentProfile?.role === 'admin2') ? `<button class="danger small" onclick="deleteExpense('${x.id}')">حذف</button>` : ''}</td>
       </tr>`).join("");
   }
 
   async function deleteExpense(id) {
+    if (currentProfile?.role !== "admin" && currentProfile?.role !== "admin2") return alert("غير مسموح لك بالحذف");
     if (!confirm("هل أنت متأكد من حذف هذا المصروف؟")) return;
     const { error } = await sb.from("expenses").delete().eq("id", id);
     if (error) return alert(error.message);
@@ -1217,10 +1304,10 @@
   }
 
   async function sendWhatsAppBusinessMessage(id, customerPhone, customerName) {
-    const { data: inv, error: invErr } = await sb.from("invoices").select("*").eq("id", id).single();
-    const { data: items, error: itemErr } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
+    const { data: inv } = await sb.from("invoices").select("*").eq("id", id).single();
+    const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
     
-    if (invErr || !inv) return alert("تعذر جلب تفاصيل الفاتورة");
+    if (!inv) return alert("تعذر جلب تفاصيل الفاتورة");
 
     if (items && items.length > 0) {
       const htmlContent = buildInvoiceHtml(inv, items);
@@ -1255,8 +1342,6 @@
         const itemTotal = toArabicDigits(money(item.total));
         itemsText += `${toArabicDigits(index + 1)}. ${itemName} (الكمية: ${itemQty} | السعر: ${itemPrice} ج.م | الإجمالي: ${itemTotal} ج.م)\n`;
       });
-    } else {
-      itemsText = "لا توجد أصناف مسجلة.\n";
     }
 
     const paidAmt = toArabicDigits(money(inv.paid_amount || 0));
@@ -1276,7 +1361,6 @@
       `💵 *المبلغ المدفوع:* ${paidAmt} ج.م\n` +
       `⚠️ *المبلغ المتبقي (آجل):* ${remAmt} ج.م\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
-      `*(مرفق ملف الفاتورة HTML على جهاز الكاشير، يمكنك إرفاقه هنا للمراسلة)*\n` +
       `شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم! 🙏`;
     
     const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
@@ -1284,13 +1368,19 @@
   }
 
   async function loadInvoices() {
-    const { data, error } = await sb.from("invoices").select("*").order("created_at", { ascending: false }).limit(100);
+    // جلب الفواتير مع بيانات المستخدمين لمعرفة اسم من قيد الفاتورة
+    const { data, error } = await sb.from("invoices").select("*, profiles:created_by(full_name, username)").order("created_at", { ascending: false }).limit(100);
     if (error) return;
+
+    const role = currentProfile?.role || "user";
+    const isAdminOrAdmin2 = (role === "admin" || role === "admin2");
+
     document.getElementById("invoicesBody").innerHTML = (data || []).map(x => {
       const rem = Number(x.remaining_amount || 0);
       const paidVal = Number(x.paid_amount || 0);
       const customerEsc = esc(x.customer_name);
       const phoneVal = esc(x.customer_phone || "");
+      const creatorName = esc(x.profiles?.full_name || x.profiles?.username || "مستخدم النظام");
       
       let formattedPhone = phoneVal;
       if (formattedPhone) {
@@ -1308,13 +1398,14 @@
         <td><b>${toArabicDigits(money(x.total))} ج.م</b></td>
         <td style="color: #27ae60;">${toArabicDigits(money(paidVal))} ج.م</td>
         <td style="color: #c0392b;"><b>${toArabicDigits(money(rem))} ج.م</b></td>
+        <td><span style="color: #122b49; font-weight: bold;">${creatorName}</span></td>
         <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
         <td>
           <button class="small" onclick="printSavedInvoice('${x.id}')">طباعة</button>
-          <a class="btn-whatsapp small" href="javascript:void(0)" onclick="sendWhatsAppBusinessMessage('${x.id}', '${phoneVal}', '${customerEsc}')">واتساب أعمال</a>
+          <a class="btn-whatsapp small" href="javascript:void(0)" onclick="sendWhatsAppBusinessMessage('${x.id}', '${phoneVal}', '${customerEsc}')">واتساب</a>
           ${rem > 0 ? `<button class="btn-pay small" onclick="payDebt('${x.id}',${rem}, ${paidVal}, '${customerEsc}')">تحصيل</button>` : ''}
-          <button class="btn-edit small" onclick="editSavedInvoice('${x.id}')">تعديل</button>
-          <button class="btn-cancel small" onclick="cancelInvoice('${x.id}')">إلغاء</button>
+          ${isAdminOrAdmin2 ? `<button class="btn-edit small" onclick="editSavedInvoice('${x.id}')">تعديل</button>` : ''}
+          ${isAdminOrAdmin2 ? `<button class="btn-cancel small" onclick="cancelInvoice('${x.id}')">إلغاء</button>` : ''}
         </td>
       </tr>`;
     }).join("");
@@ -1532,6 +1623,21 @@
   }
 
   async function refreshDashboard() {
+    // جلب المتصلين الآن وإظهارهم للأدمن
+    if (currentProfile?.role === "admin") {
+      const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: onlineProfiles } = await sb.from("profiles").select("full_name, username, role, last_seen").gte("last_seen", fiveMinsAgo);
+      
+      const onlineEl = document.getElementById("onlineUsersList");
+      if (onlineEl) {
+        if (onlineProfiles && onlineProfiles.length > 0) {
+          onlineEl.innerHTML = onlineProfiles.map(u => `<span class="badge" style="background: #27ae60; color: white; margin-left: 5px; padding: 4px 8px; border-radius: 4px;">🟢 ${esc(u.full_name || u.username)} (${u.role})</span>`).join("");
+        } else {
+          onlineEl.innerHTML = "<span class='muted'>لا يوجد مستخدمون متصلون حالياً سواك.</span>";
+        }
+      }
+    }
+
     const { data: prodData } = await sb.from("products").select("name, quantity, buy_price, sell_price, min_quantity");
     const list = prodData || [];
     document.getElementById("statProducts").textContent = toArabicDigits(list.length);
@@ -1615,12 +1721,18 @@
     }
   }
 
-  // --- تحميل قائمة المستخدمين مع عرض الاسم الحقيقي ويوزر الدخول وصلاحيات الحذف والتعديل ---
+  // --- تحميل قائمة المستخدمين مع حجب بيانات الأدمن عن المدير الثاني ---
   async function loadUsers() {
     const { data } = await sb.from("profiles").select("*").order("created_at", { ascending: true });
     const myRole = currentProfile?.role || "user";
 
-    document.getElementById("usersBody").innerHTML = (data || []).map(p => {
+    let profilesList = data || [];
+    if (myRole === "admin2") {
+      // منع المدير الثاني من رؤية حسابات الأدمن الأساسي تماماً
+      profilesList = profilesList.filter(p => p.role !== "admin");
+    }
+
+    document.getElementById("usersBody").innerHTML = profilesList.map(p => {
       const uRole = p.role || "user";
       let roleBadge = "مستخدم عادي";
       if (uRole === "admin") roleBadge = "المدير الأساسي (Admin)";
