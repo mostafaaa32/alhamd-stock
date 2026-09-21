@@ -1007,6 +1007,15 @@
     document.getElementById("amountRemaining").value = toArabicDigits(money(remaining)) + " ج.م";
   }
 
+  async function loadAuditLogs() {
+    const { data } = await sb.from("activity_logs").select("*").order("created_at", { ascending: false }).limit(100);
+    const tbody = document.getElementById("auditLogsBody");
+    if (tbody) {
+      tbody.innerHTML = (data || []).map(x => `
+        <tr><td><b>${x.action}</b></td><td>${x.details}</td><td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td></tr>`).join("");
+    }
+  }
+
   function clearInvoiceItemsOnly() {
     invoiceItems = [];
     document.getElementById("invoiceDiscount").value = "";
