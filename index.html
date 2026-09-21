@@ -633,39 +633,27 @@
     if (optAdmin) optAdmin.classList.toggle("hidden", role !== "admin");
   }
 
-  async function createNewSystemUser() {
-    if (currentProfile?.role !== "admin" && currentProfile?.role !== "admin2") {
-      return alert("غير مسموح لك بإنشاء مستخدمين");
-    }
-
+async function createNewSystemUser() {
+    if (currentProfile?.role !== "admin" && currentProfile?.role !== "admin2") return alert("غير مسموح لك");
     const username = document.getElementById("newUsername").value.trim().toLowerCase();
     const password = document.getElementById("newPassword").value;
     const role = document.getElementById("newRole").value;
+    if (!username || !password) return alert("أدخل اسم المستخدم وكلمة المرور");
 
-    if (!username || !password) return alert("أدخل اسم المستخدم وكلمة المرور الجديدة");
-
-    if (currentProfile?.role === "admin2" && role === "admin") {
-      return alert("لا يملك المدير الثاني صلاحية إنشاء مدير أساسي جديد!");
-    }
-
-    const email = username.replace(/[^a-z0-9]/g, '') + "@elhamdapp.com";
+    // طلب إيميل حقيقي من المستخدم لضمان قبوله في Supabase Auth بدون أي مشاكل
+    const email = prompt("أدخل البريد الإلكتروني الحقيقي لهذا المستخدم (مثل: user@gmail.com):", username + "@gmail.com");
+    if (!email || !email.includes("@")) return alert("يجب إدخال بريد إلكتروني صحيح");
 
     const { data: authData, error: authErr } = await sb.auth.signUp({ email, password });
     if (authErr) return alert("خطأ أثناء إنشاء الحساب: " + authErr.message);
 
-    const newUserId = authData.user ? authData.user.id : null;
-    if (newUserId) {
-      await sb.from("profiles").upsert({
-        id: newUserId,
-        username: username,
-        role: role
-      });
+    if (authData.user) {
+      await sb.from("profiles").upsert({ id: authData.user.id, username, role });
     }
-
     alert("تم إنشاء المستخدم بنجاح!");
     document.getElementById("newUsername").value = "";
     document.getElementById("newPassword").value = "";
-    await loadUsers();
+    loadUsers();
   }
 
   async function loadStoreSettings() {
