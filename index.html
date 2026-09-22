@@ -505,6 +505,7 @@
   </div>
 
 <script>
+  
   const SUPABASE_URL = "https://ienqyavjyaizxjvrsgbv.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_jRrQIQiQCm4AGyvfV3WMhQ_x9FeWKhV";
 
@@ -538,7 +539,69 @@
     const arabicNumbers = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
     return str.replace(/[0-9]/g, d => arabicNumbers[parseInt(d)]);
   }
+/**
+ * ملف إدارة نظام "الحمد ستوك" (Alhamd Stock)
+ * حل مشكلة الدوال غير المعرفة ReferenceError
+ */
 
+// 1. تحديث لوحة التحكم
+function refreshDashboard() {
+    try {
+        console.log("جاري تحديث لوحة التحكم...");
+        // ضع هنا الكود الخاص بجلب بيانات اللوحة وتحديثها (مثل طلبات الأيجاكس Fetch أو تحديث العناصر)
+        // مثال: document.getElementById('dashboard-stats').innerText = 'تم التحديث';
+    } catch (error) {
+        console.error("خطأ في تحديث لوحة التحكم:", error);
+    }
+}
+
+// 2. تحميل المنتج
+function loadProduct(productId) {
+    try {
+        console.log("جاري تحميل المنتج برقم:", productId);
+        // ضع هنا الكود الخاص بجلب بيانات المنتج وعرضها في النموذج أو الصفحة
+    } catch (error) {
+        console.error("خطأ في تحميل المنتج:", error);
+    }
+}
+
+// 3. تهيئة صفحة الفاتورة
+function initInvoicePage() {
+    try {
+        console.log("جاري تهيئة صفحة الفاتورة...");
+        // ضع هنا الكود الخاص بضبط التاريخ الافتراضي، توليد رقم الفاتورة، أو تجهيز الجدول
+        resetInvoiceForm();
+    } catch (error) {
+        console.error("خطأ في تهيئة صفحة الفاتورة:", error);
+    }
+}
+
+// 4. إعادة تعيين نموذج الفاتورة
+function resetInvoiceForm() {
+    try {
+        const invoiceForm = document.getElementById('invoiceForm'); // تأكد من مطابقة الـ ID لنموذج الفاتورة عندك
+        if (invoiceForm) {
+            invoiceForm.reset();
+            console.log("تم تفريغ نموذج الفاتورة بنجاح.");
+        } else {
+            console.warn("لم يتم العثور على نموذج الفاتورة (invoiceForm) في الصفحة.");
+        }
+    } catch (error) {
+        console.error("خطأ في إعادة تعيين نموذج الفاتورة:", error);
+    }
+}
+
+// ربط الدوال بنطاق النافذة العامة (Window) لضمان عملها مع أزرار الـ HTML (onclick)
+window.refreshDashboard = refreshDashboard;
+window.loadProduct = loadProduct;
+window.initInvoicePage = initInvoicePage;
+window.resetInvoiceForm = resetInvoiceForm;
+
+// تنفيذ التهيئة التلقائية عند تحميل الصفحة بالكامل
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("تم تحميل الصفحة وجاهزة للعمل.");
+    // يمكنك استدعاء الدوال التلقائية هنا إن أردت
+});
   document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
     if (document.querySelector('.tab[data-tab="invoice"]').classList.contains('active') && btn.dataset.tab !== "invoice") {
       resetInvoiceForm(false);
