@@ -1000,7 +1000,7 @@ async function payDebt(id, currentRemaining, currentPaid, customerName) {
 
   if (error) return alert("خطأ أثناء تحديث السداد: " + error.message);
 
-  await sb.from("payments").insert([{
+  await sb.from("invoices").insert([{
     invoice_id: id,
     customer_name: customerName || "عميل نقدي",
     amount: payAmount,
