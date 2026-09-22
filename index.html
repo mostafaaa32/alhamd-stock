@@ -551,11 +551,6 @@ async function saveInvoiceToSupabase(clientName, invoiceTotal) {
 }
 
     
-  const SUPABASE_URL = "https://ienqyavjyaizxjvrsgbv.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_jRrQIQiQCm4AGyvfV3WMhQ_x9FeWKhV";
-
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-  
   // ضبط المستخدم الحالي بصلاحيات المدير الأساسي الكاملة مباشرة
   let currentUser = { id: "direct-admin-mode" };
   let currentProfile = { username: "مدير النظام", role: "admin" };
