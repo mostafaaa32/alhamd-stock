@@ -804,9 +804,14 @@ function addInvoiceItem() {
   const qty = Number(qtyInput.value || 1);
   const p = products.find(x => x.id === id);
   if (!p) return alert("اختر صنفًا");
-  if (qty < 1 || qty > Number(p.quantity)) return alert("الكمية غير متاحة في المخزن");
-
+  
+  // التحقق من عدم تجاوز الكمية المتوفرة في المخزن
   const existing = invoiceItems.find(x => x.product_id === id);
+  const currentInInvoice = existing ? existing.quantity : 0;
+  if (qty < 1 || (currentInInvoice + qty) > Number(p.quantity)) {
+    return alert(`عذراً، الكمية المطلوبة تتجاوز المتاح في المخزن (المتاح: ${p.quantity})`);
+  }
+
   if (existing) {
     existing.quantity += qty;
   } else {
@@ -817,7 +822,7 @@ function addInvoiceItem() {
   renderInvoice();
 }
 
-// دالة لتعديل كمية البند بواسطة أزرار (+ / -) مباشرة في الجدول
+// دالة لتعديل كمية البند بواسطة أزرار (+ / -) مباشرة في الجدول مع التحقق الصارم من المخزن
 function changeItemQty(index, delta) {
   const item = invoiceItems[index];
   const product = products.find(p => p.id === item.product_id);
@@ -832,7 +837,7 @@ function changeItemQty(index, delta) {
   }
 
   if (product && newQty > Number(product.quantity)) {
-    alert("عذراً، الكمية المطلوبة غير متاحة في المخزن (المتاح: " + product.quantity + ")");
+    alert("عذراً، أقصى كمية متاحة في المخزن لهذا البند هي " + product.quantity + " قطع ولا يمكن تجاوزها!");
     return;
   }
 
