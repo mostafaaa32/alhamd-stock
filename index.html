@@ -511,7 +511,46 @@
   </div>
 
 <script>
-  
+
+// بيانات الاتصال الخاصة بك
+const SUPABASE_URL = 'https://ienqyavjyaizxjvrsgbv.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_jRrQIQiQCm4AGyvfV3WMhQ_x9FeWKhV';
+
+// تهيئة Supabase
+const { createClient } = supabase;
+const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// دالة جلب الفواتير (استدعها عند فتح الصفحة)
+async function loadInvoices() {
+    const { data: invoices, error } = await _supabase
+        .from('invoices')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("خطأ في جلب الفواتير:", error.message);
+        return;
+    }
+
+    console.log("تم جلب الفواتير بنجاح:", invoices);
+    // (هنا ضع كود إدخال الفواتير داخل الجدول لديك في الصفحة)
+}
+
+// دالة حفظ فاتورة جديدة (استدعها عند الضغط على زر الحفظ)
+async function saveInvoiceToSupabase(clientName, invoiceTotal) {
+    const { data, error } = await _supabase
+        .from('invoices')
+        .insert([{ client_name: clientName, total: invoiceTotal }]);
+
+    if (error) {
+        alert("خطأ أثناء الحفظ: " + error.message);
+    } else {
+        alert("تم حفظ الفاتورة ومزامنتها بنجاح!");
+        loadInvoices(); // لتحديث الجدول فوراً
+    }
+}
+
+    
   const SUPABASE_URL = "https://ienqyavjyaizxjvrsgbv.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_jRrQIQiQCm4AGyvfV3WMhQ_x9FeWKhV";
 
