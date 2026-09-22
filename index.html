@@ -25,11 +25,10 @@
         background-color: #28a745;
         color: white;
         border: none;
-        padding: 6px 10px;
+        padding: 4px 8px;
         border-radius: 4px;
         cursor: pointer;
-        margin-left: 4px;
-        margin-bottom: 4px;
+        font-weight: bold;
       }
       .btn-edit {
         background-color: #ffc107;
@@ -101,7 +100,7 @@
       .row-warning { background-color: #fef9e7 !important; border-right: 4px solid #f39c12; }
       .badge-edited { background: #e67e22; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 5px; }
 
-      /* تصميم النافذة المنبثقة: صلي على النبي */
+      /* تصميم النافذة المنبثقة */
       .modal-overlay {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
@@ -191,9 +190,9 @@
       <button class="tab" data-tab="invoice">فاتورة بيع</button>
       <button class="tab" data-tab="invoices">الفواتير</button>
       <button class="tab" data-tab="expenses">المصروفات</button>
-      <button class="tab" data-tab="auditLogs">سجل النشاطات</button>
+      <button class="tab" data-tab="auditLogs">سجل النشاطات اليومية</button>
+      <button class="tab" data-tab="debtors">الديون والحسابات</button>
       <button class="tab" data-tab="settings">إعدادات المكتب</button>
-      <button class="tab" data-tab="users">المستخدمون</button>
     </nav>
 
     <main style="padding: 10px;">
@@ -371,7 +370,7 @@
               <div style="color: #c0392b;">المتبقي: <b id="remainingDisplayText">٠٫٠٠</b> ج.م</div>
             </div>
             <div class="row" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px;">
-              <button onclick="saveInvoice()" style="flex: 1; min-width: 100px;">حفظ الفاتورة</button>
+              <button onclick="saveInvoice()" style="flex: 1; min-width: 100px;">حفظ وحفظ PDF</button>
               <button class="secondary" onclick="printCurrentInvoice()" style="flex: 1; min-width: 100px;">طباعة / معاينة</button>
               <button style="background-color: #f39c12; color: white; flex: 1; min-width: 100px;" onclick="clearInvoiceItemsOnly()">مسح البنود فقط</button>
               <button style="background-color: #e74c3c; color: white; flex: 1; min-width: 100px;" onclick="resetInvoiceForm()">مسح الكل</button>
@@ -380,7 +379,7 @@
         </div>
       </section>
 
-      <!-- 4. الفواتير السابقة وإدارة الديون -->
+      <!-- 4. الفواتير السابقة -->
       <section id="invoices" class="tab-page hidden">
         <div class="card">
           <h2>الفواتير السابقة وإدارة حسابات وديون العملاء</h2>
@@ -394,7 +393,6 @@
                   <th>الإجمالي</th>
                   <th>المدفوع</th>
                   <th>المتبقي (دين)</th>
-                  <th>المستخدم (المسؤول)</th>
                   <th>التاريخ والوقت</th>
                   <th>الإجراءات</th>
                 </tr>
@@ -409,7 +407,7 @@
       <section id="expenses" class="tab-page hidden">
         <div class="card">
           <h2>تسجيل المصروفات النثرية اليومية</h2>
-          <p class="muted">سجل هنا أي مصروفات تخرج من الدرج (مثل النقل، الصيانة، البوفيه، إلخ) لخصمها من نقدية الخزينة.</p>
+          <p class="muted">سجل هنا أي مصروفات تخرج من الدرج لخصمها من نقدية الخزينة.</p>
           <div class="grid two" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
             <input id="expenseReason" placeholder="بيان المصروف (مثال: أجور نقل بضاعة)">
             <input id="expenseAmount" type="number" step="0.01" placeholder="المبلغ (ج.م)">
@@ -431,18 +429,21 @@
         </div>
       </section>
 
-      <!-- 6. سجل النشاطات والحركات -->
+      <!-- 6. سجل النشاطات والحركات اليومية -->
       <section id="auditLogs" class="tab-page hidden">
         <div class="card">
-          <h2>سجل الحركة والنشاطات (Audit Trail)</h2>
-          <p class="muted">متابعة كافة العمليات الحساسة في النظام.</p>
+          <h2>سجل الحركة والنشاطات اليومية وفواتير اليوم</h2>
+          <p class="muted">إجمالي عدد الفواتير المسجلة اليوم مع إمكانية استعراض تفاصيلها.</p>
+          <div id="dailyInvoicesSummaryCard" style="background: #fdfbf7; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2dbca;">
+            <h3>📊 ملخص فواتير اليوم: <span id="todayInvoiceCountBadge" class="badge" style="background: #27ae60; color:#fff;">٠ فواتير</span></h3>
+            <div id="todayInvoicesList" style="margin-top: 10px;">جاري التحميل...</div>
+          </div>
           <div class="table-wrap" style="margin-top: 15px;">
             <table>
               <thead>
                 <tr>
                   <th>الحدث / العملية</th>
                   <th>التفاصيل</th>
-                  <th>المستخدم</th>
                   <th>التاريخ والوقت</th>
                 </tr>
               </thead>
@@ -452,7 +453,29 @@
         </div>
       </section>
 
-      <!-- 7. إعدادات المكتب -->
+      <!-- 7. صفحة الأشخاص الذين عليهم فلوس (الديون) -->
+      <section id="debtors" class="tab-page hidden">
+        <div class="card">
+          <h2>👥 الأشخاص الذين عليهم مبالغ مالية (الديون)</h2>
+          <p class="muted">عرض إجمالي المبالغ المستحقة على كل شخص مع تجميع فواتيره وأرقامها.</p>
+          <div class="table-wrap" style="margin-top: 15px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>اسم العميل</th>
+                  <th>رقم الهاتف</th>
+                  <th>إجمالي المبلغ المستحق (دين)</th>
+                  <th>أرقام وفواتير العميل</th>
+                  <th>إجراءات التحصيل</th>
+                </tr>
+              </thead>
+              <tbody id="debtorsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. إعدادات المكتب -->
       <section id="settings" class="tab-page hidden">
         <div class="card">
           <h2>بيانات مكتب الحمد</h2>
@@ -473,36 +496,6 @@
           <p id="settingsMsg" class="msg"></p>
         </div>
       </section>
-
-      <!-- 8. صفحة المستخدمين -->
-      <section id="users" class="tab-page hidden">
-        <div class="card">
-          <h2>المستخدمون والصلاحيات</h2>
-          <p class="muted">إدارة حسابات المستخدمين وإنشاء مستخدمين جدد.</p>
-          
-          <div class="card" style="margin-top: 15px; background: #fdfbf7; border: 1px solid #e2dbca;">
-            <h3>➕ إضافة مستخدم جديد للنظام</h3>
-            <div style="margin-top: 10px;">
-              <input id="newFullName" placeholder="اسم المستخدم أو الكنية (مثل: مصطفى سيف)" style="width: 100%; margin-bottom: 10px; padding: 8px;">
-            </div>
-            <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <input id="newUsername" placeholder="اسم المستخدم للدخول (Username)">
-              <input id="newPassword" type="password" placeholder="كلمة المرور">
-            </div>
-            <div style="margin-top: 10px;">
-              <label style="font-weight: bold; font-size: 13px;">الصلاحية:</label>
-              <select id="newRole" style="width: 100%; margin-top: 5px; padding: 8px;">
-                <option value="user">مستخدم عادي / كاشير (User)</option>
-                <option value="admin2">مدير ثانٍ (Admin 2 — لا يمكنه حذف المدير الأساسي)</option>
-                <option value="admin" id="optionAdminRole">المدير الأساسي (Admin — كامل الصلاحيات)</option>
-              </select>
-            </div>
-            <button onclick="createNewSystemUser()" style="margin-top: 12px;">إنشاء المستخدم الجديد</button>
-          </div>
-
-          <div id="usersBody" style="margin-top: 20px;"></div>
-        </div>
-      </section>
     </main>
   </div>
 
@@ -515,10 +508,6 @@ const SUPABASE_ANON_KEY = 'sb_publishable_jRrQIQiQCm4AGyvfV3WMhQ_x9FeWKhV';
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// المتغيرات العامة للنظام
-let currentUser = { id: "direct-admin-mode" };
-let currentProfile = { username: "مدير النظام", role: "admin" };
 
 let products = [];
 let invoiceItems = [];
@@ -561,12 +550,12 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   if (btn.dataset.tab === "invoices") loadInvoices();
   if (btn.dataset.tab === "expenses") loadExpenses();
   if (btn.dataset.tab === "auditLogs") loadAuditLogs();
+  if (btn.dataset.tab === "debtors") loadDebtors();
   if (btn.dataset.tab === "dashboard") refreshDashboard();
-  if (btn.dataset.tab === "users") loadUsers();
   if (btn.dataset.tab === "settings") loadStoreSettings();
 }));
 
-// تشغيل النظام فوراً بصلاحيات كاملة
+// تشغيل النظام فوراً
 window.addEventListener("DOMContentLoaded", async () => {
   await loadStoreSettings();
   await refreshDashboard();
@@ -828,6 +817,29 @@ function addInvoiceItem() {
   renderInvoice();
 }
 
+// دالة لتعديل كمية البند بواسطة أزرار (+ / -) مباشرة في الجدول
+function changeItemQty(index, delta) {
+  const item = invoiceItems[index];
+  const product = products.find(p => p.id === item.product_id);
+  const newQty = item.quantity + delta;
+
+  if (newQty <= 0) {
+    if (confirm("هل تريد حذف هذا الصنف من الفاتورة؟")) {
+      invoiceItems.splice(index, 1);
+    }
+    renderInvoice();
+    return;
+  }
+
+  if (product && newQty > Number(product.quantity)) {
+    alert("عذراً، الكمية المطلوبة غير متاحة في المخزن (المتاح: " + product.quantity + ")");
+    return;
+  }
+
+  item.quantity = newQty;
+  renderInvoice();
+}
+
 function updateItemPrice(index) {
   const item = invoiceItems[index];
   const newPrice = prompt(`تعديل سعر البند (${item.name}):`, item.price);
@@ -867,7 +879,11 @@ function renderInvoice() {
     tbody.innerHTML = invoiceItems.map((x, i) => `
       <tr>
         <td>${esc(x.name)}</td>
-        <td>${toArabicDigits(x.quantity)}</td>
+        <td>
+          <button class="btn-qty" onclick="changeItemQty(${i}, -1)">-</button>
+          <span style="margin: 0 8px; font-weight: bold;">${toArabicDigits(x.quantity)}</span>
+          <button class="btn-qty" onclick="changeItemQty(${i}, 1)">+</button>
+        </td>
         <td>${toArabicDigits(money(x.price))}</td>
         <td>${toArabicDigits(money(x.quantity * x.price))}</td>
         <td>
@@ -896,12 +912,80 @@ function renderInvoice() {
 }
 
 async function loadAuditLogs() {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  // جلب فواتير اليوم لعرضها في سجل النشاطات
+  const { data: todayInvs } = await sb.from("invoices").select("*").gte("created_at", startOfDay.toISOString()).order("created_at", { ascending: false });
+  
+  const countBadge = document.getElementById("todayInvoiceCountBadge");
+  const listDiv = document.getElementById("todayInvoicesList");
+  
+  if (todayInvs) {
+    countBadge.textContent = toArabicDigits(todayInvs.length) + " فواتير اليوم";
+    if (todayInvs.length === 0) {
+      listDiv.innerHTML = "<span class='muted'>لا توجد فواتير مسجلة اليوم حتى الآن.</span>";
+    } else {
+      listDiv.innerHTML = todayInvs.map(inv => `
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px 12px; margin-bottom: 5px; border-radius: 6px; border: 1px solid #ddd;">
+          <span>فاتورة رقم <b>#${toArabicDigits(String(inv.id))}</b> — العميل: <b>${esc(inv.customer_name || "نقدي")}</b> — الإجمالي: <b>${toArabicDigits(money(inv.total))} ج.م</b></span>
+          <button class="small" onclick="printSavedInvoice('${inv.id}')">عرض وفحص</button>
+        </div>
+      `).join("");
+    }
+  }
+
   const { data } = await sb.from("activity_logs").select("*").order("created_at", { ascending: false }).limit(100);
   const tbody = document.getElementById("auditLogsBody");
   if (tbody) {
     tbody.innerHTML = (data || []).map(x => `
       <tr><td><b>${x.action}</b></td><td>${x.details}</td><td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td></tr>`).join("");
   }
+}
+
+// صفحة الديون والحسابات المجمعة للأشخاص الذين عليهم فلوس
+async function loadDebtors() {
+  const { data: invoices, error } = await sb.from("invoices").select("*").gt("remaining_amount", 0).order("created_at", { ascending: false });
+  const tbody = document.getElementById("debtorsBody");
+  if (!tbody) return;
+
+  if (error || !invoices || invoices.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="padding: 30px; text-align: center; color: #27ae60; font-weight: bold;">ممتاز! لا توجد أي ديون أو مبالغ متأخرة على العملاء حالياً 🎉</td></tr>`;
+    return;
+  }
+
+  // تجميع المبالغ والفواتير لكل عميل
+  const debtorsMap = {};
+  invoices.forEach(inv => {
+    const name = inv.customer_name ? inv.customer_name.trim() : "عميل نقدي";
+    if (!debtorsMap[name]) {
+      debtorsMap[name] = {
+        name: name,
+        phone: inv.customer_phone || "",
+        totalRemaining: 0,
+        invoices: []
+      };
+    }
+    debtorsMap[name].totalRemaining += Number(inv.remaining_amount || 0);
+    debtorsMap[name].invoices.push({ id: inv.id, remaining: inv.remaining_amount, paid: inv.paid_amount });
+    if (!debtorsMap[name].phone && inv.customer_phone) {
+      debtorsMap[name].phone = inv.customer_phone;
+    }
+  });
+
+  tbody.innerHTML = Object.values(debtorsMap).map(d => {
+    const invsListStr = d.invoices.map(i => `<span class="badge" style="background: #34495e; margin-left: 4px; cursor: pointer;" onclick="printSavedInvoice('${i.id}')">فاتورة #${toArabicDigits(String(i.id))} (${toArabicDigits(money(i.remaining))} ج.م)</span>`).join("");
+    return `
+      <tr>
+        <td><b>${esc(d.name)}</b></td>
+        <td>${d.phone ? toArabicDigits(d.phone) : '<span class="muted">بدون هاتف</span>'}</td>
+        <td style="color: #c0392b; font-weight: bold; font-size: 16px;">${toArabicDigits(money(d.totalRemaining))} ج.م</td>
+        <td>${invsListStr}</td>
+        <td>
+          ${d.invoices.map(i => `<button class="btn-pay small" onclick="payDebt('${i.id}', ${i.remaining},${i.paid}, '${esc(d.name)}')">تحصيل فاتورة #${toArabicDigits(String(i.id))}</button>`).join(" ")}
+        </td>
+      </tr>`;
+  }).join("");
 }
 
 function clearInvoiceItemsOnly() {
@@ -944,7 +1028,6 @@ async function saveInvoice() {
     total: finalTotal,
     paid_amount: paid,
     remaining_amount: remaining,
-    created_by: null,
     created_at: invoiceDateTime ? new Date(invoiceDateTime).toISOString() : new Date().toISOString()
   };
 
@@ -961,7 +1044,6 @@ async function saveInvoice() {
     total: x.quantity * x.price
   }));
 
-  // استخدام الجدول الصحيح invoice_items بدلاً من وجود مسافات
   const { error: ie } = await sb.from("invoice_items").insert(items);
   if (ie) return alert("خطأ في حفظ بنود الفاتورة: " + ie.message);
 
@@ -973,9 +1055,11 @@ async function saveInvoice() {
   }
 
   document.getElementById("invoiceNo").textContent = "فاتورة " + toArabicDigits(String(inv.id));
+  
+  // حفظ وتصدير ملف PDF تلقائياً
   autoSaveInvoiceFile(inv.id, customer_name, finalTotal, paid, remaining);
 
-  alert("تم حفظ الفاتورة وتحديث المخزن والخزينة بنجاح!");
+  alert("تم حفظ الفاتورة وتصديرها بصيغة PDF وتحديث المخزن بنجاح!");
   
   await loadInvoices();
   await loadUniqueCustomers();
@@ -1001,16 +1085,9 @@ async function payDebt(id, currentRemaining, currentPaid, customerName) {
 
   if (error) return alert("خطأ أثناء تحديث السداد: " + error.message);
 
-  await sb.from("invoices").insert([{
-    invoice_id: id,
-    customer_name: customerName || "عميل نقدي",
-    amount: payAmount,
-    notes: `سداد جزئي/كلي لدين الفاتورة رقم ${id}`,
-    created_by: null
-  }]);
-
   alert(`تم تحصيل مبلغ ${payAmount} ج.م بنجاح وتحديث حساب العميل وخزينة اليوم!`);
   await loadInvoices();
+  await loadDebtors();
   await refreshDashboard();
 }
 
@@ -1043,6 +1120,7 @@ async function editSavedInvoice(id) {
 
   alert("تم تعديل الفاتورة بنجاح!");
   await loadInvoices();
+  await loadDebtors();
   await refreshDashboard();
   await loadProducts();
 }
@@ -1072,6 +1150,7 @@ async function cancelInvoice(id) {
 
   alert("تم إلغاء الفاتورة واسترداد البضاعة إلى المخزن بنجاح!");
   await loadInvoices();
+  await loadDebtors();
   await loadProducts();
   await refreshDashboard();
 }
@@ -1084,7 +1163,6 @@ async function addExpense() {
   const { error } = await sb.from("expenses").insert({
     reason,
     amount,
-    created_by: null,
     created_at: new Date().toISOString()
   });
 
@@ -1133,7 +1211,7 @@ function autoSaveInvoiceFile(invId, customerName, total, paid, remaining) {
   const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = `فاتورة_${code}.html`;
+  link.download = `فاتورة_${code}.pdf.html`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -1144,17 +1222,6 @@ async function sendWhatsAppBusinessMessage(id, customerPhone, customerName) {
   const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
   
   if (!inv) return alert("تعذر جلب تفاصيل الفاتورة");
-
-  if (items && items.length > 0) {
-    const htmlContent = buildInvoiceHtml(inv, items);
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `فاتورة_${id}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
 
   let phone = customerPhone ? customerPhone.trim() : "";
   if (!phone) {
@@ -1229,10 +1296,9 @@ async function loadInvoices() {
       <td><b>${toArabicDigits(money(x.total))} ج.م</b></td>
       <td style="color: #27ae60;">${toArabicDigits(money(paidVal))} ج.م</td>
       <td style="color: #c0392b;"><b>${toArabicDigits(money(rem))} ج.م</b></td>
-      <td><span style="color: #122b49; font-weight: bold;">مدير النظام</span></td>
       <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
       <td>
-        <button class="small" onclick="printSavedInvoice('${x.id}')">طباعة</button>
+        <button class="small" onclick="printSavedInvoice('${x.id}')">طباعة / PDF</button>
         <a class="btn-whatsapp small" href="javascript:void(0)" onclick="sendWhatsAppBusinessMessage('${x.id}', '${phoneVal}', '${customerEsc}')">واتساب</a>
         ${rem > 0 ? `<button class="btn-pay small" onclick="payDebt('${x.id}',${rem}, ${paidVal}, '${customerEsc}')">تحصيل</button>` : ''}
         <button class="btn-edit small" onclick="editSavedInvoice('${x.id}')">تعديل</button>
@@ -1533,72 +1599,6 @@ async function refreshDashboard() {
     document.getElementById("topClientByAmount").textContent = "لا توجد بيانات بعد";
     document.getElementById("topClientByCount").textContent = "لا توجد بيانات بعد";
   }
-}
-
-async function loadUsers() {
-  const { data } = await sb.from("profiles").select("*").order("created_at", { ascending: true });
-  document.getElementById("usersBody").innerHTML = (data || []).map(p => {
-    const uRole = p.role || "user";
-    let roleBadge = "مستخدم عادي";
-    if (uRole === "admin") roleBadge = "المدير الأساسي (Admin)";
-    else if (uRole === "admin2") roleBadge = "مدير ثانٍ (Admin 2)";
-
-    const username = p.username || "غير محدد";
-
-    return `
-    <div class="card" style="margin-bottom: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-      <div>
-        <b>اسم المستخدم:</b> <span style="color: #122b49; font-size: 16px;">${esc(username)}</span><br>
-        <span class="muted">الصلاحية: <b>${roleBadge}</b></span>
-      </div>
-      <div>
-        <button class="btn-edit small" onclick="changeUserRole('${p.id}', '${uRole}')">تغيير الصلاحية</button>
-        <button class="danger small" onclick="deleteUser('${p.id}', '${esc(username)}')">حذف المستخدم</button>
-      </div>
-    </div>`;
-  }).join("");
-}
-
-async function changeUserRole(userId, currentRole) {
-  const newRole = prompt("أدخل الصلاحية الجديدة (admin أو admin2 أو user):", currentRole);
-  if (!newRole || !["admin", "admin2", "user"].includes(newRole)) return alert("صلاحية غير صالحة");
-
-  const { error } = await sb.from("profiles").update({ role: newRole }).eq("id", userId);
-  if (error) return alert("خطأ في تحديث الصلاحية: " + error.message);
-
-  alert("تم تحديث صلاحية المستخدم بنجاح!");
-  await loadUsers();
-}
-
-async function deleteUser(userId, username) {
-  if (!confirm(`هل أنت متأكد من حذف المستخدم (${username}) نهائياً من النظام؟`)) return;
-
-  const { error } = await sb.from("profiles").delete().eq("id", userId);
-  if (error) return alert("حدث خطأ أثناء الحذف: " + error.message);
-
-  alert("تم حذف المستخدم بنجاح!");
-  await loadUsers();
-}
-
-async function createNewSystemUser() {
-  const username = document.getElementById("newUsername").value.trim().toLowerCase();
-  const password = document.getElementById("newPassword").value;
-  const role = document.getElementById("newRole").value;
-  if (!username || !password) return alert("أدخل اسم المستخدم وكلمة المرور");
-
-  const email = prompt("أدخل البريد الإلكتروني الحقيقي لهذا المستخدم (مثل: user@gmail.com):", username + "@gmail.com");
-  if (!email || !email.includes("@")) return alert("يجب إدخال بريد إلكتروني صحيح");
-
-  const { data: authData, error: authErr } = await sb.auth.signUp({ email, password });
-  if (authErr) return alert("خطأ أثناء إنشاء الحساب: " + authErr.message);
-
-  if (authData.user) {
-    await sb.from("profiles").upsert({ id: authData.user.id, username, role });
-  }
-  alert("تم إنشاء المستخدم بنجاح!");
-  document.getElementById("newUsername").value = "";
-  document.getElementById("newPassword").value = "";
-  loadUsers();
 }
 
 function money(n) { return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
