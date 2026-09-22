@@ -805,7 +805,6 @@ function addInvoiceItem() {
   const p = products.find(x => x.id === id);
   if (!p) return alert("اختر صنفًا");
   
-  // التحقق من عدم تجاوز الكمية المتوفرة في المخزن
   const existing = invoiceItems.find(x => x.product_id === id);
   const currentInInvoice = existing ? existing.quantity : 0;
   if (qty < 1 || (currentInInvoice + qty) > Number(p.quantity)) {
@@ -822,7 +821,6 @@ function addInvoiceItem() {
   renderInvoice();
 }
 
-// دالة لتعديل كمية البند بواسطة أزرار (+ / -) مباشرة في الجدول مع التحقق الصارم من المخزن
 function changeItemQty(index, delta) {
   const item = invoiceItems[index];
   const product = products.find(p => p.id === item.product_id);
@@ -920,7 +918,6 @@ async function loadAuditLogs() {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  // جلب فواتير اليوم لعرضها في سجل النشاطات
   const { data: todayInvs } = await sb.from("invoices").select("*").gte("created_at", startOfDay.toISOString()).order("created_at", { ascending: false });
   
   const countBadge = document.getElementById("todayInvoiceCountBadge");
@@ -948,7 +945,6 @@ async function loadAuditLogs() {
   }
 }
 
-// صفحة الديون والحسابات المجمعة للأشخاص الذين عليهم فلوس
 async function loadDebtors() {
   const { data: invoices, error } = await sb.from("invoices").select("*").gt("remaining_amount", 0).order("created_at", { ascending: false });
   const tbody = document.getElementById("debtorsBody");
@@ -959,7 +955,6 @@ async function loadDebtors() {
     return;
   }
 
-  // تجميع المبالغ والفواتير لكل عميل
   const debtorsMap = {};
   invoices.forEach(inv => {
     const name = inv.customer_name ? inv.customer_name.trim() : "عميل نقدي";
@@ -1061,7 +1056,6 @@ async function saveInvoice() {
 
   document.getElementById("invoiceNo").textContent = "فاتورة " + toArabicDigits(String(inv.id));
   
-  // حفظ وتصدير ملف PDF تلقائياً
   autoSaveInvoiceFile(inv.id, customer_name, finalTotal, paid, remaining);
 
   alert("تم حفظ الفاتورة وتصديرها بصيغة PDF وتحديث المخزن بنجاح!");
