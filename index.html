@@ -508,7 +508,7 @@
 
 <script>
 // ==========================================
-// التعديل الأساسي: تهيئة Supabase بالاسم (sb) فقط لمنع أي تعارض
+// تهيئة Supabase بالاسم الصحيح
 // ==========================================
 const SUPABASE_URL = 'https://ienqyavjyaizxjvrsgbv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_jRrQIQiQCm4AGyvfV3WMhQ_x9FeWKhV';
@@ -566,7 +566,7 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   if (btn.dataset.tab === "settings") loadStoreSettings();
 }));
 
-// تشغيل النظام فوراً بصلاحيات كاملة دون الحاجة لتسجيل دخول
+// تشغيل النظام فوراً بصلاحيات كاملة
 window.addEventListener("DOMContentLoaded", async () => {
   await loadStoreSettings();
   await refreshDashboard();
@@ -961,6 +961,7 @@ async function saveInvoice() {
     total: x.quantity * x.price
   }));
 
+  // استخدام الجدول الصحيح invoice_items بدلاً من وجود مسافات
   const { error: ie } = await sb.from("invoice_items").insert(items);
   if (ie) return alert("خطأ في حفظ بنود الفاتورة: " + ie.message);
 
