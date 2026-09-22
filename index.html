@@ -518,7 +518,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_jRrQIQiQCm4AGyvfV3WMhQ_x9FeWKhV';
 
 // تهيئة Supabase
 const { createClient } = supabase;
-const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const _sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // دالة جلب الفواتير (استدعها عند فتح الصفحة)
 async function loadInvoices() {
