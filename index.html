@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>الحمد ستوك - Alhamd Stock</title>
     
-    <!-- استيراد مكتبة Supabase عبر CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -160,7 +159,6 @@
 </head>
 <body>
 
-  <!-- رسالة منبثقة: صلي على النبي -->
   <div id="blessModal" class="modal-overlay">
     <div class="modal-card">
       <h2>✨ تذكرة طيبة ✨</h2>
@@ -196,7 +194,6 @@
     </nav>
 
     <main style="padding: 10px;">
-      <!-- 1. الرئيسية -->
       <section id="dashboard" class="tab-page">
         <div class="welcome card" style="display: flex; flex-wrap: wrap; align-items: center; gap: 15px;">
           <img src="logo.png" alt="" style="max-width: 70px;">
@@ -253,7 +250,6 @@
         </div>
       </section>
 
-      <!-- 2. الأصناف -->
       <section id="products" class="tab-page hidden">
         <div class="card">
           <div class="row between" style="flex-wrap: wrap; gap: 10px;">
@@ -293,14 +289,13 @@
         </div>
       </section>
 
-      <!-- 3. فاتورة البيع -->
       <section id="invoice" class="tab-page hidden">
         <div class="card" style="min-height: 70vh; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
             <div class="row between" style="flex-wrap: wrap; gap: 10px;">
               <h2>فاتورة بيع جديدة</h2>
               <div>
-                <span id="invoiceCodeDisplay" class="badge" style="margin-left: 8px;">كود الفاتورة: <input id="invoiceCodeInput" type="text" readonly style="border:none; background:transparent; font-weight:bold; width:100px;"></span>
+                <span id="invoiceCodeDisplay" class="badge" style="margin-left: 8px;">كود الفاتورة: <input id="invoiceCodeInput" type="text" readonly style="border:none; background:transparent; font-weight:bold; width:110px;"></span>
                 <span id="invoiceNo" class="badge">جديدة</span>
               </div>
             </div>
@@ -379,7 +374,6 @@
         </div>
       </section>
 
-      <!-- 4. الفواتير السابقة -->
       <section id="invoices" class="tab-page hidden">
         <div class="card">
           <h2>الفواتير السابقة وإدارة حسابات وديون العملاء</h2>
@@ -403,7 +397,6 @@
         </div>
       </section>
 
-      <!-- 5. المصروفات اليومية -->
       <section id="expenses" class="tab-page hidden">
         <div class="card">
           <h2>تسجيل المصروفات النثرية اليومية</h2>
@@ -429,7 +422,6 @@
         </div>
       </section>
 
-      <!-- 6. سجل النشاطات والحركات اليومية -->
       <section id="auditLogs" class="tab-page hidden">
         <div class="card">
           <h2>سجل الحركة والنشاطات اليومية وفواتير اليوم</h2>
@@ -453,7 +445,6 @@
         </div>
       </section>
 
-      <!-- 7. صفحة الأشخاص الذين عليهم فلوس (الديون) -->
       <section id="debtors" class="tab-page hidden">
         <div class="card">
           <h2>👥 الأشخاص الذين عليهم مبالغ مالية (الديون)</h2>
@@ -475,7 +466,6 @@
         </div>
       </section>
 
-      <!-- 8. إعدادات المكتب -->
       <section id="settings" class="tab-page hidden">
         <div class="card">
           <h2>بيانات مكتب الحمد</h2>
@@ -536,10 +526,6 @@ function toArabicDigits(input) {
 
 // التبديل بين التبويبات
 document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
-  if (document.querySelector('.tab[data-tab="invoice"]').classList.contains('active') && btn.dataset.tab !== "invoice") {
-    // ترك التنقل بسلاسة
-  }
-
   document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".tab-page").forEach(s => s.classList.add("hidden"));
   btn.classList.add("active");
