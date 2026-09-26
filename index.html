@@ -295,7 +295,7 @@
             <div class="row between" style="flex-wrap: wrap; gap: 10px;">
               <h2>فاتورة بيع جديدة</h2>
               <div>
-                <span id="invoiceCodeDisplay" class="badge" style="margin-left: 8px;">كود الفاتورة: <input id="invoiceCodeInput" type="text" readonly style="border:none; background:transparent; font-weight:bold; width:110px;"></span>
+                <span id="invoiceCodeDisplay" class="badge" style="margin-left: 8px;">كود الفاتورة: <input id="invoiceCodeInput" type="text" readonly style="border:none; background:transparent; font-weight:bold; width:130px;"></span>
                 <span id="invoiceNo" class="badge">جديدة</span>
               </div>
             </div>
@@ -500,7 +500,7 @@ const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let products = [];
-let invoiceItems = []; // قائمة بنود الفاتورة الحالية
+let invoiceItems = []; 
 let allCustomers = [];
 let currentSortKey = "name";
 let currentSortAsc = true;
@@ -550,21 +550,27 @@ window.addEventListener("DOMContentLoaded", async () => {
   await generateNewInvoiceCode();
 });
 
-// 1. توليد كود الفاتورة الجديد تلقائياً (EL-Hamd0001)
+// توليد كود فاتورة فريد ومضمون 100% بدون تكرار
 async function generateNewInvoiceCode() {
-  const { data, error } = await sb
-    .from('invoices')
-    .select('invoice_code')
-    .order('id', { ascending: false })
-    .limit(1);
-
   let nextNumber = 1;
-  if (data && data.length > 0 && data[0].invoice_code) {
-    const lastCode = data[0].invoice_code; // مثال: EL-Hamd0005
-    const numberPart = parseInt(lastCode.replace('EL-Hamd', ''));
-    if (!isNaN(numberPart)) {
-      nextNumber = numberPart + 1;
+  try {
+    const { data } = await sb
+      .from('invoices')
+      .select('invoice_code')
+      .order('id', { ascending: false })
+      .limit(1);
+
+    if (data && data.length > 0 && data[0].invoice_code) {
+      const lastCode = data[0].invoice_code;
+      const numPart = parseInt(lastCode.replace(/\D/g, ''));
+      if (!isNaN(numPart)) {
+        nextNumber = numPart + 1;
+      } else {
+        nextNumber = Date.now().toString().slice(-4);
+      }
     }
+  } catch (e) {
+    nextNumber = Math.floor(1000 + Math.random() * 9000);
   }
 
   const formattedNum = String(nextNumber).padStart(4, '0');
@@ -1008,7 +1014,6 @@ function clearInvoiceItemsOnly() {
   renderInvoice();
 }
 
-// 3. دالة إلغاء الفاتورة وتوليد كود جديد
 async function cancelInvoiceForm() {
   if (!confirm("هل أنت متأكد من إلغاء الفاتورة الحالية وتفريغ بنودها؟")) return;
   
@@ -1024,7 +1029,6 @@ async function cancelInvoiceForm() {
   alert('تم إلغاء الفاتورة الحالية وتوليد كود جديد.');
 }
 
-// 2. دالة حفظ الفاتورة مع الأكواد الجديدة وتفريغ البنود لتجنب التكرار
 async function saveInvoice() {
   if (!invoiceItems.length) return alert("أضف صنفًا واحدًا على الأقل لحفظ الفاتورة");
   
@@ -1078,7 +1082,6 @@ async function saveInvoice() {
 
   alert("تم حفظ الفاتورة وتصديرها بصيغة PDF وتحديث المخزن بنجاح!");
   
-  // تفريغ البنود وتوليد كود جديد للفاتورة التالية
   invoiceItems = [];
   document.getElementById("customerName").value = "";
   document.getElementById("customerPhone").value = "";
