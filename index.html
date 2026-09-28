@@ -9,7 +9,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
     <style>
       * {
         font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
@@ -18,8 +17,123 @@
       body {
         margin: 0;
         padding: 0;
+        background-color: #0c1b2a;
+        color: #333;
         overflow-x: hidden;
       }
+      
+      /* نظام التخطيط الجديد (الكمبيوتر والموبايل) */
+      #appView {
+        display: flex;
+        min-height: 100vh;
+      }
+      
+      /* القائمة الجانبية للشاشات الكبيرة */
+      .sidebar {
+        width: 260px;
+        background-color: #0a1622;
+        border-left: 1px solid rgba(255,255,255,0.08);
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        height: 100vh;
+        z-index: 1000;
+        transition: transform 0.3s ease;
+      }
+      .sidebar-brand {
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .sidebar-brand img {
+        max-width: 130px;
+        object-fit: contain;
+      }
+      .sidebar-menu {
+        list-style: none;
+        padding: 15px 0;
+        margin: 0;
+        flex: 1;
+        overflow-y: auto;
+      }
+      .sidebar-menu li {
+        padding: 0 15px;
+        margin-bottom: 5px;
+      }
+      .sidebar-menu button.tab {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: #cbd5e1;
+        padding: 12px 15px;
+        text-align: right;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: all 0.2s;
+      }
+      .sidebar-menu button.tab:hover, .sidebar-menu button.tab.active {
+        background: linear-gradient(135deg, #c59b45 0%, #e2b962 100%);
+        color: #0c1b2a;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(197, 155, 69, 0.3);
+      }
+
+      /* المحتوى الرئيسي */
+      .main-content {
+        flex: 1;
+        margin-right: 260px;
+        background: #f8fafc;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* الشريط العلوي */
+      .topbar {
+        background: #0f233c;
+        color: #fff;
+        padding: 12px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 3px solid #c59b45;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      }
+      .topbar-info {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        font-size: 13px;
+        color: #cbd5e1;
+      }
+      .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 24px;
+        cursor: pointer;
+      }
+
+      main {
+        padding: 20px;
+        flex: 1;
+      }
+
+      .card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+        border-top: 4px solid #0f233c;
+      }
+
       .btn-qty {
         background-color: #28a745;
         color: white;
@@ -69,11 +183,27 @@
         font-weight: bold;
         margin-left: 4px;
       }
+      
       .grid.stats {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
       }
+      .stat.card {
+        border-top: 4px solid #c59b45;
+        text-align: center;
+      }
+      .stat.card span {
+        font-size: 13px;
+        color: #64748b;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .stat.card b {
+        font-size: 22px;
+        color: #0f233c;
+      }
+
       th.sortable {
         cursor: pointer;
         user-select: none;
@@ -91,6 +221,9 @@
       .sort-controls input, .sort-controls select {
         flex: 1;
         min-width: 140px;
+        padding: 8px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
       }
       .row-danger { background-color: #fdf2f2 !important; border-right: 4px solid #e74c3c; }
       .row-warning { background-color: #fef9e7 !important; border-right: 4px solid #f39c12; }
@@ -98,7 +231,7 @@
       .modal-overlay {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.6);
+        background: rgba(0, 0, 0, 0.7);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -114,29 +247,7 @@
         box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         border-top: 5px solid #c59b45;
       }
-      .modal-card h2 {
-        color: #122b49;
-        margin-top: 0;
-        font-size: 24px;
-      }
-      .modal-card p {
-        color: #555;
-        font-size: 18px;
-        margin: 15px 0 25px 0;
-      }
-      .modal-card button {
-        background: #27ae60;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        font-size: 16px;
-        font-weight: bold;
-        border-radius: 6px;
-        cursor: pointer;
-        width: 100%;
-      }
 
-      /* نافذة الفواتير وكشوفات الحساب الطباعية */
       .statement-modal {
         display: none;
         position: fixed;
@@ -148,19 +259,19 @@
       }
       .statement-content {
         background: white;
-        padding: 30px;
-        width: 90%;
+        padding: 25px;
+        width: 92%;
         max-width: 750px;
         max-height: 90vh;
         overflow-y: auto;
         border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-        border-top: 6px solid #122b49;
+        border-top: 6px solid #0f233c;
       }
 
-      /* تصميم جمالي لفاتورة المعاينة والطباعة */
+      /* تصميم الفاتورة والمعاينة المطابق تماماً للصورة المطلوبة */
       .invoice-print-container {
-        padding: 20px;
+        padding: 15px;
         background: #fff;
         color: #333;
       }
@@ -168,26 +279,51 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 3px double #122b49;
-        padding-bottom: 15px;
-        margin-bottom: 20px;
+        border-bottom: 2px solid #0f233c;
+        padding-bottom: 12px;
+        margin-bottom: 15px;
+        background: #0f233c;
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
       }
       .invoice-header-flex img {
-        max-height: 70px;
-        max-width: 120px;
+        max-height: 65px;
         object-fit: contain;
       }
       .invoice-meta-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 15px;
+        gap: 12px;
         background: #f8f9fa;
         padding: 12px;
         border-radius: 8px;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
         font-size: 14px;
         border: 1px solid #e9ecef;
       }
+
+      .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 5px;
+      }
+      th, td {
+        padding: 10px;
+        border: 1px solid #e2e8f0;
+        text-align: center;
+        font-size: 14px;
+      }
+      th {
+        background-color: #0f233c;
+        color: white;
+      }
+
+      .hidden { display: none !important; }
 
       @media print {
         body * { visibility: hidden; }
@@ -203,16 +339,20 @@
         .no-print { display: none !important; }
       }
 
-      @media (max-width: 768px) {
-        body { padding: 5px; }
-        .topbar { flex-direction: column; align-items: flex-start; gap: 10px; padding: 10px; }
-        .header-right { width: 100%; justify-content: space-between; }
-        .tabs { overflow-x: auto; white-space: nowrap; padding-bottom: 5px; }
-        .tab { padding: 8px 12px; font-size: 14px; }
+      @media (max-width: 900px) {
+        .sidebar {
+          transform: translateX(100%);
+        }
+        .sidebar.mobile-open {
+          transform: translateX(0);
+        }
+        .main-content {
+          margin-right: 0;
+        }
+        .mobile-menu-toggle {
+          display: block;
+        }
         .grid.two { grid-template-columns: 1fr !important; }
-        .invoice-add { flex-direction: column; }
-        .invoice-add select, .invoice-add input, .invoice-add button { width: 100% !important; margin-bottom: 8px; }
-        main .card { padding: 15px !important; }
       }
     </style>
 </head>
@@ -222,15 +362,15 @@
     <div class="modal-card">
       <h2>✨ تذكرة طيبة ✨</h2>
       <p><b>صلى على النبي</b> ﷺ</p>
-      <button onclick="closeBlessModal()">عليه أفضل الصلاة والسلام</button>
+      <button onclick="closeBlessModal()" style="background: #0f233c; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%;">عليه أفضل الصلاة والسلام</button>
     </div>
   </div>
 
-  <!-- نافذة طباعة كود الصنف (الباركود) -->
+  <!-- نافذة طباعة باركود الصنف -->
   <div id="labelModal" class="statement-modal">
     <div class="statement-content" style="max-width: 400px; text-align: center;">
-      <div id="printableLabel" style="padding: 20px; border: 2px dashed #122b49; border-radius: 8px; margin-bottom: 15px;">
-        <h3 id="lblStore" style="margin: 0 0 10px 0; color: #122b49;">مكتب الحمد</h3>
+      <div id="printableLabel" style="padding: 20px; border: 2px dashed #0f233c; border-radius: 8px; margin-bottom: 15px;">
+        <h3 id="lblStore" style="margin: 0 0 10px 0; color: #0f233c;">مكتب الحمد لمواد البناء والتشطيبات</h3>
         <h2 id="lblItemName" style="margin: 5px 0; font-size: 22px;">اسم الصنف</h2>
         <div style="font-size: 28px; font-weight: bold; letter-spacing: 2px; margin: 15px 0; background: #f4f4f4; padding: 10px;" id="lblItemCode">EL-CODE</div>
         <div style="font-size: 18px; color: #27ae60; font-weight: bold;" id="lblItemPrice">السعر: ٠٫٠٠ ج.م</div>
@@ -242,22 +382,22 @@
     </div>
   </div>
 
-  <!-- نافذة معاينة الفاتورة قبل أو بعد الحفظ -->
+  <!-- نافذة معاينة الفاتورة -->
   <div id="invoicePreviewModal" class="statement-modal">
     <div class="statement-content" style="max-width: 700px;">
       <div id="printableInvoicePreview" class="invoice-print-container">
         <div class="invoice-header-flex">
           <div>
-            <h2 id="prevStoreName" style="margin: 0; color: #122b49; font-size: 22px;">مكتب الحمد للمقاولات العامة</h2>
-            <p id="prevStoreDetails" style="margin: 4px 0 0 0; font-size: 13px; color: #666;">الهاتف والعنوان</p>
+            <h2 id="prevStoreName" style="margin: 0; color: #facc15; font-size: 20px;">مكتب الحمد لمواد البناء والتشطيبات</h2>
+            <p id="prevStoreDetails" style="margin: 4px 0 0 0; font-size: 12px; color: #e2e8f0;">بناء .. تشطيب .. ثقة | العمل في جميع أنحاء الجمهورية</p>
           </div>
           <div>
-            <img id="prevStoreLogo" src="logo.png" alt="اللوجو">
+            <img id="prevStoreLogo" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150" alt="الشعار">
           </div>
         </div>
 
-        <div style="text-align: center; margin-bottom: 15px;">
-          <h3 style="margin: 0; background: #122b49; color: #fff; padding: 6px; border-radius: 4px; display: inline-block; font-size: 16px;">فاتورة مبيعات</h3>
+        <div style="text-align: center; margin-bottom: 12px;">
+          <h3 style="margin: 0; background: #0f233c; color: #facc15; padding: 6px; border-radius: 4px; display: inline-block; font-size: 16px;">فاتورة مبيعات</h3>
         </div>
 
         <div class="invoice-meta-grid">
@@ -269,7 +409,7 @@
 
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 14px;" border="1">
           <thead>
-            <tr style="background: #f1f2f6;">
+            <tr style="background: #0f233c; color: #fff;">
               <th style="padding: 8px;">م</th>
               <th style="padding: 8px;">الصنف</th>
               <th style="padding: 8px;">الكمية</th>
@@ -281,38 +421,38 @@
         </table>
 
         <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
-          <div style="width: 250px; font-size: 14px; background: #fdfbf7; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+          <div style="width: 260px; font-size: 14px; background: #fdfbf7; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>إجمالي البنود:</span> <b id="prevSubTotal">٠٫٠٠</b></div>
             <div id="prevDiscountRow" style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #e67e22;"><span>الخصم:</span> <b id="prevDiscountVal">٠٫٠٠</b></div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-weight: bold; font-size: 16px; border-top: 1px solid #ccc; padding-top: 4px; color: #122b49;"><span>النهائي:</span> <b id="prevFinalTotal">٠٫٠٠</b></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-weight: bold; font-size: 16px; border-top: 1px solid #ccc; padding-top: 4px; color: #0f233c;"><span>النهائي:</span> <b id="prevFinalTotal">٠٫٠٠</b></div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #27ae60;"><span>المدفوع:</span> <b id="prevPaid">٠٫٠٠</b></div>
             <div style="display: flex; justify-content: space-between; color: #c0392b;"><span>المتبقي:</span> <b id="prevRemaining">٠٫٠٠</b></div>
           </div>
         </div>
 
         <div style="text-align: center; font-size: 12px; color: #777; border-top: 1px solid #ddd; padding-top: 10px;" id="prevFooterText">
-          شكرًا لتعاملكم معنا
+          شكرًا لتعاملكم مع مكتب الحمد — نتمنى دائماً خدمتكم ❤️
         </div>
       </div>
 
       <div class="no-print" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
-        <button onclick="window.print()" style="background: #3498db; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-weight:bold;">طباعة الفاتورة</button>
+        <button onclick="window.print()" style="background: #0f233c; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-weight:bold;">طباعة الفاتورة</button>
         <button onclick="document.getElementById('invoicePreviewModal').style.display='none'" style="background: #e74c3c; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer;">إغلاق</button>
       </div>
     </div>
   </div>
 
-  <!-- نافذة كشف حساب العميل والديون المفصلة -->
+  <!-- نافذة كشف الحساب والديون -->
   <div id="statementModal" class="statement-modal">
     <div class="statement-content" style="max-width: 800px;">
       <div id="printableStatement" class="invoice-print-container">
         <div class="invoice-header-flex">
           <div>
-            <h2 id="stStoreName" style="margin: 0; color: #122b49; font-size: 22px;">مكتب الحمد للمقاولات العامة</h2>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: #666;">كشف حساب تفصيلي للعميل وحركة المديونية</p>
+            <h2 id="stStoreName" style="margin: 0; color: #facc15; font-size: 20px;">مكتب الحمد لمواد البناء والتشطيبات</h2>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #e2e8f0;">كشف حساب تفصيلي للعميل وحركة المديونية</p>
           </div>
           <div>
-            <img id="stStoreLogo" src="logo.png" alt="اللوجو">
+            <img id="stStoreLogo" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150" alt="الشعار">
           </div>
         </div>
 
@@ -323,343 +463,354 @@
           <div><b>الحالة العامة:</b> <span id="stStatusBadge" style="color: #c0392b; font-weight: bold;">يوجد مديونية مستحقة</span></div>
         </div>
 
-        <div id="stDetailedInvoicesContainer">
-          <!-- تفاصيل الفواتير والبنود لكل فاتورة تظهر هنا بشكل جمالي متكامل -->
-        </div>
+        <div id="stDetailedInvoicesContainer"></div>
 
         <div style="text-align: left; font-size: 16px; font-weight: bold; background: #fdfbf7; padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-top: 15px;">
           إجمالي الديون المستحقة الحالية على العميل: <span id="stTotalDebt" style="color: #c0392b;">٠٫٠٠ ج.م</span>
         </div>
 
         <div style="text-align: center; font-size: 12px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 20px;" id="stFooterText">
-          نعتز دائماً بخدمتكم وتوفير أفضل خامات المقاولات لكم.
+          نعتز دائماً بخدمتكم وتوفير أفضل خامات البناء والتشطيبات لكم.
         </div>
       </div>
 
       <div class="no-print" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
-        <button onclick="window.print()" style="background: #3498db; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-weight:bold;">طباعة التقرير الكامل</button>
-        <button id="stWhatsappBtn" onclick="sendStatementWhatsapp()" style="background: #25d366; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-weight:bold;">إرسال عبر واتساب بالتفاصيل</button>
+        <button onclick="window.print()" style="background: #3498db; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-weight:bold;">طباعة التقرير</button>
+        <button id="stWhatsappBtn" onclick="sendStatementWhatsapp()" style="background: #25d366; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-weight:bold;">واتساب بالتفاصيل</button>
         <button onclick="document.getElementById('statementModal').style.display='none'" style="background: #e74c3c; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer;">إغلاق</button>
       </div>
     </div>
   </div>
 
+  <!-- هيكل التطبيق الرئيسي -->
   <div id="appView">
-    <header class="topbar">
-      <div class="brand">
-        <img src="logo.png" alt="مكتب الحمد" id="mainHeaderLogo">
-        <div>
-          <strong id="headerStoreName">مكتب الحمد للمقاولات العامة</strong>
-          <span>إدارة المخزن والمبيعات</span>
-        </div>
+    <!-- القائمة الجانبية الموحدة لجميع الصفحات -->
+    <aside class="sidebar" id="appSidebar">
+      <div class="sidebar-brand">
+        <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150" alt="مكتب الحمد" id="mainHeaderLogo">
+        <div style="color: #facc15; font-size: 13px; font-weight: bold; margin-top: 5px;">مكتب الحمد لمواد البناء</div>
       </div>
-      <div class="header-right">
-        <span class="connection"><i></i> متصل بقاعدة البيانات</span>
-        <span id="userLabel" class="muted" style="font-weight: bold; color: #122b49;">مكتب الحمد — نظام مفتوح</span>
-      </div>
-    </header>
+      <ul class="sidebar-menu">
+        <li><button class="tab active" data-tab="dashboard">🏠 الرئيسية</button></li>
+        <li><button class="tab" data-tab="invoice">📄 فاتورة جديدة</button></li>
+        <li><button class="tab" data-tab="products">📦 المخزن والأصناف</button></li>
+        <li><button class="tab" data-tab="invoices">📑 إدارة المبيعات</button></li>
+        <li><button class="tab" data-tab="expenses">💸 المصروفات</button></li>
+        <li><button class="tab" data-tab="debtors">👥 العملاء والديون</button></li>
+        <li><button class="tab" data-tab="auditLogs">📊 التقارير والحركة</button></li>
+        <li><button class="tab" data-tab="settings">⚙️ الإعدادات</button></li>
+      </ul>
+    </aside>
 
-    <nav class="tabs">
-      <button class="tab active" data-tab="dashboard">الرئيسية</button>
-      <button class="tab" data-tab="products">الأصناف</button>
-      <button class="tab" data-tab="invoice">فاتورة بيع</button>
-      <button class="tab" data-tab="invoices">الفواتير</button>
-      <button class="tab" data-tab="expenses">المصروفات</button>
-      <button class="tab" data-tab="auditLogs">سجل النشاطات اليومية</button>
-      <button class="tab" data-tab="debtors">الديون والحسابات</button>
-      <button class="tab" data-tab="settings">إعدادات المكتب</button>
-    </nav>
-
-    <main style="padding: 10px;">
-      <section id="dashboard" class="tab-page">
-        <div class="welcome card" style="display: flex; flex-wrap: wrap; align-items: center; gap: 15px;">
-          <img src="logo.png" alt="" style="max-width: 70px;">
-          <div>
-            <h2>مرحبًا بك في نظام مكتب الحمد</h2>
-            <p>إدارة كاملة وشاملة للمخزون والمبيعات والفواتير والمصروفات وحسابات العملاء.</p>
-          </div>
+    <div class="main-content">
+      <header class="topbar">
+        <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()">☰</button>
+        <div class="brand-top" style="display: flex; align-items: center; gap: 10px;">
+          <strong id="headerStoreName" style="color: #facc15; font-size: 16px;">مكتب الحمد لمواد البناء والتشطيبات</strong>
         </div>
-
-        <div id="activityTickerCard" class="card" style="border-right: 5px solid #3498db; background: #f4f8fb; font-weight: bold; color: #2c3e50;">
-          📊 <span id="activityTickerText">جاري تحميل شريط الحركة اليومية...</span>
+        <div class="topbar-info">
+          <span>📍 الحواتم - محافظة الفيوم</span>
+          <span>📞 01012708298</span>
         </div>
+      </header>
 
-        <div class="grid stats">
-          <div class="stat card"><span>عدد الأصناف</span><b id="statProducts">٠</b></div>
-          <div class="stat card"><span>قيمة الشراء (رأس المال)</span><b id="statStock">٠٫٠٠</b></div>
-          <div class="stat card"><span>قيمة البيع المتوقعة</span><b id="statSellStock" style="color: #28a745;">٠٫٠٠</b></div>
-          <div class="stat card"><span>مبيعات اليوم الكلية</span><b id="statSales">٠٫٠٠</b></div>
-          <div class="stat card" style="border-right: 4px solid #e74c3c;"><span>المصروفات اليومية</span><b id="statExpenses" style="color:#e74c3c;">٠٫٠٠</b></div>
-          <div class="stat card" style="border-right: 4px solid #17a2b8;"><span>صافي نقدية الدرج اليوم</span><b id="statCashToday" style="color:#17a2b8;">٠٫٠٠</b></div>
-          <div class="stat card" style="border-right: 4px solid #e74c3c;"><span>الأصناف الناقصة</span><b id="statLow" style="color:#e74c3c;">٠</b></div>
-        </div>
+      <main>
+        <!-- صفحة الرئيسية -->
+        <section id="dashboard" class="tab-page">
+          <div class="card" style="display: flex; flex-wrap: wrap; align-items: center; gap: 15px; background: linear-gradient(135deg, #0f233c 0%, #1a365d 100%); color: #fff;">
+            <div>
+              <h2>مرحبًا بك في نظام مكتب الحمد</h2>
+              <p style="color: #cbd5e1;">من أول التأسيس لحد التشطيب النهائي — نظام متكامل لإدارة المخزون والمبيعات.</p>
+            </div>
+          </div>
 
-        <div class="grid stats" style="margin-top: 15px;">
-          <div class="stat card" style="border-right: 4px solid #2ecc71;">
-            <span>إجمالي المبيعات العامة</span>
-            <b id="totalSalesElement" style="color: #2ecc71;">٠٫٠٠ ج.م</b>
+          <div id="activityTickerCard" class="card" style="border-right: 5px solid #c59b45; background: #fffcf5; font-weight: bold; color: #0f233c;">
+            📊 <span id="activityTickerText">جاري تحميل شريط الحركة اليومية...</span>
           </div>
-          <div class="stat card" style="border-right: 4px solid #e74c3c;">
-            <span>إجمالي المصروفات العامة</span>
-            <b id="totalExpensesElement" style="color: #e74c3c;">٠٫٠٠ ج.م</b>
-          </div>
-          <div class="stat card" style="border-right: 4px solid #3498db;">
-            <span>صافي الربح الحقيقي (تقريبي)</span>
-            <b id="netProfitElement" style="color: #3498db;">٠٫٠٠ ج.م</b>
-          </div>
-        </div>
 
-        <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+          <div class="grid stats">
+            <div class="stat card"><span>عدد الأصناف</span><b id="statProducts">٠</b></div>
+            <div class="stat card"><span>رأس المال (شراء)</span><b id="statStock">٠٫٠٠</b></div>
+            <div class="stat card"><span>قيمة البيع المتوقعة</span><b id="statSellStock" style="color: #28a745;">٠٫٠٠</b></div>
+            <div class="stat card"><span>مبيعات اليوم</span><b id="statSales">٠٫٠٠</b></div>
+            <div class="stat card" style="border-top: 4px solid #e74c3c;"><span>المصروفات اليومية</span><b id="statExpenses" style="color:#e74c3c;">٠٫٠٠</b></div>
+            <div class="stat card" style="border-top: 4px solid #17a2b8;"><span>نقدية الدرج اليوم</span><b id="statCashToday" style="color:#17a2b8;">٠٫٠٠</b></div>
+            <div class="stat card" style="border-top: 4px solid #e74c3c;"><span>أصناف ناقصة</span><b id="statLow" style="color:#e74c3c;">٠</b></div>
+          </div>
+
+          <div class="grid stats" style="margin-top: 15px;">
+            <div class="stat card" style="border-top: 4px solid #2ecc71;">
+              <span>إجمالي المبيعات العامة</span>
+              <b id="totalSalesElement" style="color: #2ecc71;">٠٫٠٠ ج.م</b>
+            </div>
+            <div class="stat card" style="border-top: 4px solid #e74c3c;">
+              <span>إجمالي المصروفات العامة</span>
+              <b id="totalExpensesElement" style="color: #e74c3c;">٠٫٠٠ ج.م</b>
+            </div>
+            <div class="stat card" style="border-top: 4px solid #3498db;">
+              <span>صافي الربح التقريبي</span>
+              <b id="netProfitElement" style="color: #3498db;">٠٫٠٠ ج.م</b>
+            </div>
+          </div>
+
+          <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+            <div class="card">
+              <h2>أهم العملاء (أعلى قيمة فاتورة)</h2>
+              <div id="topClientByAmount">جاري التحميل...</div>
+            </div>
+            <div class="card">
+              <h2>أهم العملاء (حسب كثرة الفواتير)</h2>
+              <div id="topClientByCount">جاري التحميل...</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top: 15px; border-top: 4px solid #e74c3c;">
+            <h2>⚠️ التنبيهات الذكية: أصناف وصلت للحد الأدنى</h2>
+            <div id="lowStock">جاري تحميل البيانات...</div>
+          </div>
+        </section>
+
+        <!-- صفحة فاتورة جديدة -->
+        <section id="invoice" class="tab-page hidden">
+          <div class="card" style="min-height: 70vh; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div class="row between" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <h2 id="invoiceTitleHeading" style="color: #0f233c; margin: 0;">فاتورة بيع جديدة</h2>
+                <div>
+                  <span class="badge" style="background: #0f233c; color: #facc15; padding: 6px 12px; border-radius: 6px;">رقم الفاتورة: <input id="invoiceCodeInput" type="text" readonly style="border:none; background:transparent; font-weight:bold; width:110px; color:#facc15;"></span>
+                </div>
+              </div>
+              
+              <div class="grid two" style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                  <label style="font-size: 13px; font-weight: bold; color: #555;">اسم العميل:</label>
+                  <input id="customerName" list="customersList" placeholder="اكتب أو اختر اسم العميل" oninput="onCustomerNameInput()" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;">
+                  <datalist id="customersList"></datalist>
+                </div>
+                <div>
+                  <label style="font-size: 13px; font-weight: bold; color: #555;">هاتف العميل:</label>
+                  <input id="customerPhone" placeholder="مثال: 01012345678" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;">
+                </div>
+              </div>
+
+              <div class="grid two" style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                  <label style="font-size: 13px; font-weight: bold; color: #555;">تاريخ ووقت الفاتورة:</label>
+                  <input id="invoiceDateTime" type="datetime-local" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;">
+                </div>
+                <div>
+                  <label style="font-size: 13px; font-weight: bold; color: #555;">الخصم (قيمة مثل 50 أو نسبة 10%):</label>
+                  <input id="invoiceDiscount" type="text" placeholder="قيمة أو نسبة الخصم" oninput="renderInvoice()" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;">
+                </div>
+              </div>
+
+              <div class="grid two" style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                  <label style="font-size: 13px; font-weight: bold; color: #555;">المبلغ المدفوع:</label>
+                  <input id="amountPaid" type="number" step="0.01" placeholder="0.00" value="0" oninput="renderInvoice()" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;">
+                </div>
+                <div>
+                  <label style="font-size: 13px; font-weight: bold; color: #555;">المبلغ المتبقي (آجي):</label>
+                  <input id="amountRemaining" type="text" readonly style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px; background: #f9f9f9; font-weight: bold;" value="٠٫٠٠">
+                </div>
+              </div>
+
+              <div class="invoice-add" style="margin-top: 15px; display: flex; gap: 10px;">
+                <select id="invoiceProduct" style="flex: 2; padding: 8px; border:1px solid #cbd5e1; border-radius:6px;"></select>
+                <input id="invoiceQty" type="number" min="1" value="1" placeholder="الكمية" style="flex: 1; padding: 8px; border:1px solid #cbd5e1; border-radius:6px;">
+                <button onclick="addInvoiceItem()" style="flex: 1; background: #0f233c; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">إضافة بند</button>
+              </div>
+
+              <div class="table-wrap" style="margin-top: 15px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>الصنف</th>
+                      <th>الكمية</th>
+                      <th>سعر الوحدة</th>
+                      <th>الإجمالي</th>
+                      <th>إجراء</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoiceBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <div class="invoice-total" style="text-align: left; font-size: 18px; margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 8px;">
+                <div id="subTotalDisplayLine" style="font-size: 14px; color: #666; margin-bottom: 2px;">إجمالي البنود: <b id="invoiceSubTotal">٠٫٠٠</b> ج.م</div>
+                <div id="discountDisplayLine" class="hidden" style="color: #e67e22; font-size: 14px; margin-bottom: 2px;">الخصم: <b id="invoiceDiscountText">٠٫٠٠</b> ج.م</div>
+                <div style="font-weight: bold; color: #0f233c; margin-bottom: 2px;">الإجمالي النهائي: <b id="invoiceTotal">٠٫٠٠</b> ج.م</div>
+                <div style="color: #27ae60; margin-bottom: 2px;">المدفوع: <b id="paidDisplayText">٠٫٠٠</b> ج.م</div>
+                <div style="color: #c0392b;">المتبقي: <b id="remainingDisplayText">٠٫٠٠</b> ج.م</div>
+              </div>
+              <div class="row" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px;">
+                <button onclick="previewCurrentInvoice()" style="background: #6c5ce7; color: #fff; padding: 10px 15px; border: none; font-weight: bold; cursor: pointer; border-radius: 6px;">👁️ معاينة الفاتورة</button>
+                <button id="saveInvoiceBtn" onclick="saveInvoice()" style="flex: 1; min-width: 120px; background: #27ae60; color: #fff; padding: 10px; border: none; font-weight: bold; cursor: pointer; border-radius: 6px;">حفظ الفاتورة</button>
+                <button style="background-color: #f39c12; color: white; padding: 10px 15px; border: none; cursor: pointer; border-radius: 6px;" onclick="clearInvoiceItemsOnly()">مسح البنود</button>
+                <button style="background-color: #e74c3c; color: white; padding: 10px 15px; border: none; cursor: pointer; border-radius: 6px;" onclick="cancelInvoiceForm()">إلغاء</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- صفحة الأصناف والمخزن -->
+        <section id="products" class="tab-page hidden">
           <div class="card">
-            <h2>أهم العملاء (حسب أعلى قيمة فاتورة)</h2>
-            <div id="topClientByAmount">جاري التحميل...</div>
+            <div class="row between" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <h2>إدارة المخزن والأصناف</h2>
+              <button id="btnAddProduct" onclick="openProductForm()" style="background: #0f233c; color: #facc15; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">+ إضافة صنف جديد</button>
+            </div>
+            <div class="sort-controls" style="margin-top: 15px;">
+              <input id="productSearch" placeholder="بحث بالاسم أو الكود" oninput="renderProducts()">
+              <select id="sortSelect" onchange="changeSortFromSelect(this.value)">
+                <option value="name_asc">الترتيب: بالاسم (أ-ي)</option>
+                <option value="name_desc">الترتيب: بالاسم (ي-أ)</option>
+                <option value="qty_desc">الكمية: الأعلى أولاً</option>
+                <option value="qty_asc">الكمية: الأقل أولاً</option>
+                <option value="buy_desc">سعر الشراء: الأعلى أولاً</option>
+                <option value="buy_asc">سعر الشراء: الأقل أولاً</option>
+                <option value="sell_desc">سعر البيع: الأعلى أولاً</option>
+                <option value="sell_asc">سعر البيع: الأقل أولاً</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الكود</th>
+                    <th>الصنف</th>
+                    <th>الوحدة</th>
+                    <th>شراء</th>
+                    <th>بيع</th>
+                    <th>الكمية</th>
+                    <th>إجمالي رأس المال</th>
+                    <th>إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="productsBody"></tbody>
+              </table>
+            </div>
           </div>
+        </section>
+
+        <!-- صفحة إدارة المبيعات والفواتير السابقة -->
+        <section id="invoices" class="tab-page hidden">
           <div class="card">
-            <h2>أهم العملاء (حسب كثرة الفواتير)</h2>
-            <div id="topClientByCount">جاري التحميل...</div>
+            <h2>سجل الفواتير السابقة</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>كود الفاتورة</th>
+                    <th>العميل</th>
+                    <th>هاتف العميل</th>
+                    <th>الإجمالي</th>
+                    <th>المدفوع</th>
+                    <th>المتبقي (دين)</th>
+                    <th>التاريخ والوقت</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="invoicesBody"></tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div class="card" style="margin-top: 15px; border-right: 5px solid #e74c3c;">
-          <h2>⚠️ التنبيهات الذكية: أصناف وصلت للحد الأدنى أو نفدت</h2>
-          <div id="lowStock">جاري تحميل البيانات...</div>
-        </div>
-      </section>
-
-      <section id="products" class="tab-page hidden">
-        <div class="card">
-          <div class="row between" style="flex-wrap: wrap; gap: 10px;">
-            <h2>الأصناف والمخزون</h2>
-            <button id="btnAddProduct" onclick="openProductForm()">+ إضافة صنف جديد</button>
+        <!-- صفحة المصروفات -->
+        <section id="expenses" class="tab-page hidden">
+          <div class="card">
+            <h2>تسجيل المصروفات النثرية اليومية</h2>
+            <p style="color: #64748b;">سجل هنا أي مصروفات تخرج من الخزينة.</p>
+            <div class="grid two" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+              <input id="expenseReason" placeholder="بيان المصروف (مثال: أجور نقل بضاعة)" style="padding: 8px; border:1px solid #cbd5e1; border-radius:6px;">
+              <input id="expenseAmount" type="number" step="0.01" placeholder="المبلغ (ج.م)" style="padding: 8px; border:1px solid #cbd5e1; border-radius:6px;">
+              <button onclick="addExpense()" style="background: #0f233c; color: #fff; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">إضافة المصروف</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>بيان المصروف</th>
+                    <th>المبلغ</th>
+                    <th>التاريخ والوقت</th>
+                    <th>إجراء</th>
+                  </tr>
+                </thead>
+                <tbody id="expensesBody"></tbody>
+              </table>
+            </div>
           </div>
-          <div class="sort-controls" style="margin-top: 15px;">
-            <input id="productSearch" placeholder="بحث بالاسم أو الكود" oninput="renderProducts()">
-            <select id="sortSelect" onchange="changeSortFromSelect(this.value)">
-              <option value="name_asc">الترتيب: بالاسم (أ-ي)</option>
-              <option value="name_desc">الترتيب: بالاسم (ي-أ)</option>
-              <option value="qty_desc">الكمية: الأعلى أولاً</option>
-              <option value="qty_asc">الكمية: الأقل أولاً</option>
-              <option value="buy_desc">سعر الشراء: الأعلى أولاً</option>
-              <option value="buy_asc">سعر الشراء: الأقل أولاً</option>
-              <option value="sell_desc">سعر البيع: الأعلى أولاً</option>
-              <option value="sell_asc">سعر البيع: الأقل أولاً</option>
-            </select>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th class="sortable" onclick="sortBy('code')">الكود <span id="sort_code"></span></th>
-                  <th class="sortable" onclick="sortBy('name')">الصنف <span id="sort_name">⬍</span></th>
-                  <th class="sortable" onclick="sortBy('unit')">الوحدة <span id="sort_unit"></span></th>
-                  <th class="sortable" onclick="sortBy('buy_price')">شراء <span id="sort_buy_price"></span></th>
-                  <th class="sortable" onclick="sortBy('sell_price')">بيع <span id="sort_sell_price"></span></th>
-                  <th class="sortable" onclick="sortBy('quantity')">الكمية <span id="sort_quantity"></span></th>
-                  <th>إجمالي رأس المال</th>
-                  <th>إجراءات</th>
-                </tr>
-              </thead>
-              <tbody id="productsBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="invoice" class="tab-page hidden">
-        <div class="card" style="min-height: 70vh; display: flex; flex-direction: column; justify-content: space-between;">
-          <div>
-            <div class="row between" style="flex-wrap: wrap; gap: 10px;">
-              <h2 id="invoiceTitleHeading">فاتورة بيع جديدة</h2>
-              <div>
-                <span id="invoiceCodeDisplay" class="badge" style="margin-left: 8px;">كود الفاتورة: <input id="invoiceCodeInput" type="text" readonly style="border:none; background:transparent; font-weight:bold; width:130px;"></span>
-                <span id="invoiceNo" class="badge">جديدة</span>
-              </div>
-            </div>
-            
-            <div class="grid two" style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <div>
-                <label style="font-size: 13px; font-weight: bold; color: #555;">اسم العميل:</label>
-                <input id="customerName" list="customersList" placeholder="اكتب أو اختر اسم العميل" oninput="onCustomerNameInput()">
-                <datalist id="customersList"></datalist>
-              </div>
-              <div>
-                <label style="font-size: 13px; font-weight: bold; color: #555;">هاتف العميل:</label>
-                <input id="customerPhone" placeholder="مثال: 01012345678">
-              </div>
-            </div>
-
-            <div class="grid two" style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <div>
-                <label style="font-size: 13px; font-weight: bold; color: #555;">تاريخ ووقت الفاتورة:</label>
-                <input id="invoiceDateTime" type="datetime-local">
-              </div>
-              <div>
-                <label style="font-size: 13px; font-weight: bold; color: #555;">الخصم (مبلغ مثل 50 أو نسبة مثل 10%):</label>
-                <input id="invoiceDiscount" type="text" placeholder="اكتب قيمة أو نسبة الخصم" value="" oninput="renderInvoice()">
-              </div>
-            </div>
-
-            <div class="grid two" style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <div>
-                <label style="font-size: 13px; font-weight: bold; color: #555;">المبلغ المدفوع:</label>
-                <input id="amountPaid" type="number" step="0.01" placeholder="0.00" value="0" oninput="renderInvoice()">
-              </div>
-              <div>
-                <label style="font-size: 13px; font-weight: bold; color: #555;">المبلغ المتبقي (آجي):</label>
-                <input id="amountRemaining" type="text" readonly style="background: #f9f9f9; font-weight: bold;" value="٠٫٠٠">
-              </div>
-            </div>
-
-            <div class="invoice-add" style="margin-top: 15px; display: flex; gap: 10px;">
-              <select id="invoiceProduct" style="flex: 2; padding: 8px;"></select>
-              <input id="invoiceQty" type="number" min="1" value="1" placeholder="الكمية" style="flex: 1; padding: 8px;">
-              <button onclick="addInvoiceItem()" style="flex: 1;">إضافة بند</button>
-            </div>
-
+        <!-- صفحة العملاء والديون -->
+        <section id="debtors" class="tab-page hidden">
+          <div class="card">
+            <h2>👥 حسابات وديون العملاء</h2>
             <div class="table-wrap" style="margin-top: 15px;">
               <table>
                 <thead>
                   <tr>
-                    <th>الصنف</th>
-                    <th>الكمية</th>
-                    <th>سعر الوحدة</th>
-                    <th>الإجمالي</th>
-                    <th>إجراء</th>
+                    <th>اسم العميل</th>
+                    <th>رقم الهاتف</th>
+                    <th>إجمالي المبلغ المستحق (دين)</th>
+                    <th>الفواتير</th>
+                    <th>كشف الحساب والواتساب</th>
                   </tr>
                 </thead>
-                <tbody id="invoiceBody"></tbody>
+                <tbody id="debtorsBody"></tbody>
               </table>
             </div>
           </div>
+        </section>
 
-          <div>
-            <div class="invoice-total" style="text-align: left; font-size: 18px; margin-top: 20px;">
-              <div id="subTotalDisplayLine" style="font-size: 14px; color: #666; margin-bottom: 2px;">إجمالي البنود: <b id="invoiceSubTotal">٠٫٠٠</b> ج.م</div>
-              <div id="discountDisplayLine" class="hidden" style="color: #e67e22; font-size: 14px; margin-bottom: 2px;">الخصم: <b id="invoiceDiscountText">٠٫٠٠</b> ج.م</div>
-              <div style="font-weight: bold; color: #122b49; margin-bottom: 2px;">الإجمالي النهائي: <b id="invoiceTotal">٠٫٠٠</b> ج.م</div>
-              <div style="color: #27ae60; margin-bottom: 2px;">المدفوع: <b id="paidDisplayText">٠٫٠٠</b> ج.م</div>
-              <div style="color: #c0392b;">المتبقي: <b id="remainingDisplayText">٠٫٠٠</b> ج.م</div>
+        <!-- صفحة التقارير والحركة -->
+        <section id="auditLogs" class="tab-page hidden">
+          <div class="card">
+            <h2>سجل الحركة والفواتير اليومية</h2>
+            <div id="dailyInvoicesSummaryCard" style="background: #fdfbf7; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2dbca;">
+              <h3>📊 ملخص فواتير اليوم: <span id="todayInvoiceCountBadge" class="badge" style="background: #27ae60; color:#fff; padding:2px 8px; border-radius:4px;">٠ فواتير</span></h3>
+              <div id="todayInvoicesList" style="margin-top: 10px;">جاري التحميل...</div>
             </div>
-            <div class="row" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px;">
-              <button onclick="previewCurrentInvoice()" style="background: #6c5ce7; color: #fff; padding: 10px; border: none; font-weight: bold; cursor: pointer; border-radius: 4px;">👁️ معاينة الفاتورة</button>
-              <button id="saveInvoiceBtn" onclick="saveInvoice()" style="flex: 1; min-width: 100px; background: #27ae60; color: #fff; padding: 10px; border: none; font-weight: bold; cursor: pointer; border-radius: 4px;">حفظ الفاتورة</button>
-              <button style="background-color: #f39c12; color: white; padding: 10px; border: none; cursor: pointer; border-radius: 4px;" onclick="clearInvoiceItemsOnly()">مسح البنود</button>
-              <button style="background-color: #e74c3c; color: white; padding: 10px; border: none; cursor: pointer; border-radius: 4px;" onclick="cancelInvoiceForm()">إلغاء</button>
+            <div class="table-wrap" style="margin-top: 15px;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الحدث / العملية</th>
+                    <th>التفاصيل</th>
+                    <th>التاريخ والوقت</th>
+                  </tr>
+                </thead>
+                <tbody id="auditLogsBody"></tbody>
+              </table>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="invoices" class="tab-page hidden">
-        <div class="card">
-          <h2>الفواتير السابقة وإدارة حسابات وديون العملاء</h2>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>رقم / كود الفاتورة</th>
-                  <th>العميل</th>
-                  <th>هاتف العميل</th>
-                  <th>الإجمالي</th>
-                  <th>المدفوع</th>
-                  <th>المتبقي (دين)</th>
-                  <th>التاريخ والوقت</th>
-                  <th>الإجراءات والطباعة</th>
-                </tr>
-              </thead>
-              <tbody id="invoicesBody"></tbody>
-            </table>
+        <!-- صفحة الإعدادات -->
+        <section id="settings" class="tab-page hidden">
+          <div class="card">
+            <h2>إعدادات مكتب الحمد</h2>
+            <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+              <label>اسم المكتب<input id="storeName" value="مكتب الحمد لمواد البناء والتشطيبات" style="width:100%; padding:8px; margin-top:5px; border:1px solid #cbd5e1; border-radius:6px;"></label>
+              <label>العنوان<input id="storeAddress" placeholder="الحواتم - محافظة الفيوم" style="width:100%; padding:8px; margin-top:5px; border:1px solid #cbd5e1; border-radius:6px;"></label>
+              <label>الهاتف<input id="storePhone" placeholder="01012708298" style="width:100%; padding:8px; margin-top:5px; border:1px solid #cbd5e1; border-radius:6px;"></label>
+              <label>واتساب<input id="storeWhatsapp" placeholder="01277065063" style="width:100%; padding:8px; margin-top:5px; border:1px solid #cbd5e1; border-radius:6px;"></label>
+            </div>
+            <label>رابط اللوجو (الشعار الجديد)
+              <input id="logoUrl" placeholder="رابط صورة الشعار" style="width:100%; padding:8px; margin-top:5px; margin-bottom:10px; border:1px solid #cbd5e1; border-radius:6px;">
+            </label>
+            <label>عبارة أسفل الفاتورة
+              <input id="invoiceFooter" value="شكرًا لتعاملكم مع مكتب الحمد — نتمنى دائماً خدمتكم ❤️" style="width:100%; padding:8px; margin-top:5px; margin-bottom:15px; border:1px solid #cbd5e1; border-radius:6px;">
+            </label>
+            <button onclick="saveStoreSettings()" style="background: #0f233c; color: #facc15; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; cursor:pointer;">حفظ بيانات المكتب</button>
+            <p id="settingsMsg" class="msg"></p>
           </div>
-        </div>
-      </section>
-
-      <section id="expenses" class="tab-page hidden">
-        <div class="card">
-          <h2>تسجيل المصروفات النثرية اليومية</h2>
-          <p class="muted">سجل هنا أي مصروفات تخرج من الدرج لخصمها من نقدية الخزينة.</p>
-          <div class="grid two" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-            <input id="expenseReason" placeholder="بيان المصروف (مثال: أجور نقل بضاعة)" style="padding: 8px;">
-            <input id="expenseAmount" type="number" step="0.01" placeholder="المبلغ (ج.م)" style="padding: 8px;">
-            <button onclick="addExpense()">إضافة المصروف</button>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>بيان المصروف</th>
-                  <th>المبلغ</th>
-                  <th>التاريخ والوقت</th>
-                  <th>إجراء</th>
-                </tr>
-              </thead>
-              <tbody id="expensesBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section id="auditLogs" class="tab-page hidden">
-        <div class="card">
-          <h2>سجل الحركة والنشاطات اليومية وفواتير اليوم</h2>
-          <div id="dailyInvoicesSummaryCard" style="background: #fdfbf7; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2dbca;">
-            <h3>📊 ملخص فواتير اليوم: <span id="todayInvoiceCountBadge" class="badge" style="background: #27ae60; color:#fff;">٠ فواتير</span></h3>
-            <div id="todayInvoicesList" style="margin-top: 10px;">جاري التحميل...</div>
-          </div>
-          <div class="table-wrap" style="margin-top: 15px;">
-            <table>
-              <thead>
-                <tr>
-                  <th>الحدث / العملية</th>
-                  <th>التفاصيل</th>
-                  <th>التاريخ والوقت</th>
-                </tr>
-              </thead>
-              <tbody id="auditLogsBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section id="debtors" class="tab-page hidden">
-        <div class="card">
-          <h2>👥 الأشخاص الذين عليهم مبالغ مالية (الديون)</h2>
-          <div class="table-wrap" style="margin-top: 15px;">
-            <table>
-              <thead>
-                <tr>
-                  <th>اسم العميل</th>
-                  <th>رقم الهاتف</th>
-                  <th>إجمالي المبلغ المستحق (دين)</th>
-                  <th>أرقام وفواتير العميل</th>
-                  <th>كشف الحساب التفصيلي والواتساب</th>
-                </tr>
-              </thead>
-              <tbody id="debtorsBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section id="settings" class="tab-page hidden">
-        <div class="card">
-          <h2>بيانات مكتب الحمد</h2>
-          <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-            <label>اسم المكتب<input id="storeName" value="مكتب الحمد للمقاولات العامة" style="width:100%; padding:8px; margin-top:5px;"></label>
-            <label>العنوان<input id="storeAddress" placeholder="اكتب العنوان" style="width:100%; padding:8px; margin-top:5px;"></label>
-            <label>الهاتف<input id="storePhone" placeholder="رقم الهاتف" style="width:100%; padding:8px; margin-top:5px;"></label>
-            <label>واتساب<input id="storeWhatsapp" placeholder="رقم واتساب" style="width:100%; padding:8px; margin-top:5px;"></label>
-          </div>
-          <label>رابط اللوجو (صورة واضحة تظهر في المعاينة والطباعة)
-            <input id="logoUrl" placeholder="logo.png أو رابط صورة الشعار" style="width:100%; padding:8px; margin-top:5px; margin-bottom:10px;">
-          </label>
-          <label>عبارة أسفل الفاتورة
-            <input id="invoiceFooter" value="شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم وتوفير أفضل خامات المقاولات لكم." style="width:100%; padding:8px; margin-top:5px; margin-bottom:15px;">
-          </label>
-          <button onclick="saveStoreSettings()">حفظ بيانات المكتب</button>
-          <p id="settingsMsg" class="msg"></p>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
   </div>
 
 <script>
@@ -677,17 +828,22 @@ let currentSortAsc = true;
 let editingInvoiceId = null;
 
 let storeSettings = {
-  store_name: "مكتب الحمد للمقاولات العامة",
-  address: "القاهرة - مصر",
-  phone: "01000000000",
-  whatsapp: "01000000000",
-  logo_url: "logo.png",
-  invoice_footer: "شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم وتوفير أفضل خامات المقاولات لكم."
+  store_name: "مكتب الحمد لمواد البناء والتشطيبات",
+  address: "الحواتم - محافظة الفيوم",
+  phone: "01012708298",
+  whatsapp: "01277065063",
+  logo_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150",
+  invoice_footer: "شكرًا لتعاملكم مع مكتب الحمد — نتمنى دائماً خدمتكم ❤️"
 };
 
 function closeBlessModal() {
   const modal = document.getElementById("blessModal");
   if (modal) modal.style.display = "none";
+}
+
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById("appSidebar");
+  if (sidebar) sidebar.classList.toggle("mobile-open");
 }
 
 function toArabicDigits(input) {
@@ -704,6 +860,10 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   const targetPage = document.getElementById(btn.dataset.tab);
   if (targetPage) targetPage.classList.remove("hidden");
   
+  // إغلاق القائمة الجانبية تلقائياً في الموبايل عند الضغط
+  const sidebar = document.getElementById("appSidebar");
+  if (sidebar) sidebar.classList.remove("mobile-open");
+
   if (btn.dataset.tab === "products") loadProducts();
   if (btn.dataset.tab === "invoice") {
     if (!editingInvoiceId) initInvoicePage();
@@ -738,8 +898,8 @@ async function generateNewInvoiceCode() {
   } catch (e) {
     nextNumber = Math.floor(1000 + Math.random() * 9000);
   }
-  const formattedNum = String(nextNumber).padStart(4, '0');
-  const newCode = `EL-Hamd${formattedNum}`;
+  const formattedNum = String(nextNumber).padStart(5, '0');
+  const newCode = `#${formattedNum}`;
   const codeInput = document.getElementById('invoiceCodeInput');
   if (codeInput) codeInput.value = newCode;
   return newCode;
@@ -760,7 +920,7 @@ async function loadStoreSettings() {
   } catch(e) {}
   
   const headerName = document.getElementById("headerStoreName");
-  if (headerName) headerName.textContent = storeSettings.store_name || "مكتب الحمد للمقاولات العامة";
+  if (headerName) headerName.textContent = storeSettings.store_name || "مكتب الحمد لمواد البناء والتشطيبات";
   
   const mainLogo = document.getElementById("mainHeaderLogo");
   if (mainLogo && storeSettings.logo_url) mainLogo.src = storeSettings.logo_url;
@@ -784,19 +944,11 @@ async function saveStoreSettings() {
   const { error } = await sb.from("store_settings").upsert([{ id: 1, ...storeSettings }]);
   const msgEl = document.getElementById("settingsMsg");
   if (error) {
-    if (msgEl) {
-      msgEl.textContent = "خطأ في الحفظ: " + error.message;
-      msgEl.style.color = "red";
-    }
+    if (msgEl) { msgEl.textContent = "خطأ في الحفظ: " + error.message; msgEl.style.color = "red"; }
   } else {
-    if (msgEl) {
-      msgEl.textContent = "✨ تم حفظ إعدادات المكتب بنجاح!";
-      msgEl.style.color = "green";
-    }
+    if (msgEl) { msgEl.textContent = "✨ تم حفظ إعدادات المكتب بنجاح!"; msgEl.style.color = "green"; }
     const headerName = document.getElementById("headerStoreName");
     if (headerName) headerName.textContent = storeSettings.store_name;
-    const mainLogo = document.getElementById("mainHeaderLogo");
-    if (mainLogo && storeSettings.logo_url) mainLogo.src = storeSettings.logo_url;
   }
 }
 
@@ -834,16 +986,6 @@ function onCustomerNameInput() {
   if (found && found.phone) {
     phoneInput.value = found.phone;
   }
-}
-
-function sortBy(key) {
-  if (currentSortKey === key) {
-    currentSortAsc = !currentSortAsc;
-  } else {
-    currentSortKey = key;
-    currentSortAsc = true;
-  }
-  renderProducts();
 }
 
 function changeSortFromSelect(val) {
@@ -891,7 +1033,7 @@ function renderProducts() {
         <td>${toArabicDigits(money(p.buy_price))}</td>
         <td>${toArabicDigits(money(p.sell_price))}</td>
         <td><b>${toArabicDigits(p.quantity)}</b> ${qty <= minQty ? '⚠️' : ''}</td>
-        <td><b style="color: #2c3e50;">${toArabicDigits(money(totalBuyCapital))} ج.م</b></td>
+        <td><b style="color: #0f233c;">${toArabicDigits(money(totalBuyCapital))} ج.م</b></td>
         <td>
           <button class="btn-qty small" onclick="addQuantity('${p.id}',${p.quantity})">+ كمية</button>
           <button class="btn-edit small" onclick="printProductLabel('${esc(p.code)}', '${esc(p.name)}', ${p.sell_price})">🏷️ كود</button>
@@ -957,7 +1099,7 @@ function openProductForm() {
   if (code === null) return;
   const name = prompt("اسم الصنف:");
   if (name === null) return;
-  const unit = prompt("الوحدة (قطعة/كرتونة/متر...):", "قطعة") || "قطعة";
+  const unit = prompt("الوحدة (قطعة/كرتونة/متر/شكارة...):", "قطعة") || "قطعة";
   const buy = Number(prompt("سعر الشراء:", "0") || 0);
   const sell = Number(prompt("سعر البيع:", "0") || 0);
   const qty = Number(prompt("الكمية الحالية:", "0") || 0);
@@ -1100,18 +1242,17 @@ function renderInvoice() {
   const remInput = document.getElementById("amountRemaining"); if(remInput) remInput.value = toArabicDigits(money(remaining));
 }
 
-// دالة معاينة الفاتورة الحالية بشكل جمالي احترافي باللوجو
 function previewCurrentInvoice() {
   if (invoiceItems.length === 0) return alert("لا توجد أصناف في الفاتورة الحالية لمعاينتها!");
   
   const cName = document.getElementById("customerName").value.trim() || "عميل نقدي";
   const cPhone = document.getElementById("customerPhone").value.trim() || "---";
-  const invCode = document.getElementById("invoiceCodeInput").value.trim() || "EL-Hamd0000";
+  const invCode = document.getElementById("invoiceCodeInput").value.trim() || "#00125";
   const invDate = document.getElementById("invoiceDateTime").value ? new Date(document.getElementById("invoiceDateTime").value).toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG');
   
   document.getElementById("prevStoreName").textContent = storeSettings.store_name;
   document.getElementById("prevStoreDetails").textContent = `هاتف: ${storeSettings.phone} | عنوان: ${storeSettings.address}`;
-  document.getElementById("prevStoreLogo").src = storeSettings.logo_url || "logo.png";
+  document.getElementById("prevStoreLogo").src = storeSettings.logo_url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150";
   
   document.getElementById("prevInvCode").textContent = invCode;
   document.getElementById("prevInvDate").textContent = invDate;
@@ -1164,7 +1305,6 @@ function previewCurrentInvoice() {
   document.getElementById("invoicePreviewModal").style.display = "flex";
 }
 
-// دالة معاينة فاتورة سابقة من قسم الفواتير
 async function previewExistingInvoice(invoiceId) {
   const { data: inv } = await sb.from("invoices").select("*").eq("id", invoiceId).single();
   if (!inv) return alert("الفاتورة غير موجودة");
@@ -1173,7 +1313,7 @@ async function previewExistingInvoice(invoiceId) {
 
   document.getElementById("prevStoreName").textContent = storeSettings.store_name;
   document.getElementById("prevStoreDetails").textContent = `هاتف: ${storeSettings.phone} | عنوان: ${storeSettings.address}`;
-  document.getElementById("prevStoreLogo").src = storeSettings.logo_url || "logo.png";
+  document.getElementById("prevStoreLogo").src = storeSettings.logo_url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150";
   
   document.getElementById("prevInvCode").textContent = inv.invoice_code || inv.id.slice(0,8);
   document.getElementById("prevInvDate").textContent = new Date(inv.created_at).toLocaleString('ar-EG');
@@ -1226,7 +1366,7 @@ async function saveInvoice() {
   const codeInp = document.getElementById("invoiceCodeInput");
   const customerName = cNameEl && cNameEl.value.trim() ? cNameEl.value.trim() : "عميل نقدي";
   const customerPhone = cPhoneEl && cPhoneEl.value.trim() ? cPhoneEl.value.trim() : "---";
-  const invoiceCode = codeInp && codeInp.value.trim() ? codeInp.value.trim() : `EL-Hamd${Math.floor(1000 + Math.random() * 9000)}`;
+  const invoiceCode = codeInp && codeInp.value.trim() ? codeInp.value.trim() : `#${Math.floor(10000 + Math.random() * 90000)}`;
   
   let subTotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
   const discountEl = document.getElementById("invoiceDiscount");
@@ -1259,15 +1399,13 @@ async function saveInvoice() {
     }
     await sb.from("invoice_items").delete().eq("invoice_id", editingInvoiceId);
 
-    const { error: updateErr } = await sb.from("invoices").update({
+    await sb.from("invoices").update({
       customer_name: customerName,
       customer_phone: customerPhone,
       total: total,
       paid: paid,
       remaining: remaining
     }).eq("id", editingInvoiceId);
-
-    if (updateErr) return alert("خطأ في تحديث الفاتورة: " + updateErr.message);
 
     const itemsPayload = invoiceItems.map(item => ({
       invoice_id: editingInvoiceId,
@@ -1325,11 +1463,7 @@ async function saveInvoice() {
     total: item.quantity * item.unit_price
   }));
 
-  const { error: itemsError } = await sb.from("invoice_items").insert(itemsPayload);
-  if (itemsError) {
-    alert("خطأ في حفظ البنود: " + itemsError.message);
-    return;
-  }
+  await sb.from("invoice_items").insert(itemsPayload);
 
   for (const item of invoiceItems) {
     const prod = products.find(p => p.id === item.product_id);
@@ -1398,8 +1532,7 @@ async function collectDebt(invoiceId, currentRemaining, customerName) {
   const newPaid = Number(inv.paid || 0) + payAmount;
   const newRemaining = Math.max(0, Number(inv.total || 0) - newPaid);
 
-  const { error } = await sb.from("invoices").update({ paid: newPaid, remaining: newRemaining }).eq("id", invoiceId);
-  if (error) return alert("خطأ في تحديث التحصيل: " + error.message);
+  await sb.from("invoices").update({ paid: newPaid, remaining: newRemaining }).eq("id", invoiceId);
 
   alert("✨ تم تحصيل وسداد المبلغ بنجاح وتحديث حساب العميل!");
   loadInvoices();
@@ -1538,20 +1671,19 @@ async function loadDebtors() {
         <td style="color: #c0392b; font-weight:bold;">${toArabicDigits(money(map[name].totalDebt))} ج.م</td>
         <td>${map[name].invoices.join(", ")}</td>
         <td>
-          <button class="btn-preview" onclick="openCustomerStatement('${esc(name)}')">📄 كشف حساب تفصيلي</button>
-          <button class="btn-whatsapp" style="background:#128C7E;" onclick="sendDebtReminderWhatsapp('${esc(name)}')">💬 تذكير واتساب بالتفاصيل</button>
+          <button class="btn-preview" onclick="openCustomerStatement('${esc(name)}')">📄 كشف حساب</button>
+          <button class="btn-whatsapp" style="background:#128C7E;" onclick="sendDebtReminderWhatsapp('${esc(name)}')">💬 واتساب</button>
         </td>
       </tr>`).join("") : `<tr><td colspan="5" style="text-align:center;">لا توجد ديون مستحقة على العملاء حالياً</td></tr>`;
   }
 }
 
-// دالة فتح كشف حساب تفصيلي كامل للعميل يحتوي على كل الفواتير والبنود والخصومات والطباعة المميزة
 async function openCustomerStatement(customerName) {
   const { data: invs } = await sb.from("invoices").select("*").eq("customer_name", customerName).order("created_at", { ascending: false });
   if (!invs || invs.length === 0) return alert("لا توجد فواتير لهذا العميل");
 
   document.getElementById("stStoreName").textContent = storeSettings.store_name;
-  document.getElementById("stStoreLogo").src = storeSettings.logo_url || "logo.png";
+  document.getElementById("stStoreLogo").src = storeSettings.logo_url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150";
   document.getElementById("stCustomerName").textContent = customerName;
   document.getElementById("stCustomerPhone").textContent = invs[0].customer_phone || "---";
   document.getElementById("stDate").textContent = new Date().toLocaleString('ar-EG');
@@ -1611,13 +1743,12 @@ async function openCustomerStatement(customerName) {
   document.getElementById("stDetailedInvoicesContainer").innerHTML = containerHtml;
   document.getElementById("stTotalDebt").textContent = toArabicDigits(money(totalDebt)) + " ج.م";
 
-  // تجهيز نص واتساب التفصيلي المتكامل
   let waText = `مرحباً بك يا ${customerName}\nإليك تفاصيل كشف حسابك من ${storeSettings.store_name}:\n---------------------------\n`;
   for (const inv of invs) {
     waText += `📌 فاتورة رقم: ${inv.invoice_code || inv.id.slice(0,6)}\n`;
-    waText += `• المتبقي عليها: ${money(inv.remaining)} ج.م (الإجمالي: ${money(inv.total)} - المدفوع: ${money(inv.paid)})\n`;
+    waText += `• المتبقي: ${money(inv.remaining)} ج.م (الإجمالي: ${money(inv.total)} - المدفوع: ${money(inv.paid)})\n`;
   }
-  waText += `---------------------------\n💰 إجمالي الديون المستحقة عليك: ${money(totalDebt)} ج.م\nنشكر حسن تعاملكم معنا ونعتز بخدمتكم دائماً.`;
+  waText += `---------------------------\n💰 إجمالي الديون المستحقة عليك: ${money(totalDebt)} ج.م\nنعتز بخدمتكم دائماً.`;
 
   window.currentStatementWhatsappText = waText;
   window.currentStatementPhone = invs[0].customer_phone || "";
@@ -1630,14 +1761,10 @@ function sendStatementWhatsapp() {
   const text = encodeURIComponent(window.currentStatementWhatsappText || "");
   const cleanPhone = phone.replace(/\D/g, '');
   const finalPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone;
-  if (!finalPhone || finalPhone.length < 10) {
-    alert("رقم هاتف العميل غير صحيح أو غير مسجل!");
-    return;
-  }
+  if (!finalPhone || finalPhone.length < 10) return alert("رقم هاتف العميل غير صحيح أو غير مسجل!");
   window.open(`https://wa.me/${finalPhone}?text=${text}`, '_blank');
 }
 
-// دالة تذكير واتساب سريعة ومفصلة من قائمة الديون
 async function sendDebtReminderWhatsapp(customerName) {
   const { data: invs } = await sb.from("invoices").select("*").eq("customer_name", customerName).gt("remaining", 0);
   if (!invs || invs.length === 0) return alert("لا توجد ديون مستحقة لهذا العميل");
@@ -1646,17 +1773,14 @@ async function sendDebtReminderWhatsapp(customerName) {
   let waText = `مرحباً بك يا ${customerName}\nتذكير ودي من ${storeSettings.store_name} بالفواتير المستحقة:\n---------------------------\n`;
   for (const inv of invs) {
     totalDebt += Number(inv.remaining || 0);
-    waText += `📌 فاتورة (${inv.invoice_code || inv.id.slice(0,6)}): مبلغ متبقي ${money(inv.remaining)} ج.م\n`;
+    waText += `📌 فاتورة (${inv.invoice_code || inv.id.slice(0,6)}): متبقي ${money(inv.remaining)} ج.م\n`;
   }
-  waText += `---------------------------\n💰 إجمالي المبلغ المستحق عليك: ${money(totalDebt)} ج.م\nيرجى التكرم بالسداد في أقرب وقت، وشكراً لتعاونكم.`;
+  waText += `---------------------------\n💰 إجمالي المستحق: ${money(totalDebt)} ج.م\nشكراً لتعاونكم معنا.`;
 
   const phone = invs[0].customer_phone || "";
   const cleanPhone = phone.replace(/\D/g, '');
   const finalPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone;
-  if (!finalPhone || finalPhone.length < 10) {
-    alert("رقم هاتف العميل غير صحيح أو غير مسجل!");
-    return;
-  }
+  if (!finalPhone || finalPhone.length < 10) return alert("رقم هاتف العميل غير صحيح أو غير مسجل!");
   window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(waText)}`, '_blank');
 }
 
@@ -1692,45 +1816,36 @@ async function refreshDashboard() {
     const netProfit = totalSalesAll - totalBuyStock;
     const netProfitEl = document.getElementById("netProfitElement"); if(netProfitEl) netProfitEl.textContent = toArabicDigits(money(netProfit)) + " ج.م";
 
-    // شريط الحركة اليومية
     const todayStr = new Date().toISOString().slice(0, 10);
     const todayInvs = (invs || []).filter(i => i.created_at && i.created_at.startsWith(todayStr));
     const todaySalesAmount = todayInvs.reduce((sum, x) => sum + Number(x.total || 0), 0);
     const tickerEl = document.getElementById("activityTickerText");
     if (tickerEl) {
-      tickerEl.textContent = `حركة اليوم ممتازة يا الحمد: تم تسجيل ${toArabicDigits(todayInvs.length)} فاتورة اليوم بإجمالي مبيعات ${toArabicDigits(money(todaySalesAmount))} ج.م`;
+      tickerEl.textContent = `حركة اليوم ممتازة: تم تسجيل ${toArabicDigits(todayInvs.length)} فاتورة اليوم بإجمالي مبيعات ${toArabicDigits(money(todaySalesAmount))} ج.م`;
     }
 
     const clientStats = {};
     (invs || []).forEach(inv => {
       const cName = inv.customer_name || "غير معروف";
-      if (!clientStats[cName]) {
-        clientStats[cName] = { count: 0, maxAmount: 0 };
-      }
+      if (!clientStats[cName]) clientStats[cName] = { count: 0, maxAmount: 0 };
       clientStats[cName].count += 1;
-      if (Number(inv.total) > clientStats[cName].maxAmount) {
-        clientStats[cName].maxAmount = Number(inv.total);
-      }
+      if (Number(inv.total) > clientStats[cName].maxAmount) clientStats[cName].maxAmount = Number(inv.total);
     });
 
     let topByAmount = { name: "---", val: 0 };
     let topByCount = { name: "---", val: 0 };
 
     for (const [name, stats] of Object.entries(clientStats)) {
-      if (stats.maxAmount > topByAmount.val) {
-        topByAmount = { name, val: stats.maxAmount };
-      }
-      if (stats.count > topByCount.val) {
-        topByCount = { name, val: stats.count };
-      }
+      if (stats.maxAmount > topByAmount.val) topByAmount = { name, val: stats.maxAmount };
+      if (stats.count > topByCount.val) topByCount = { name, val: stats.count };
     }
 
     const amountDiv = document.getElementById("topClientByAmount");
     const countDiv = document.getElementById("topClientByCount");
     if (amountDiv && countDiv) {
       if (Object.keys(clientStats).length > 0) {
-        amountDiv.innerHTML = `<b>${esc(topByAmount.name)}</b><br><span class="muted">قيمة أقوى فاتورة: ${toArabicDigits(money(topByAmount.val))} ج.م</span>`;
-        countDiv.innerHTML = `<b>${esc(topByCount.name)}</b><br><span class="muted">عدد الفواتير: ${toArabicDigits(topByCount.val)} فاتورة</span>`;
+        amountDiv.innerHTML = `<b>${esc(topByAmount.name)}</b><br><span style="color:#64748b;">قيمة أقوى فاتورة: ${toArabicDigits(money(topByAmount.val))} ج.م</span>`;
+        countDiv.innerHTML = `<b>${esc(topByCount.name)}</b><br><span style="color:#64748b;">عدد الفواتير: ${toArabicDigits(topByCount.val)} فاتورة</span>`;
       } else {
         amountDiv.textContent = "لا توجد بيانات بعد";
         countDiv.textContent = "لا توجد بيانات بعد";
