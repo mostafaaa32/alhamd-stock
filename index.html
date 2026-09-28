@@ -245,7 +245,7 @@
       </div>
       <div class="header-right">
         <span class="connection"><i></i> متصل بقاعدة البيانات</span>
-        <span id="userLabel" class="muted" style="font-weight: bold; color: #122b49;">مكتب إبراهيم — نظام مفتوح</span>
+        <span id="userLabel" class="muted" style="font-weight: bold; color: #122b49;">مكتب الحمد — نظام مفتوح</span>
       </div>
     </header>
 
@@ -1407,7 +1407,7 @@ async function refreshDashboard() {
     const todaySalesAmount = todayInvs.reduce((sum, x) => sum + Number(x.total || 0), 0);
     const tickerEl = document.getElementById("activityTickerText");
     if (tickerEl) {
-      tickerEl.textContent = `حركة اليوم ممتازة يا إبراهيم: تم تسجيل ${toArabicDigits(todayInvs.length)} فاتورة اليوم بإجمالي مبيعات ${toArabicDigits(money(todaySalesAmount))} ج.م`;
+      tickerEl.textContent = `حركة اليوم ممتازة يا الحمد: تم تسجيل ${toArabicDigits(todayInvs.length)} فاتورة اليوم بإجمالي مبيعات ${toArabicDigits(money(todaySalesAmount))} ج.م`;
     }
 
     const clientStats = {};
