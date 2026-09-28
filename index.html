@@ -226,7 +226,6 @@
     </div>
   </div>
 
-  <!-- نافذة طباعة كود الصنف (الباركود) -->
   <div id="labelModal" class="statement-modal">
     <div class="statement-content" style="max-width: 400px; text-align: center;">
       <div id="printableLabel" style="padding: 20px; border: 2px dashed #122b49; border-radius: 8px; margin-bottom: 15px;">
@@ -242,7 +241,6 @@
     </div>
   </div>
 
-  <!-- نافذة معاينة الفاتورة قبل أو بعد الحفظ -->
   <div id="invoicePreviewModal" class="statement-modal">
     <div class="statement-content" style="max-width: 700px;">
       <div id="printableInvoicePreview" class="invoice-print-container">
@@ -302,7 +300,6 @@
     </div>
   </div>
 
-  <!-- نافذة كشف حساب العميل والديون المفصلة -->
   <div id="statementModal" class="statement-modal">
     <div class="statement-content" style="max-width: 800px;">
       <div id="printableStatement" class="invoice-print-container">
@@ -324,8 +321,7 @@
         </div>
 
         <div id="stDetailedInvoicesContainer">
-          <!-- تفاصيل الفواتير والبنود لكل فاتورة تظهر هنا بشكل جمالي متكامل -->
-        </div>
+          </div>
 
         <div style="text-align: left; font-size: 16px; font-weight: bold; background: #fdfbf7; padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-top: 15px;">
           إجمالي الديون المستحقة الحالية على العميل: <span id="stTotalDebt" style="color: #c0392b;">٠٫٠٠ ج.م</span>
@@ -355,7 +351,7 @@
       </div>
       <div class="header-right">
         <span class="connection"><i></i> متصل بقاعدة البيانات</span>
-        <span id="userLabel" class="muted" style="font-weight: bold; color: #122b49;">مكتب الحمد — نظام مفتوح</span>
+        <span id="userLabel" class="muted" style="font-weight: bold; color: #122b49;">مكتب إبراهيم — نظام مفتوح</span>
       </div>
     </header>
 
@@ -1611,7 +1607,6 @@ async function openCustomerStatement(customerName) {
   document.getElementById("stDetailedInvoicesContainer").innerHTML = containerHtml;
   document.getElementById("stTotalDebt").textContent = toArabicDigits(money(totalDebt)) + " ج.م";
 
-  // تجهيز نص واتساب التفصيلي المتكامل
   let waText = `مرحباً بك يا ${customerName}\nإليك تفاصيل كشف حسابك من ${storeSettings.store_name}:\n---------------------------\n`;
   for (const inv of invs) {
     waText += `📌 فاتورة رقم: ${inv.invoice_code || inv.id.slice(0,6)}\n`;
@@ -1637,7 +1632,6 @@ function sendStatementWhatsapp() {
   window.open(`https://wa.me/${finalPhone}?text=${text}`, '_blank');
 }
 
-// دالة تذكير واتساب سريعة ومفصلة من قائمة الديون
 async function sendDebtReminderWhatsapp(customerName) {
   const { data: invs } = await sb.from("invoices").select("*").eq("customer_name", customerName).gt("remaining", 0);
   if (!invs || invs.length === 0) return alert("لا توجد ديون مستحقة لهذا العميل");
@@ -1692,13 +1686,12 @@ async function refreshDashboard() {
     const netProfit = totalSalesAll - totalBuyStock;
     const netProfitEl = document.getElementById("netProfitElement"); if(netProfitEl) netProfitEl.textContent = toArabicDigits(money(netProfit)) + " ج.م";
 
-    // شريط الحركة اليومية
     const todayStr = new Date().toISOString().slice(0, 10);
     const todayInvs = (invs || []).filter(i => i.created_at && i.created_at.startsWith(todayStr));
     const todaySalesAmount = todayInvs.reduce((sum, x) => sum + Number(x.total || 0), 0);
     const tickerEl = document.getElementById("activityTickerText");
     if (tickerEl) {
-      tickerEl.textContent = `حركة اليوم ممتازة يا الحمد: تم تسجيل ${toArabicDigits(todayInvs.length)} فاتورة اليوم بإجمالي مبيعات ${toArabicDigits(money(todaySalesAmount))} ج.م`;
+      tickerEl.textContent = `حركة اليوم ممتازة يا إبراهيم: تم تسجيل ${toArabicDigits(todayInvs.length)} فاتورة اليوم بإجمالي مبيعات ${toArabicDigits(money(todaySalesAmount))} ج.م`;
     }
 
     const clientStats = {};
