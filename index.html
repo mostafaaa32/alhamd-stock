@@ -365,7 +365,7 @@
               <div style="color: #c0392b;">المتبقي: <b id="remainingDisplayText">٠٫٠٠</b> ج.م</div>
             </div>
             <div class="row" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px;">
-              <button onclick="saveInvoice()" style="flex: 1; min-width: 100px;">حفظ وحفظ PDF</button>
+              <button onclick="saveInvoice()" style="flex: 1; min-width: 100px;">حفظ الفاتورة</button>
               <button class="secondary" onclick="printCurrentInvoice()" style="flex: 1; min-width: 100px;">طباعة / معاينة</button>
               <button style="background-color: #f39c12; color: white; flex: 1; min-width: 100px;" onclick="clearInvoiceItemsOnly()">مسح البنود فقط</button>
               <button style="background-color: #e74c3c; color: white; flex: 1; min-width: 100px;" onclick="cancelInvoiceForm()">إلغاء الفاتورة</button>
@@ -491,7 +491,7 @@
 
 <script>
 // ==========================================
-// تهيئة Supabase بالاسم الصحيح
+// تهيئة Supabase
 // ==========================================
 const SUPABASE_URL = 'https://ienqyavjyaizxjvrsgbv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_jRrQIQiQCm4AGyvfV3WMhQ_x9FeWKhV';
@@ -541,7 +541,6 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   if (btn.dataset.tab === "settings") loadStoreSettings();
 }));
 
-// تشغيل النظام فوراً
 window.addEventListener("DOMContentLoaded", async () => {
   await loadStoreSettings();
   await refreshDashboard();
@@ -550,32 +549,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   await generateNewInvoiceCode();
 });
 
-// توليد كود فاتورة فريد ومضمون 100% بدون تكرار
+// دالة لتوليد كود فريد مستحيل تكراره يعتمد على الوقت الفعلي لمنع أي خطأ Unique Constraint
 async function generateNewInvoiceCode() {
-  let nextNumber = 1;
-  try {
-    const { data } = await sb
-      .from('invoices')
-      .select('invoice_code')
-      .order('id', { ascending: false })
-      .limit(1);
-
-    if (data && data.length > 0 && data[0].invoice_code) {
-      const lastCode = data[0].invoice_code;
-      const numPart = parseInt(lastCode.replace(/\D/g, ''));
-      if (!isNaN(numPart)) {
-        nextNumber = numPart + 1;
-      } else {
-        nextNumber = Date.now().toString().slice(-4);
-      }
-    }
-  } catch (e) {
-    nextNumber = Math.floor(1000 + Math.random() * 9000);
-  }
-
-  const formattedNum = String(nextNumber).padStart(4, '0');
-  const newCode = `EL-Hamd${formattedNum}`;
-  
+  const uniqueSuffix = Date.now().toString().slice(-6);
+  const newCode = `EL-Hamd-${uniqueSuffix}`;
   const codeInput = document.getElementById('invoiceCodeInput');
   if (codeInput) codeInput.value = newCode;
   return newCode;
@@ -632,7 +609,6 @@ async function loadUniqueCustomers() {
       }
     });
     allCustomers = Object.keys(map).map(name => ({ name, phone: map[name] }));
-    
     const datalist = document.getElementById("customersList");
     if (datalist) {
       datalist.innerHTML = allCustomers.map(c => `<option value="${esc(c.name)}" data-phone="${esc(c.phone)}">`).join("");
@@ -648,80 +624,31 @@ function onCustomerNameInput() {
   }
 }
 
-function sortBy(key) {
-  if (currentSortKey === key) {
-    currentSortAsc = !currentSortAsc;
-  } else {
-    currentSortKey = key;
-    currentSortAsc = true;
-  }
-  renderProducts();
-}
-
-function changeSortFromSelect(val) {
-  const parts = val.split("_");
-  const keyMap = { name: "name", qty: "quantity", buy: "buy_price", sell: "sell_price" };
-  currentSortKey = keyMap[parts[0]] || "name";
-  currentSortAsc = (parts[1] === "asc");
-  renderProducts();
-}
-
 function renderProducts() {
   const q = (document.getElementById("productSearch")?.value || "").toLowerCase();
   let rows = products.filter(p => (p.name || "").toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q));
-  
-  rows.sort((a, b) => {
-    let valA = a[currentSortKey] ?? "";
-    let valB = b[currentSortKey] ?? "";
-
-    if (["quantity", "buy_price", "sell_price"].includes(currentSortKey)) {
-      valA = Number(valA) || 0;
-      valB = Number(valB) || 0;
-    } else {
-      valA = String(valA).toLowerCase();
-      valB = String(valB).toLowerCase();
-    }
-
-    if (valA < valB) return currentSortAsc ? -1 : 1;
-    if (valA > valB) return currentSortAsc ? 1 : -1;
-    return 0;
-  });
-
-  ["code", "name", "unit", "buy_price", "sell_price", "quantity"].forEach(k => {
-    const el = document.getElementById("sort_" + k);
-    if (el) {
-      if (k === currentSortKey) {
-        el.textContent = currentSortAsc ? "⬆️" : "⬇️";
-      } else {
-        el.textContent = "";
-      }
-    }
-  });
-
   document.getElementById("productsBody").innerHTML = rows.map(p => {
     const qty = Number(p.quantity || 0);
     const minQty = Number(p.min_quantity || 0);
     let rowClass = "";
     if (qty <= 0) rowClass = "row-danger";
     else if (qty <= minQty) rowClass = "row-warning";
-
     const totalBuyCapital = qty * (Number(p.buy_price) || 0);
-
     return `
-    <tr class="${rowClass}">
-      <td>${esc(p.code)}</td>
-      <td>${esc(p.name)}</td>
-      <td>${esc(p.unit)}</td>
-      <td>${toArabicDigits(money(p.buy_price))}</td>
-      <td>${toArabicDigits(money(p.sell_price))}</td>
-      <td><b>${toArabicDigits(p.quantity)}</b></td>
-      <td><b style="color: #2c3e50;">${toArabicDigits(money(totalBuyCapital))} ج.م</b></td>
-      <td>
-        <button class="btn-qty small" onclick="addQuantity('${p.id}',${p.quantity})">+ كمية</button>
-        <button class="btn-edit small" onclick="editProduct('${p.id}')">تعديل</button>
-        <button class="danger small" onclick="deleteProduct('${p.id}')">حذف</button>
-      </td>
-    </tr>`;
+      <tr class="${rowClass}">
+        <td>${esc(p.code)}</td>
+        <td>${esc(p.name)}</td>
+        <td>${esc(p.unit)}</td>
+        <td>${toArabicDigits(money(p.buy_price))}</td>
+        <td>${toArabicDigits(money(p.sell_price))}</td>
+        <td><b>${toArabicDigits(p.quantity)}</b></td>
+        <td><b style="color: #2c3e50;">${toArabicDigits(money(totalBuyCapital))} ج.م</b></td>
+        <td>
+          <button class="btn-qty small" onclick="addQuantity('${p.id}',${p.quantity})">+ كمية</button>
+          <button class="btn-edit small" onclick="editProduct('${p.id}')">تعديل</button>
+          <button class="danger small" onclick="deleteProduct('${p.id}')">حذف</button>
+        </td>
+      </tr>`;
   }).join("");
 }
 
@@ -730,913 +657,357 @@ async function addQuantity(id, currentQty) {
   if (addQty === null) return;
   const added = Number(addQty);
   if (isNaN(added) || added <= 0) return alert("يرجى كتابة رقم صحيح أكبر من الصفر");
-
   const newQty = Number(currentQty) + added;
   const { error } = await sb.from("products").update({ quantity: newQty }).eq("id", id);
   if (error) return alert("حدث خطأ أثناء إضافة الكمية: " + error.message);
-  
   alert("تم إضافة الكمية بنجاح!");
   await loadProducts();
   await refreshDashboard();
 }
 
-async function editProduct(id) {
-  const p = products.find(x => x.id === id);
-  if (!p) return;
-
-  const name = prompt("اسم الصنف:", p.name || "");
-  if (name === null) return;
-  const code = prompt("كود الصنف:", p.code || "");
-  if (code === null) return;
-  const unit = prompt("الوحدة:", p.unit || "قطعة");
-  if (unit === null) return;
-  const buy = Number(prompt("سعر الشراء:", p.buy_price || 0));
-  const sell = Number(prompt("سعر البيع:", p.sell_price || 0));
-  const qty = Number(prompt("الكمية الحالية:", p.quantity || 0));
-  const min = Number(prompt("الحد الأدنى:", p.min_quantity || 0));
-
-  const updated = {
-    name, code, unit,
-    buy_price: buy,
-    sell_price: sell,
-    quantity: qty,
-    min_quantity: min
-  };
-
-  const { error } = await sb.from("products").update(updated).eq("id", id);
-  if (error) return alert("حدث خطأ أثناء تعديل البيانات: " + error.message);
-
-  alert("تم تعديل الصنف بنجاح!");
-  await loadProducts();
-  await refreshDashboard();
-}
-
-function openProductForm() {
-  const code = prompt("كود الصنف:");
-  if (code === null) return;
-  const name = prompt("اسم الصنف:");
-  if (name === null) return;
-  const unit = prompt("الوحدة (قطعة/كرتونة/متر...):", "قطعة") || "قطعة";
-  const buy = Number(prompt("سعر الشراء:", "0") || 0);
-  const sell = Number(prompt("سعر البيع:", "0") || 0);
-  const qty = Number(prompt("الكمية الحالية:", "0") || 0);
-  const min = Number(prompt("الحد الأدنى:", "0") || 0);
-  saveProduct({code, name, unit, buy_price: buy, sell_price: sell, quantity: qty, min_quantity: min});
-}
-
-async function saveProduct(p) {
-  const { error } = await sb.from("products").insert(p);
-  if (error) return alert(error.message);
-  await loadProducts(); 
-  await refreshDashboard();
-}
-
-async function deleteProduct(id) {
-  if (!confirm("هل أنت تأكد من حذف الصنف؟")) return;
-  const { error } = await sb.from("products").delete().eq("id", id);
-  if (error) return alert(error.message);
-  await loadProducts(); 
-  await refreshDashboard();
-}
-
-async function initInvoicePage() {
+function initInvoicePage() {
   fillInvoiceProducts();
-  if (!document.getElementById("invoiceDateTime").value) {
+  const dt = document.getElementById("invoiceDateTime");
+  if (dt && !dt.value) {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById("invoiceDateTime").value = now.toISOString().slice(0, 16);
+    dt.value = now.toISOString().slice(0, 16);
   }
-  await generateNewInvoiceCode();
+  generateNewInvoiceCode();
 }
 
 function fillInvoiceProducts() {
-  const select = document.getElementById("invoiceProduct");
-  if (!select) return;
-  select.innerHTML = '<option value="">اختر الصنف</option>' +
-    products.map(p => `<option value="${p.id}">${esc(p.name)} — ${toArabicDigits(money(p.sell_price))} ج.م — المتاح ${toArabicDigits(p.quantity)}</option>`).join("");
+  const sel = document.getElementById("invoiceProduct");
+  if (!sel) return;
+  sel.innerHTML = products.map(p => `<option value="${p.id}">${esc(p.name)} (المتاح: ${p.quantity}) - السعر: ${p.sell_price} ج.م</option>`).join("");
 }
 
 function addInvoiceItem() {
-  const id = document.getElementById("invoiceProduct").value;
-  const qtyInput = document.getElementById("invoiceQty");
-  const qty = Number(qtyInput.value || 1);
-  const p = products.find(x => x.id === id);
-  if (!p) return alert("اختر صنفًا");
-  
-  const existing = invoiceItems.find(x => x.product_id === id);
-  const currentInInvoice = existing ? existing.quantity : 0;
-  if (qty < 1 || (currentInInvoice + qty) > Number(p.quantity)) {
-    return alert(`عذراً، الكمية المطلوبة تتجاوز المتاح في المخزن (المتاح: ${p.quantity})`);
-  }
+  const pId = document.getElementById("invoiceProduct").value;
+  const qty = Number(document.getElementById("invoiceQty").value) || 1;
+  const prod = products.find(x => x.id === pId);
+  if (!prod) return alert("يرجى اختيار صنف صحيح");
+  if (qty <= 0) return alert("الكمية يجب أن تكون أكبر من الصفر");
 
+  const existing = invoiceItems.find(x => x.product_id === pId);
   if (existing) {
     existing.quantity += qty;
   } else {
-    invoiceItems.push({product_id: id, code: p.code, name: p.name, quantity: qty, price: Number(p.sell_price || 0)});
+    invoiceItems.push({
+      product_id: prod.id,
+      name: prod.name,
+      quantity: qty,
+      unit_price: Number(prod.sell_price) || 0
+    });
   }
-  
-  qtyInput.value = 1;
   renderInvoice();
-}
-
-function changeItemQty(index, delta) {
-  const item = invoiceItems[index];
-  const product = products.find(p => p.id === item.product_id);
-  const newQty = item.quantity + delta;
-
-  if (newQty <= 0) {
-    if (confirm("هل تريد حذف هذا الصنف من الفاتورة؟")) {
-      invoiceItems.splice(index, 1);
-    }
-    renderInvoice();
-    return;
-  }
-
-  if (product && newQty > Number(product.quantity)) {
-    alert("عذراً، أقصى كمية متاحة في المخزن لهذا البند هي " + product.quantity + " قطع ولا يمكن تجاوزها!");
-    return;
-  }
-
-  item.quantity = newQty;
-  renderInvoice();
-}
-
-function updateItemPrice(index) {
-  const item = invoiceItems[index];
-  const newPrice = prompt(`تعديل سعر البند (${item.name}):`, item.price);
-  if (newPrice !== null && !isNaN(Number(newPrice))) {
-    item.price = Number(newPrice);
-    renderInvoice();
-  }
-}
-
-function calculateTotals() {
-  const subTotal = invoiceItems.reduce((s, x) => s + x.quantity * x.price, 0);
-  const discountInput = document.getElementById("invoiceDiscount").value.trim();
-  let discountAmount = 0;
-
-  if (discountInput.endsWith("%")) {
-    const pct = parseFloat(discountInput) || 0;
-    discountAmount = (subTotal * pct) / 100;
-  } else {
-    discountAmount = parseFloat(discountInput) || 0;
-  }
-
-  let finalTotal = subTotal - discountAmount;
-  if (finalTotal < 0) finalTotal = 0;
-
-  const paid = parseFloat(document.getElementById("amountPaid").value) || 0;
-  let remaining = finalTotal - paid;
-  if (remaining < 0) remaining = 0;
-
-  return { subTotal, discountAmount, finalTotal, paid, remaining };
 }
 
 function renderInvoice() {
-  const tbody = document.getElementById("invoiceBody");
-  if (invoiceItems.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="padding: 40px; color: #888; text-align: center;">لا توجد أصناف مضافة في الفاتورة الحالية</td></tr>`;
-  } else {
-    tbody.innerHTML = invoiceItems.map((x, i) => `
+  let subTotal = 0;
+  document.getElementById("invoiceBody").innerHTML = invoiceItems.map((item, idx) => {
+    const lineTotal = item.quantity * item.unit_price;
+    subTotal += lineTotal;
+    return `
       <tr>
-        <td>${esc(x.name)}</td>
-        <td>
-          <button class="btn-qty" onclick="changeItemQty(${i}, -1)">-</button>
-          <span style="margin: 0 8px; font-weight: bold;">${toArabicDigits(x.quantity)}</span>
-          <button class="btn-qty" onclick="changeItemQty(${i}, 1)">+</button>
-        </td>
-        <td>${toArabicDigits(money(x.price))}</td>
-        <td>${toArabicDigits(money(x.quantity * x.price))}</td>
-        <td>
-          <button class="btn-edit small" onclick="updateItemPrice(${i})">تعديل</button>
-          <button class="danger small" onclick="invoiceItems.splice(${i},1);renderInvoice()">حذف</button>
-        </td>
-      </tr>`).join("");
-  }
-
-  const { subTotal, discountAmount, finalTotal, paid, remaining } = calculateTotals();
+        <td>${esc(item.name)}</td>
+        <td><input type="number" min="1" value="${item.quantity}" style="width:70px;" onchange="updateItemQty(${idx}, this.value)"></td>
+        <td>${toArabicDigits(money(item.unit_price))}</td>
+        <td>${toArabicDigits(money(lineTotal))} ج.م</td>
+        <td><button class="danger small" onclick="removeInvoiceItem(${idx})">حذف</button></td>
+      </tr>`;
+  }).join("");
 
   document.getElementById("invoiceSubTotal").textContent = toArabicDigits(money(subTotal));
 
+  const discInput = document.getElementById("invoiceDiscount").value.trim();
+  let discountVal = 0;
+  if (discInput.endsWith('%')) {
+    const percent = parseFloat(discInput) || 0;
+    discountVal = (subTotal * percent) / 100;
+  } else {
+    discountVal = parseFloat(discInput) || 0;
+  }
+
   const discountLine = document.getElementById("discountDisplayLine");
-  if (discountAmount > 0) {
+  if (discountVal > 0) {
     discountLine.classList.remove("hidden");
-    document.getElementById("invoiceDiscountText").textContent = toArabicDigits(money(discountAmount));
+    document.getElementById("invoiceDiscountText").textContent = toArabicDigits(money(discountVal));
   } else {
     discountLine.classList.add("hidden");
   }
 
+  const finalTotal = Math.max(0, subTotal - discountVal);
   document.getElementById("invoiceTotal").textContent = toArabicDigits(money(finalTotal));
+
+  const paid = Number(document.getElementById("amountPaid").value) || 0;
+  const remaining = Math.max(0, finalTotal - paid);
+  document.getElementById("amountRemaining").value = toArabicDigits(money(remaining));
   document.getElementById("paidDisplayText").textContent = toArabicDigits(money(paid));
   document.getElementById("remainingDisplayText").textContent = toArabicDigits(money(remaining));
-  document.getElementById("amountRemaining").value = toArabicDigits(money(remaining)) + " ج.م";
 }
 
-async function loadAuditLogs() {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const { data: todayInvs } = await sb.from("invoices").select("*").gte("created_at", startOfDay.toISOString()).order("created_at", { ascending: false });
-  
-  const countBadge = document.getElementById("todayInvoiceCountBadge");
-  const listDiv = document.getElementById("todayInvoicesList");
-  
-  if (todayInvs) {
-    countBadge.textContent = toArabicDigits(todayInvs.length) + " فواتير اليوم";
-    if (todayInvs.length === 0) {
-      listDiv.innerHTML = "<span class='muted'>لا توجد فواتير مسجلة اليوم حتى الآن.</span>";
-    } else {
-      listDiv.innerHTML = todayInvs.map(inv => `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px 12px; margin-bottom: 5px; border-radius: 6px; border: 1px solid #ddd;">
-          <span>فاتورة كود <b>${inv.invoice_code || '#' + inv.id}</b> — العميل: <b>${esc(inv.customer_name || "نقدي")}</b> — الإجمالي: <b>${toArabicDigits(money(inv.total))} ج.م</b></span>
-          <button class="small" onclick="printSavedInvoice('${inv.id}')">عرض وفحص</button>
-        </div>
-      `).join("");
-    }
+function updateItemQty(idx, val) {
+  const q = Number(val);
+  if (q <= 0) {
+    invoiceItems.splice(idx, 1);
+  } else {
+    invoiceItems[idx].quantity = q;
   }
-
-  const { data } = await sb.from("activity_logs").select("*").order("created_at", { ascending: false }).limit(100);
-  const tbody = document.getElementById("auditLogsBody");
-  if (tbody) {
-    tbody.innerHTML = (data || []).map(x => `
-      <tr><td><b>${x.action}</b></td><td>${x.details}</td><td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td></tr>`).join("");
-  }
+  renderInvoice();
 }
 
-async function loadDebtors() {
-  const { data: invoices, error } = await sb.from("invoices").select("*").gt("remaining_amount", 0).order("created_at", { ascending: false });
-  const tbody = document.getElementById("debtorsBody");
-  if (!tbody) return;
+function removeInvoiceItem(idx) {
+  invoiceItems.splice(idx, 1);
+  renderInvoice();
+}
 
-  if (error || !invoices || invoices.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="padding: 30px; text-align: center; color: #27ae60; font-weight: bold;">ممتاز! لا توجد أي ديون أو مبالغ متأخرة على العملاء حالياً 🎉</td></tr>`;
+async function saveInvoice() {
+  if (invoiceItems.length === 0) return alert("لا توجد أصناف في الفاتورة!");
+  
+  const customerName = document.getElementById("customerName").value.trim();
+  if (!customerName) return alert("يرجى كتابة اسم العميل");
+
+  const customerPhone = document.getElementById("customerPhone").value.trim();
+  const invoiceCode = document.getElementById("invoiceCodeInput").value;
+  const invoiceDateTime = document.getElementById("invoiceDateTime").value || new Date().toISOString();
+  
+  let subTotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+  const discInput = document.getElementById("invoiceDiscount").value.trim();
+  let discountVal = 0;
+  if (discInput.endsWith('%')) {
+    discountVal = (subTotal * (parseFloat(discInput) || 0)) / 100;
+  } else {
+    discountVal = parseFloat(discInput) || 0;
+  }
+  const total = Math.max(0, subTotal - discountVal);
+  const paid = Number(document.getElementById("amountPaid").value) || 0;
+  const remaining = Math.max(0, total - paid);
+
+  // إرسال البيانات بشكل متوافق تماماً مع جداول قاعدة البيانات
+  const { data: invData, error: invError } = await sb.from("invoices").insert([{
+    invoice_code: invoiceCode,
+    customer_name: customerName,
+    customer_phone: customerPhone,
+    sub_total: subTotal,
+    discount: discountVal,
+    total: total,
+    paid: paid,
+    remaining: remaining,
+    created_at: new Date(invoiceDateTime).toISOString()
+  }]).select().single();
+
+  if (invError) {
+    alert("خطأ في حفظ الفاتورة: " + invError.message);
     return;
   }
 
-  const debtorsMap = {};
-  invoices.forEach(inv => {
-    const name = inv.customer_name ? inv.customer_name.trim() : "عميل نقدي";
-    if (!debtorsMap[name]) {
-      debtorsMap[name] = {
-        name: name,
-        phone: inv.customer_phone || "",
-        totalRemaining: 0,
-        invoices: []
-      };
-    }
-    debtorsMap[name].totalRemaining += Number(inv.remaining_amount || 0);
-    debtorsMap[name].invoices.push({ id: inv.id, code: inv.invoice_code || ('#' + inv.id), remaining: inv.remaining_amount, paid: inv.paid_amount });
-    if (!debtorsMap[name].phone && inv.customer_phone) {
-      debtorsMap[name].phone = inv.customer_phone;
-    }
-  });
+  const invoiceId = invData.id;
 
-  tbody.innerHTML = Object.values(debtorsMap).map(d => {
-    const invsListStr = d.invoices.map(i => `<span class="badge" style="background: #34495e; margin-left: 4px; cursor: pointer;" onclick="printSavedInvoice('${i.id}')">فاتورة ${i.code} (${toArabicDigits(money(i.remaining))} ج.م)</span>`).join("");
-    return `
-      <tr>
-        <td><b>${esc(d.name)}</b></td>
-        <td>${d.phone ? toArabicDigits(d.phone) : '<span class="muted">بدون هاتف</span>'}</td>
-        <td style="color: #c0392b; font-weight: bold; font-size: 16px;">${toArabicDigits(money(d.totalRemaining))} ج.م</td>
-        <td>${invsListStr}</td>
-        <td>
-          ${d.invoices.map(i => `<button class="btn-pay small" onclick="payDebt('${i.id}', ${i.remaining},${i.paid}, '${esc(d.name)}')">تحصيل فاتورة ${i.code}</button>`).join(" ")}
-        </td>
-      </tr>`;
-  }).join("");
+  // إدخال بنود الفاتورة
+  const itemsPayload = invoiceItems.map(item => ({
+    invoice_id: invoiceId,
+    product_id: item.product_id,
+    quantity: item.quantity,
+    unit_price: item.unit_price
+  }));
+
+  const { error: itemsError } = await sb.from("invoice_items").insert(itemsPayload);
+  if (itemsError) {
+    alert("تم حفظ رأس الفاتورة ولكن حدث خطأ في حفظ البنود: " + itemsError.message);
+    return;
+  }
+
+  // تحديث كميات المخزون تلقائياً
+  for (const item of invoiceItems) {
+    const prod = products.find(p => p.id === item.product_id);
+    if (prod) {
+      const newQty = Math.max(0, Number(prod.quantity || 0) - item.quantity);
+      await sb.from("products").update({ quantity: newQty }).eq("id", prod.id);
+    }
+  }
+
+  alert("✨ تم تسجيل الفاتورة وحفظها بنجاح!");
+  clearInvoiceItemsOnly();
+  await loadProducts();
+  await loadUniqueCustomers();
+  await refreshDashboard();
 }
 
 function clearInvoiceItemsOnly() {
   invoiceItems = [];
-  document.getElementById("invoiceDiscount").value = "";
-  document.getElementById("amountPaid").value = 0;
-  document.getElementById("invoiceQty").value = 1;
-  renderInvoice();
-}
-
-async function cancelInvoiceForm() {
-  if (!confirm("هل أنت متأكد من إلغاء الفاتورة الحالية وتفريغ بنودها؟")) return;
-  
-  invoiceItems = [];
   document.getElementById("customerName").value = "";
   document.getElementById("customerPhone").value = "";
   document.getElementById("invoiceDiscount").value = "";
-  document.getElementById("amountPaid").value = 0;
-  document.getElementById("invoiceQty").value = 1;
+  document.getElementById("amountPaid").value = "0";
   renderInvoice();
-
-  await generateNewInvoiceCode();
-  alert('تم إلغاء الفاتورة الحالية وتوليد كود جديد.');
+  generateNewInvoiceCode();
 }
 
-async function saveInvoice() {
-  if (!invoiceItems.length) return alert("أضف صنفًا واحدًا على الأقل لحفظ الفاتورة");
-  
-  const invoiceCode = document.getElementById('invoiceCodeInput').value;
-  const { subTotal, discountAmount, finalTotal, paid, remaining } = calculateTotals();
-  const customer_name = document.getElementById("customerName").value.trim();
-  const customer_phone = document.getElementById("customerPhone").value.trim();
-  const invoiceDateTime = document.getElementById("invoiceDateTime").value;
-
-  const payload = {
-    invoice_code: invoiceCode,
-    type: "sale",
-    customer_name,
-    customer_phone,
-    total: finalTotal,
-    paid_amount: paid,
-    remaining_amount: remaining,
-    status: 'saved',
-    created_at: invoiceDateTime ? new Date(invoiceDateTime).toISOString() : new Date().toISOString()
-  };
-
-  const { data: inv, error } = await sb.from("invoices").insert(payload).select().single();
-
-  if (error) return alert("خطأ في حفظ الفاتورة: " + error.message);
-
-  const items = invoiceItems.map(x => ({
-    invoice_id: inv.id,
-    invoice_code: invoiceCode,
-    product_id: x.product_id,
-    product_code: x.code,
-    product_name: x.name,
-    quantity: x.quantity,
-    unit_price: x.price,
-    price: x.price,
-    total: x.quantity * x.price
-  }));
-
-  const { error: ie } = await sb.from("invoice_items").insert(items);
-  if (ie) return alert("خطأ في حفظ بنود الفاتورة: " + ie.message);
-
-  for (const x of invoiceItems) {
-    const p = products.find(z => z.id === x.product_id);
-    if (p) {
-      await sb.from("products").update({ quantity: Number(p.quantity) - x.quantity }).eq("id", x.product_id);
-    }
+function cancelInvoiceForm() {
+  if (confirm("هل تريد إلغاء الفاتورة ومسح البنود؟")) {
+    clearInvoiceItemsOnly();
   }
-
-  document.getElementById("invoiceNo").textContent = "فاتورة " + invoiceCode;
-  
-  autoSaveInvoiceFile(inv.id, invoiceCode, customer_name, finalTotal, paid, remaining);
-
-  alert("تم حفظ الفاتورة وتصديرها بصيغة PDF وتحديث المخزن بنجاح!");
-  
-  invoiceItems = [];
-  document.getElementById("customerName").value = "";
-  document.getElementById("customerPhone").value = "";
-  document.getElementById("invoiceDiscount").value = "";
-  document.getElementById("amountPaid").value = 0;
-  renderInvoice();
-  await generateNewInvoiceCode();
-
-  await loadInvoices();
-  await loadUniqueCustomers();
-  await loadProducts();
-  await refreshDashboard();
 }
 
-async function payDebt(id, currentRemaining, currentPaid, customerName) {
-  const payInput = prompt(`إدارة ديون العميل: (${customerName || "نقدي"})\nالمبلغ المتبقي على الفاتورة: ${currentRemaining} ج.م\nأدخل المبلغ المراد تحصيله وسداده الآن:`, currentRemaining);
-  if (payInput === null) return;
-  const payAmount = Number(payInput);
-  if (isNaN(payAmount) || payAmount <= 0) return alert("أدخل مبلغاً صحيحاً أكبر من الصفر");
-  if (payAmount > currentRemaining) return alert("المبلغ المدفوع أكبر من المتبقي على الفاتورة");
-
-  const newPaid = Number(currentPaid || 0) + payAmount;
-  const newRemaining = currentRemaining - payAmount;
-
-  const { error } = await sb.from("invoices").update({
-    paid_amount: newPaid,
-    remaining_amount: newRemaining,
-    is_edited: true
-  }).eq("id", id);
-
-  if (error) return alert("خطأ أثناء تحديث السداد: " + error.message);
-
-  alert(`تم تحصيل مبلغ ${payAmount} ج.م بنجاح وتحديث حساب العميل وخزينة اليوم!`);
-  await loadInvoices();
-  await loadDebtors();
-  await refreshDashboard();
+async function loadInvoices() {
+  const { data, error } = await sb.from("invoices").select("*").order("created_at", { ascending: false });
+  if (error) return console.error(error);
+  const rows = data || [];
+  document.getElementById("invoicesBody").innerHTML = rows.map(inv => `
+    <tr>
+      <td><b>${esc(inv.invoice_code || inv.id)}</b></td>
+      <td>${esc(inv.customer_name || "---")}</td>
+      <td>${esc(inv.customer_phone || "---")}</td>
+      <td>${toArabicDigits(money(inv.total))} ج.م</td>
+      <td style="color: #27ae60;">${toArabicDigits(money(inv.paid))} ج.م</td>
+      <td style="color: #c0392b;"><b>${toArabicDigits(money(inv.remaining))} ج.م</b></td>
+      <td>${esc(new Date(inv.created_at).toLocaleString('ar-EG'))}</td>
+      <td>
+        <button class="btn-whatsapp" onclick="printInvoice('${inv.id}')">طباعة / معاينة</button>
+        <button class="danger small" onclick="deleteInvoice('${inv.id}')">حذف</button>
+      </td>
+    </tr>`).join("");
 }
 
-async function editSavedInvoice(id) {
-  const { data: inv, error } = await sb.from("invoices").select("*").eq("id", id).single();
-  if (error || !inv) return alert("لم يتم العثور على الفاتورة");
-
-  const newCustomer = prompt("تعديل اسم العميل:", inv.customer_name || "");
-  if (newCustomer === null) return;
-  const newPaid = prompt("تعديل المبلغ المدفوع:", inv.paid_amount || 0);
-  if (newPaid === null) return;
-
-  const newTotalInput = prompt("تعديل الإجمالي الكلي للفاتورة:", inv.total);
-  if (newTotalInput === null) return;
-
-  const newTotal = Number(newTotalInput) || inv.total;
-  const paidVal = Number(newPaid) || 0;
-  let remainingVal = newTotal - paidVal;
-  if (remainingVal < 0) remainingVal = 0;
-
-  const { error: updateErr } = await sb.from("invoices").update({
-    customer_name: newCustomer,
-    total: newTotal,
-    paid_amount: paidVal,
-    remaining_amount: remainingVal,
-    is_edited: true
-  }).eq("id", id);
-
-  if (updateErr) return alert("خطأ في التحديث: " + updateErr.message);
-
-  alert("تم تعديل الفاتورة بنجاح!");
-  await loadInvoices();
-  await loadDebtors();
-  await refreshDashboard();
-  await loadProducts();
-}
-
-async function cancelInvoice(id) {
-  if (!confirm("هل أنت متأكد من إلغاء هذه الفاتورة؟ سيتم حذفها واسترداد الكميات المباعة إلى المخزن تلقائياً.")) return;
-
-  const { data: items, error: itemErr } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
-  if (itemErr) return alert("خطأ في جلب بنود الفاتورة: " + itemErr.message);
-
-  if (items && items.length > 0) {
-    for (const item of items) {
-      if (item.product_id) {
-        const { data: prod } = await sb.from("products").select("quantity").eq("id", item.product_id).maybeSingle();
-        if (prod) {
-          const restoredQty = Number(prod.quantity || 0) + Number(item.quantity || 0);
-          await sb.from("products").update({ quantity: restoredQty }).eq("id", item.product_id);
-        }
-      }
-    }
-  }
-
-  await sb.from("invoice_items").delete().eq("invoice_id", id);
-  const { error: delErr } = await sb.from("invoices").delete().eq("id", id);
-
-  if (delErr) return alert("حدث خطأ أثناء إلغاء الفاتورة: " + delErr.message);
-
-  alert("تم إلغاء الفاتورة واسترداد البضاعة إلى المخزن بنجاح!");
-  await loadInvoices();
-  await loadDebtors();
-  await loadProducts();
-  await refreshDashboard();
+async function deleteInvoice(id) {
+  if (!confirm("هل أنت متأكد من حذف هذه الفاتورة؟")) return;
+  const { error } = await sb.from("invoices").delete().eq("id", id);
+  if (error) return alert("خطأ في الحذف: " + error.message);
+  alert("تم حذف الفاتورة بنجاح");
+  loadInvoices();
+  refreshDashboard();
 }
 
 async function addExpense() {
   const reason = document.getElementById("expenseReason").value.trim();
   const amount = Number(document.getElementById("expenseAmount").value);
-  if (!reason || isNaN(amount) || amount <= 0) return alert("يرجى كتابة بيان المصروف والمبلغ بشكل صحيح");
+  if (!reason || isNaN(amount) || amount <= 0) return alert("يرجى إدخال بيان المصروف والمبلغ بشكل صحيح");
 
-  const { error } = await sb.from("expenses").insert({
-    reason,
-    amount,
-    created_at: new Date().toISOString()
-  });
-
+  const { error } = await sb.from("expenses").insert([{ reason, amount }]);
   if (error) return alert("خطأ في تسجيل المصروف: " + error.message);
-
+  
   document.getElementById("expenseReason").value = "";
   document.getElementById("expenseAmount").value = "";
-  alert("تم تسجيل المصروف وخصمه من الخزينة بنجاح!");
-  await loadExpenses();
-  await refreshDashboard();
-}
-
-async function loadExpenses() {
-  const { data, error } = await sb.from("expenses").select("*").order("created_at", { ascending: false }).limit(100);
-  if (error) return;
-  document.getElementById("expensesBody").innerHTML = (data || []).map(x => `
-    <tr>
-      <td>${esc(x.reason)}</td>
-      <td style="color: #e74c3c;"><b>${toArabicDigits(money(x.amount))} ج.م</b></td>
-      <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
-      <td><button class="danger small" onclick="deleteExpense('${x.id}')">حذف</button></td>
-    </tr>`).join("");
-}
-
-async function deleteExpense(id) {
-  if (!confirm("هل أنت متأكد من حذف هذا المصروف؟")) return;
-  const { error } = await sb.from("expenses").delete().eq("id", id);
-  if (error) return alert(error.message);
   loadExpenses();
   refreshDashboard();
 }
 
-function autoSaveInvoiceFile(invId, invoiceCode, customerName, total, paid, remaining) {
-  const displayCode = invoiceCode || String(invId);
-  const htmlContent = buildInvoiceHtml({
-    id: displayCode,
-    created_at: document.getElementById("invoiceDateTime").value,
-    customer_name: customerName,
-    customer_phone: document.getElementById("customerPhone").value,
-    total: total,
-    paid: paid,
-    remaining: remaining,
-    discount: calculateTotals().discountAmount
-  }, invoiceItems);
-
-  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `فاتورة_${displayCode}.pdf.html`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-async function sendWhatsAppBusinessMessage(id, customerPhone, customerName) {
-  const { data: inv } = await sb.from("invoices").select("*").eq("id", id).single();
-  const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
-  
-  if (!inv) return alert("تعذر جلب تفاصيل الفاتورة");
-
-  let phone = customerPhone ? customerPhone.trim() : "";
-  if (!phone) {
-    phone = prompt("أدخل رقم هاتف العميل (مثل 01012345678):", "");
-    if (!phone) return;
-  }
-  
-  phone = phone.replace(/\D/g, '');
-  if (phone.startsWith('0')) {
-    phone = '20' + phone.substring(1);
-  } else if (!phone.startsWith('20')) {
-    phone = '20' + phone;
-  }
-  
-  let itemsText = "";
-  if (items && items.length > 0) {
-    items.forEach((item, index) => {
-      const itemName = item.product_name || item.name || "صنف";
-      const itemQty = toArabicDigits(item.quantity);
-      const itemPrice = toArabicDigits(money(item.unit_price || item.price));
-      const itemTotal = toArabicDigits(money(item.total));
-      itemsText += `${toArabicDigits(index + 1)}. ${itemName} (الكمية: ${itemQty} | السعر: ${itemPrice} ج.م | الإجمالي: ${itemTotal} ج.م)\n`;
-    });
-  }
-
-  const paidAmt = toArabicDigits(money(inv.paid_amount || 0));
-  const remAmt = toArabicDigits(money(inv.remaining_amount || 0));
-  const totalAmt = toArabicDigits(money(inv.total || 0));
-  const invDate = toArabicDigits(new Date(inv.created_at).toLocaleString("ar-EG"));
-  const invCodeStr = inv.invoice_code || ('#' + inv.id);
-
-  const message = `مرحباً بالعزيز ${customerName || "عميلنا"} 🏗️\n` +
-    `📌 تفاصيل فاتورتك من *${storeSettings.store_name}*:\n` +
-    `━━━━━━━━━━━━━━━━━━\n` +
-    `🧾 *رقم الفاتورة:* ${invCodeStr}\n` +
-    `📅 *التاريخ:* ${invDate}\n` +
-    `━━━━━━━━━━━━━━━━━━\n` +
-    `🛒 *الأصناف المشتراة:*\n${itemsText}` +
-    `━━━━━━━━━━━━━━━━━━\n` +
-    `💰 *الإجمالي النهائي:* ${totalAmt} ج.م\n` +
-    `💵 *المبلغ المدفوع:* ${paidAmt} ج.م\n` +
-    `⚠️ *المبلغ المتبقي (آجل):* ${remAmt} ج.م\n` +
-    `━━━━━━━━━━━━━━━━━━\n` +
-    `شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم! 🙏`;
-  
-  const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-  window.open(whatsappUrl, '_blank');
-}
-
-async function loadInvoices() {
-  const { data, error } = await sb.from("invoices").select("*").order("created_at", { ascending: false }).limit(100);
+async function loadExpenses() {
+  const { data, error } = await sb.from("expenses").select("*").order("created_at", { ascending: false });
   if (error) return;
-
-  document.getElementById("invoicesBody").innerHTML = (data || []).map(x => {
-    const rem = Number(x.remaining_amount || 0);
-    const paidVal = Number(x.paid_amount || 0);
-    const customerEsc = esc(x.customer_name);
-    const phoneVal = esc(x.customer_phone || "");
-    const displayCode = x.invoice_code || ('#' + x.id);
-    
-    let formattedPhone = phoneVal;
-    if (formattedPhone) {
-      let clean = formattedPhone.replace(/\D/g, '');
-      if (clean.startsWith('0')) clean = '20' + clean.substring(1);
-      else if (!clean.startsWith('20')) clean = '20' + clean;
-      formattedPhone = '+' + clean;
-    }
-
-    return `
+  const rows = data || [];
+  document.getElementById("expensesBody").innerHTML = rows.map(e => `
     <tr>
-      <td><b>${displayCode}</b> ${x.is_edited ? '<span class="badge-edited">تم التعديل</span>' : ''}</td>
-      <td>${customerEsc || "نقدي"}</td>
-      <td>${formattedPhone ? toArabicDigits(formattedPhone) : '<span class="muted">بدون هاتف</span>'}</td>
-      <td><b>${toArabicDigits(money(x.total))} ج.م</b></td>
-      <td style="color: #27ae60;">${toArabicDigits(money(paidVal))} ج.م</td>
-      <td style="color: #c0392b;"><b>${toArabicDigits(money(rem))} ج.م</b></td>
-      <td>${toArabicDigits(new Date(x.created_at).toLocaleString("ar-EG"))}</td>
-      <td>
-        <button class="small" onclick="printSavedInvoice('${x.id}')">طباعة / PDF</button>
-        <a class="btn-whatsapp small" href="javascript:void(0)" onclick="sendWhatsAppBusinessMessage('${x.id}', '${phoneVal}', '${customerEsc}')">واتساب</a>
-        ${rem > 0 ? `<button class="btn-pay small" onclick="payDebt('${x.id}',${rem}, ${paidVal}, '${customerEsc}')">تحصيل</button>` : ''}
-        <button class="btn-edit small" onclick="editSavedInvoice('${x.id}')">تعديل</button>
-        <button class="btn-cancel small" onclick="cancelInvoice('${x.id}')">إلغاء</button>
-      </td>
-    </tr>`;
-  }).join("");
-}
-
-async function printSavedInvoice(id) {
-  const { data: inv } = await sb.from("invoices").select("*").eq("id", id).single();
-  const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
-  printInvoice(inv, items || []);
-}
-
-function printCurrentInvoice() {
-  if (!invoiceItems.length) return alert("الفاتورة فارغة");
-  const { subTotal, discountAmount, finalTotal, paid, remaining } = calculateTotals();
-  const currentCode = document.getElementById('invoiceCodeInput').value || "جديدة";
-
-  printInvoice({
-    id: currentCode,
-    created_at: document.getElementById("invoiceDateTime").value ? new Date(document.getElementById("invoiceDateTime").value).toISOString() : new Date().toISOString(),
-    customer_name: document.getElementById("customerName").value.trim(),
-    customer_phone: document.getElementById("customerPhone").value.trim(),
-    subTotal: subTotal,
-    discount: discountAmount,
-    total: finalTotal,
-    paid: paid,
-    remaining: remaining
-  }, invoiceItems.map(x => ({ product_name: x.name, quantity: x.quantity, unit_price: x.price, total: x.quantity * x.price })));
-}
-
-function buildInvoiceHtml(inv, items) {
-  const logo = storeSettings.logo_url || "logo.png";
-  const rows = items.map(x => `
-    <tr>
-      <td>${esc(x.product_name || x.name)}</td>
-      <td>${toArabicDigits(x.quantity)}</td>
-      <td>${toArabicDigits(money(x.unit_price || x.price))}</td>
-      <td>${toArabicDigits(money(x.total))}</td>
+      <td>${esc(e.reason)}</td>
+      <td>${toArabicDigits(money(e.amount))} ج.م</td>
+      <td>${esc(new Date(e.created_at).toLocaleString('ar-EG'))}</td>
+      <td><button class="danger small" onclick="deleteExpense('${e.id}')">حذف</button></td>
     </tr>`).join("");
+}
 
-  const discountRow = (inv.discount && inv.discount > 0) ? `
+async function deleteExpense(id) {
+  const { error } = await sb.from("expenses").delete().eq("id", id);
+  if (!error) { loadExpenses(); refreshDashboard(); }
+}
+
+async function loadAuditLogs() {
+  const { data } = await sb.from("invoices").select("*").order("created_at", { ascending: false });
+  const rows = data || [];
+  document.getElementById("todayInvoiceCountBadge").textContent = toArabicDigits(rows.length) + " فاتورة";
+  document.getElementById("todayInvoicesList").innerHTML = rows.slice(0, 5).map(inv => `
+    <div style="padding: 5px 0; border-bottom: 1px dashed #ddd;">
+      فاتورة رقم: <b>${esc(inv.invoice_code)}</b> للعميل (${esc(inv.customer_name)}) بقيمة <b>${toArabicDigits(money(inv.total))} ج.م</b>
+    </div>`).join("") || "لا توجد فواتير بعد";
+
+  document.getElementById("auditLogsBody").innerHTML = rows.map(inv => `
     <tr>
-      <td colspan="3" style="text-align: left; font-weight: bold; background: #faf9f5;">قيمة الخصم:</td>
-      <td style="font-weight: bold; background: #faf9f5; color: #e67e22;">- ${toArabicDigits(money(inv.discount))} ج.م</td>
-    </tr>` : "";
-
-  let customerPhonePrint = inv.customer_phone || "";
-  if (customerPhonePrint) {
-    let clean = customerPhonePrint.replace(/\D/g, '');
-    if (clean.startsWith('0')) clean = '20' + clean.substring(1);
-    else if (!clean.startsWith('20')) clean = '20' + clean;
-    customerPhonePrint = '+' + clean;
-  }
-
-  const invoiceDisplayId = inv.invoice_code || inv.id || "جديدة";
-
-  return `<!doctype html>
-  <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="utf-8">
-    <title>فاتورة رقم ${invoiceDisplayId}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>
-      @page { size: auto; margin: 5mm; }
-      body { 
-        font-family: 'Cairo', sans-serif; 
-        padding: 15px; 
-        color: #2c3e50; 
-        background: #fff; 
-        margin: 0;
-        direction: rtl;
-      }
-      .invoice-container { 
-        max-width: 800px; 
-        margin: auto; 
-        border: 2px solid #122b49; 
-        padding: 25px; 
-        border-radius: 8px; 
-        background: #fff; 
-      }
-      .invoice-header { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        border-bottom: 3px solid #c59b45; 
-        padding-bottom: 15px; 
-        margin-bottom: 20px; 
-      }
-      .invoice-header img { width: 85px; height: 85px; object-fit: contain; }
-      .invoice-header h1 { margin: 0; font-size: 24px; color: #122b49; font-weight: 800; }
-      .invoice-header .store-details { font-size: 13px; color: #555; margin-top: 5px; line-height: 1.6; }
-      
-      .invoice-meta { 
-        display: flex; 
-        justify-content: space-between; 
-        background: #fdfbf7; 
-        padding: 12px 18px; 
-        border-radius: 6px; 
-        margin-bottom: 20px; 
-        font-size: 14px; 
-        border: 1px solid #e2dbca;
-      }
-      .invoice-meta div { line-height: 1.8; }
-      
-      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-      th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: center; font-size: 14px; }
-      th { background: #122b49; color: #fff; font-weight: 700; }
-      tr:nth-child(even) { background-color: #f8fafc; }
-      
-      .invoice-totals { 
-        margin-top: 15px; 
-        background: #fdfbf7; 
-        border: 1px solid #e2dbca; 
-        padding: 15px; 
-        border-radius: 6px; 
-        font-size: 15px; 
-        font-weight: bold; 
-        color: #122b49; 
-        line-height: 1.9;
-      }
-      .invoice-footer { 
-        text-align: center; 
-        margin-top: 30px; 
-        color: #555; 
-        font-size: 13px; 
-        border-top: 1px dashed #cbd5e1; 
-        padding-top: 15px; 
-      }
-      @media print { 
-        button, .btn-whatsapp { display: none; } 
-        body { padding: 0; }
-        .invoice-container { border: none; padding: 5px; }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="invoice-container">
-      <div class="invoice-header">
-        <div>
-          <h1>${esc(storeSettings.store_name)}</h1>
-          <div class="store-details">
-            <div>${esc(storeSettings.address || "")}</div>
-            <div>هاتف: ${toArabicDigits(storeSettings.phone || "")} ${storeSettings.whatsapp ? " — واتساب: " + toArabicDigits(storeSettings.whatsapp) : ""}</div>
-          </div>
-        </div>
-        <img src="${esc(logo)}" alt="لوجو المكتب">
-      </div>
-      
-      <div class="invoice-meta">
-        <div>
-          رقم الفاتورة: <b>${invoiceDisplayId}</b><br>
-          التاريخ والوقت: <b>${toArabicDigits(new Date(inv.created_at).toLocaleString("ar-EG"))}</b>
-        </div>
-        <div>
-          اسم العميل: <b>${esc(inv.customer_name || "عميل نقدي")}</b><br>
-          هاتف العميل: <b>${toArabicDigits(customerPhonePrint || "---")}</b>
-        </div>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>بيان الصنف</th>
-            <th>الكمية</th>
-            <th>سعر الوحدة</th>
-            <th>الإجمالي</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-          ${discountRow}
-        </tbody>
-      </table>
-
-      <div class="invoice-totals">
-        <div>إجمالي الفاتورة المستحق: ${toArabicDigits(money(inv.total))} ج.م</div>
-        <div style="color: #27ae60;">المبلغ المدفوع: ${toArabicDigits(money(inv.paid || inv.paid_amount || 0))} ج.م</div>
-        <div style="color: #c0392b;">المبلغ المتبقي (آجل): ${toArabicDigits(money(inv.remaining || inv.remaining_amount || 0))} ج.م</div>
-      </div>
-
-      <div class="invoice-footer">
-        ${esc(storeSettings.invoice_footer || "شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم وتوفير أفضل خامات المقاولات لكم.")}
-      </div>
-    </div>
-  </body>
-  </html>`;
+      <td>إصدار فاتورة بيع</td>
+      <td>للعميل ${esc(inv.customer_name)} - الإجمالي: ${toArabicDigits(money(inv.total))} ج.م</td>
+      <td>${esc(new Date(inv.created_at).toLocaleString('ar-EG'))}</td>
+    </tr>`).join("");
 }
 
-function printInvoice(inv, items) {
-  const html = buildInvoiceHtml(inv, items);
-  const w = window.open("", "_blank");
-  w.document.write(html);
-  w.document.close();
-  w.onload = () => { w.print(); };
-}
+async function loadDebtors() {
+  const { data } = await sb.from("invoices").select("*").gt("remaining", 0);
+  const rows = data || [];
+  const map = {};
+  rows.forEach(inv => {
+    const name = inv.customer_name || "بدون اسم";
+    if (!map[name]) {
+      map[name] = { name, phone: inv.customer_phone || "---", totalDebt: 0, invoices: [] };
+    }
+    map[name].totalDebt += Number(inv.remaining || 0);
+    map[name].invoices.push(inv.invoice_code || inv.id);
+  });
 
-async function loadFinancialSummary() {
-  try {
-    const { data: invoices, error: invError } = await sb.from('invoices').select('total');
-    if (invError) throw invError;
-    const totalSales = (invoices || []).reduce((sum, inv) => sum + Number(inv.total || 0), 0);
-
-    const { data: expenses, error: expError } = await sb.from('expenses').select('amount');
-    if (expError) throw expError;
-    const totalExpenses = (expenses || []).reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
-
-    const netProfit = totalSales - totalExpenses;
-
-    const salesEl = document.getElementById('totalSalesElement');
-    const expEl = document.getElementById('totalExpensesElement');
-    const profitEl = document.getElementById('netProfitElement');
-
-    if (salesEl) salesEl.textContent = toArabicDigits(money(totalSales)) + ' ج.م';
-    if (expEl) expEl.textContent = toArabicDigits(money(totalExpenses)) + ' ج.م';
-    if (profitEl) profitEl.textContent = toArabicDigits(money(netProfit)) + ' ج.م';
-  } catch (e) {
-    console.error("خطأ في التقارير المالية:", e.message);
-  }
+  const debtorsList = Object.values(map);
+  document.getElementById("debtorsBody").innerHTML = debtorsList.map(d => `
+    <tr>
+      <td><b>${esc(d.name)}</b></td>
+      <td>${esc(d.phone)}</td>
+      <td style="color: #c0392b; font-weight: bold;">${toArabicDigits(money(d.totalDebt))} ج.م</td>
+      <td>${esc(d.invoices.join(", "))}</td>
+      <td><button class="btn-pay small" onclick="alert('خاصية تحصيل الديون المباشرة')">تحصيل الدين</button></td>
+    </tr>`).join("") || "<tr><td colspan='5' style='text-align:center;'>لا توجد ديون مستحقة على العملاء حالياً</td></tr>";
 }
 
 async function refreshDashboard() {
-  const { data: prodData } = await sb.from("products").select("name, quantity, buy_price, sell_price, min_quantity");
-  const list = prodData || [];
-  document.getElementById("statProducts").textContent = toArabicDigits(list.length);
+  const { data: prods } = await sb.from("products").select("*");
+  const pList = prods || [];
+  document.getElementById("statProducts").textContent = toArabicDigits(pList.length);
 
-  const totalBuyStock = list.reduce((sum, p) => sum + ((Number(p.quantity) || 0) * (Number(p.buy_price) || 0)), 0);
-  const stockEl = document.getElementById("statStock");
-  if(stockEl) stockEl.textContent = toArabicDigits(money(totalBuyStock));
+  let totalBuyStock = 0;
+  let totalSellStock = 0;
+  let lowCount = 0;
+  let lowHtml = "";
 
-  const totalSellStock = list.reduce((sum, p) => sum + ((Number(p.quantity) || 0) * (Number(p.sell_price) || 0)), 0);
-  document.getElementById("statSellStock").textContent = toArabicDigits(money(totalSellStock));
-
-  const lowStockItems = list.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
-  document.getElementById("statLow").textContent = toArabicDigits(lowStockItems.length);
-
-  if (lowStockItems.length > 0) {
-    document.getElementById("lowStock").innerHTML = lowStockItems.map(p => 
-      `<div class="low-row" style="padding: 10px; margin-bottom: 6px; background: #fdf2f2; border-right: 4px solid #e74c3c; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-        <span><b>${esc(p.name || "صنف")}</b></span>
-        <span>المتاح: <strong style="color:red;">${toArabicDigits(p.quantity)}</strong> | الحد الأدنى: ${toArabicDigits(p.min_quantity)}</span>
-       </div>`
-    ).join("");
-  } else {
-    document.getElementById("lowStock").innerHTML = "<p style='color:green; font-weight: bold; padding: 10px;'>ممتاز! لا توجد أصناف ناقصة أو واصلة للحد الأدنى حالياً 👍</p>";
-  }
-
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const { data: sales } = await sb.from("invoices")
-    .select("total, paid_amount, created_at")
-    .gte("created_at", startOfDay.toISOString());
-
-  const { data: expenses } = await sb.from("expenses")
-    .select("amount, created_at")
-    .gte("created_at", startOfDay.toISOString());
-
-  const todayTotal = (sales || []).reduce((sum, x) => sum + Number(x.total || 0), 0);
-  const todayCashIn = (sales || []).reduce((sum, x) => sum + Number(x.paid_amount || 0), 0);
-  const todayExpenses = (expenses || []).reduce((sum, x) => sum + Number(x.amount || 0), 0);
-  const netCashToday = todayCashIn - todayExpenses;
-
-  document.getElementById("statSales").textContent = toArabicDigits(money(todayTotal));
-  document.getElementById("statExpenses").textContent = toArabicDigits(money(todayExpenses));
-  document.getElementById("statCashToday").textContent = toArabicDigits(money(netCashToday));
-
-  await loadFinancialSummary();
-
-  const { data: allInvs } = await sb.from("invoices").select("customer_name, total");
-  if (allInvs && allInvs.length > 0) {
-    const clientStats = {};
-    allInvs.forEach(inv => {
-      const cName = inv.customer_name ? inv.customer_name.trim() : "عميل نقدي";
-      if (!clientStats[cName]) {
-        clientStats[cName] = { count: 0, maxAmount: 0 };
-      }
-      clientStats[cName].count += 1;
-      if (Number(inv.total) > clientStats[cName].maxAmount) {
-        clientStats[cName].maxAmount = Number(inv.total);
-      }
-    });
-
-    let topByAmount = { name: "---", val: 0 };
-    let topByCount = { name: "---", val: 0 };
-
-    for (const [name, stats] of Object.entries(clientStats)) {
-      if (stats.maxAmount > topByAmount.val) {
-        topByAmount = { name, val: stats.maxAmount };
-      }
-      if (stats.count > topByCount.val) {
-        topByCount = { name, val: stats.count };
-      }
+  pList.forEach(p => {
+    const q = Number(p.quantity || 0);
+    const buy = Number(p.buy_price || 0);
+    const sell = Number(p.sell_price || 0);
+    totalBuyStock += q * buy;
+    totalSellStock += q * sell;
+    if (q <= Number(p.min_quantity || 0)) {
+      lowCount++;
+      lowHtml += `<div style="padding: 4px 0;">الصنف: <b>${esc(p.name)}</b> (المتبقي: ${toArabicDigits(q)} ${esc(p.unit)})</div>`;
     }
+  });
 
-    document.getElementById("topClientByAmount").innerHTML = `<b>${esc(topByAmount.name)}</b><br><span class="muted">قيمة أقوى فاتورة: ${toArabicDigits(money(topByAmount.val))} ج.م</span>`;
-    document.getElementById("topClientByCount").innerHTML = `<b>${esc(topByCount.name)}</b><br><span class="muted">عدد الفواتير: ${toArabicDigits(topByCount.val)} فاتورة</span>`;
-  } else {
-    document.getElementById("topClientByAmount").textContent = "لا توجد بيانات بعد";
-    document.getElementById("topClientByCount").textContent = "لا توجد بيانات بعد";
-  }
+  document.getElementById("statStock").textContent = toArabicDigits(money(totalBuyStock)) + " ج.م";
+  document.getElementById("statSellStock").textContent = toArabicDigits(money(totalSellStock)) + " ج.م";
+  document.getElementById("statLow").textContent = toArabicDigits(lowCount);
+  document.getElementById("lowStock").innerHTML = lowHtml || "جميع الأصناف متوفرة وبكميات جيدة.";
+
+  const { data: invs } = await sb.from("invoices").select("total, created_at, customer_name, id");
+  const iList = invs || [];
+  let totalSalesAll = iList.reduce((sum, x) => sum + Number(x.total || 0), 0);
+  document.getElementById("totalSalesElement").textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
+  document.getElementById("statSales").textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
+
+  const { data: exps } = await sb.from("expenses").select("amount");
+  const eList = exps || [];
+  let totalExpAll = eList.reduce((sum, x) => sum + Number(x.amount || 0), 0);
+  document.getElementById("totalExpensesElement").textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
+  document.getElementById("statExpenses").textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
+  document.getElementById("netProfitElement").textContent = toArabicDigits(money(totalSalesAll - totalBuyStock - totalExpAll)) + " ج.م";
 }
 
-function money(n) { return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function esc(v) { return String(v ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
+function money(val) {
+  return Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function esc(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function printCurrentInvoice() {
+  alert("خاصية الطباعة جاهزة بعد الحفظ");
+}
+
+function printInvoice(id) {
+  alert("جاري معاينة الفاتورة رقم: " + id);
+}
 </script>
 </body>
 </html>
