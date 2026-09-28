@@ -22,13 +22,11 @@
         overflow-x: hidden;
       }
       
-      /* نظام التخطيط الجديد (الكمبيوتر والموبايل) */
       #appView {
         display: flex;
         min-height: 100vh;
       }
       
-      /* القائمة الجانبية للشاشات الكبيرة */
       .sidebar {
         width: 260px;
         background-color: #0a1622;
@@ -83,7 +81,6 @@
         box-shadow: 0 4px 12px rgba(197, 155, 69, 0.3);
       }
 
-      /* المحتوى الرئيسي */
       .main-content {
         flex: 1;
         margin-right: 260px;
@@ -93,7 +90,6 @@
         flex-direction: column;
       }
 
-      /* الشريط العلوي */
       .topbar {
         background: #0f233c;
         color: #fff;
@@ -204,14 +200,6 @@
         color: #0f233c;
       }
 
-      th.sortable {
-        cursor: pointer;
-        user-select: none;
-        transition: background-color 0.2s;
-      }
-      th.sortable:hover {
-        background-color: #e2dbca;
-      }
       .sort-controls {
         display: flex;
         flex-wrap: wrap;
@@ -269,7 +257,6 @@
         border-top: 6px solid #0f233c;
       }
 
-      /* تصميم الفاتورة والمعاينة المطابق تماماً للصورة المطلوبة */
       .invoice-print-container {
         padding: 15px;
         background: #fff;
@@ -366,7 +353,6 @@
     </div>
   </div>
 
-  <!-- نافذة طباعة باركود الصنف -->
   <div id="labelModal" class="statement-modal">
     <div class="statement-content" style="max-width: 400px; text-align: center;">
       <div id="printableLabel" style="padding: 20px; border: 2px dashed #0f233c; border-radius: 8px; margin-bottom: 15px;">
@@ -382,7 +368,6 @@
     </div>
   </div>
 
-  <!-- نافذة معاينة الفاتورة -->
   <div id="invoicePreviewModal" class="statement-modal">
     <div class="statement-content" style="max-width: 700px;">
       <div id="printableInvoicePreview" class="invoice-print-container">
@@ -442,7 +427,6 @@
     </div>
   </div>
 
-  <!-- نافذة كشف الحساب والديون -->
   <div id="statementModal" class="statement-modal">
     <div class="statement-content" style="max-width: 800px;">
       <div id="printableStatement" class="invoice-print-container">
@@ -452,7 +436,7 @@
             <p style="margin: 4px 0 0 0; font-size: 12px; color: #e2e8f0;">كشف حساب تفصيلي للعميل وحركة المديونية</p>
           </div>
           <div>
-            <img id="stStoreLogo" src="logo.png" alt="الشعار">
+            <img id="stStoreLogo" alt="الشعار">
           </div>
         </div>
 
@@ -482,12 +466,10 @@
     </div>
   </div>
 
-  <!-- هيكل التطبيق الرئيسي -->
   <div id="appView">
-    <!-- القائمة الجانبية الموحدة لجميع الصفحات -->
     <aside class="sidebar" id="appSidebar">
       <div class="sidebar-brand">
-        <img src="logo.png" alt="مكتب الحمد" id="mainHeaderLogo">
+        <img id="mainHeaderLogo" alt="مكتب الحمد">
         <div style="color: #facc15; font-size: 13px; font-weight: bold; margin-top: 5px;">مكتب الحمد لمواد البناء</div>
       </div>
       <ul class="sidebar-menu">
@@ -515,7 +497,6 @@
       </header>
 
       <main>
-        <!-- صفحة الرئيسية -->
         <section id="dashboard" class="tab-page">
           <div class="card" style="display: flex; flex-wrap: wrap; align-items: center; gap: 15px; background: linear-gradient(135deg, #0f233c 0%, #1a365d 100%); color: #fff;">
             <div>
@@ -570,7 +551,6 @@
           </div>
         </section>
 
-        <!-- صفحة فاتورة جديدة -->
         <section id="invoice" class="tab-page hidden">
           <div class="card" style="min-height: 70vh; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
@@ -655,36 +635,44 @@
           </div>
         </section>
 
-        <!-- صفحة الأصناف والمخزن -->
+        <!-- صفحة الأصناف والمخزن مع الترتيب وخيارات الحذف المتعدد -->
         <section id="products" class="tab-page hidden">
           <div class="card">
             <div class="row between" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
               <h2>إدارة المخزن والأصناف</h2>
-              <button id="btnAddProduct" onclick="openProductForm()" style="background: #0f233c; color: #facc15; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">+ إضافة صنف جديد</button>
+              <div style="display: flex; gap: 8px;">
+                <button onclick="deleteSelectedProducts()" style="background: #e74c3c; color: #fff; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">🗑️ حذف المحدد</button>
+                <button id="btnAddProduct" onclick="openProductForm()" style="background: #0f233c; color: #facc15; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">+ إضافة صنف جديد</button>
+              </div>
             </div>
+            
             <div class="sort-controls" style="margin-top: 15px;">
               <input id="productSearch" placeholder="بحث بالاسم أو الكود" oninput="renderProducts()">
               <select id="sortSelect" onchange="changeSortFromSelect(this.value)">
-                <option value="name_asc">الترتيب: بالاسم (أ-ي)</option>
-                <option value="name_desc">الترتيب: بالاسم (ي-أ)</option>
+                <option value="code_asc">الترتيب حسب: الكود (تصاعدي)</option>
+                <option value="code_desc">الترتيب حسب: الكود (تنازلي)</option>
+                <option value="name_asc">الترتيب حسب: الصنف (أ-ي)</option>
+                <option value="name_desc">الترتيب حسب: الصنف (ي-أ)</option>
+                <option value="price_desc">الترتيب حسب: السعر (الأعلى أولاً)</option>
+                <option value="price_asc">الترتيب حسب: السعر (الأقل أولاً)</option>
                 <option value="qty_desc">الكمية: الأعلى أولاً</option>
                 <option value="qty_asc">الكمية: الأقل أولاً</option>
                 <option value="buy_desc">سعر الشراء: الأعلى أولاً</option>
                 <option value="buy_asc">سعر الشراء: الأقل أولاً</option>
-                <option value="sell_desc">سعر البيع: الأعلى أولاً</option>
-                <option value="sell_asc">سعر البيع: الأقل أولاً</option>
               </select>
             </div>
+
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>الكود</th>
-                    <th>الصنف</th>
+                    <th style="width: 40px;"><input type="checkbox" id="selectAllProducts" onclick="toggleSelectAllProducts(this)"></th>
+                    <th class="sortable" onclick="setSorting('code')">الكود ↕</th>
+                    <th class="sortable" onclick="setSorting('name')">الصنف ↕</th>
                     <th>الوحدة</th>
                     <th>شراء</th>
-                    <th>بيع</th>
-                    <th>الكمية</th>
+                    <th class="sortable" onclick="setSorting('sell_price')">بيع ↕</th>
+                    <th class="sortable" onclick="setSorting('quantity')">الكمية ↕</th>
                     <th>إجمالي رأس المال</th>
                     <th>إجراءات</th>
                   </tr>
@@ -695,7 +683,6 @@
           </div>
         </section>
 
-        <!-- صفحة إدارة المبيعات والفواتير السابقة -->
         <section id="invoices" class="tab-page hidden">
           <div class="card">
             <h2>سجل الفواتير السابقة</h2>
@@ -719,7 +706,6 @@
           </div>
         </section>
 
-        <!-- صفحة المصروفات -->
         <section id="expenses" class="tab-page hidden">
           <div class="card">
             <h2>تسجيل المصروفات النثرية اليومية</h2>
@@ -745,10 +731,13 @@
           </div>
         </section>
 
-        <!-- صفحة العملاء والديون -->
+        <!-- صفحة العملاء والديون مع ربط مباشر بالعملاء المديونين -->
         <section id="debtors" class="tab-page hidden">
           <div class="card">
-            <h2>👥 حسابات وديون العملاء</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <h2>👥 حسابات وديون العملاء</h2>
+              <button onclick="filterOnlyDebtors()" style="background: #17a2b8; color: #fff; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">فلترة المديونين فقط</button>
+            </div>
             <div class="table-wrap" style="margin-top: 15px;">
               <table>
                 <thead>
@@ -766,7 +755,6 @@
           </div>
         </section>
 
-        <!-- صفحة التقارير والحركة -->
         <section id="auditLogs" class="tab-page hidden">
           <div class="card">
             <h2>سجل الحركة والفواتير اليومية</h2>
@@ -789,7 +777,6 @@
           </div>
         </section>
 
-        <!-- صفحة الإعدادات -->
         <section id="settings" class="tab-page hidden">
           <div class="card">
             <div class="office-contact-info" style="margin-bottom: 20px; background: #fffcf5; padding: 15px; border-radius: 8px; border: 1px solid #e2dbca;">
@@ -869,7 +856,6 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   const targetPage = document.getElementById(btn.dataset.tab);
   if (targetPage) targetPage.classList.remove("hidden");
   
-  // إغلاق القائمة الجانبية تلقائياً في الموبايل عند الضغط
   const sidebar = document.getElementById("appSidebar");
   if (sidebar) sidebar.classList.remove("mobile-open");
 
@@ -1001,10 +987,44 @@ function onCustomerNameInput() {
 
 function changeSortFromSelect(val) {
   const parts = val.split("_");
-  const keyMap = { name: "name", qty: "quantity", buy: "buy_price", sell: "sell_price" };
+  const keyMap = { code: "code", name: "name", price: "sell_price", qty: "quantity", buy: "buy_price", sell: "sell_price" };
   currentSortKey = keyMap[parts[0]] || "name";
   currentSortAsc = (parts[1] === "asc");
   renderProducts();
+}
+
+function setSorting(key) {
+  if (currentSortKey === key) {
+    currentSortAsc = !currentSortAsc;
+  } else {
+    currentSortKey = key;
+    currentSortAsc = true;
+  }
+  const select = document.getElementById("sortSelect");
+  if (select) {
+    select.value = `${key}_${currentSortAsc ? 'asc' : 'desc'}`;
+  }
+  renderProducts();
+}
+
+function toggleSelectAllProducts(master) {
+  const checkboxes = document.querySelectorAll(".product-checkbox");
+  checkboxes.forEach(cb => cb.checked = master.checked);
+}
+
+async function deleteSelectedProducts() {
+  const checkboxes = document.querySelectorAll(".product-checkbox:checked");
+  if (checkboxes.length === 0) return alert("يرجى تحديد صنف واحد على الأقل للحذف!");
+  if (!confirm(`هل أنت متأكد من حذف (${checkboxes.length}) صنفاً محدداً نهائياً؟`)) return;
+
+  const idsToDelete = Array.from(checkboxes).map(cb => cb.value);
+  for (const id of idsToDelete) {
+    await sb.from("products").delete().eq("id", id);
+  }
+
+  alert("✨ تم حذف الأصناف المحددة بنجاح!");
+  await loadProducts();
+  await refreshDashboard();
 }
 
 function renderProducts() {
@@ -1038,6 +1058,7 @@ function renderProducts() {
     const totalBuyCapital = qty * (Number(p.buy_price) || 0);
     return `
       <tr class="${rowClass}">
+        <td><input type="checkbox" class="product-checkbox" value="${p.id}"></td>
         <td>${esc(p.code)}</td>
         <td>${esc(p.name)}</td>
         <td>${esc(p.unit)}</td>
@@ -1514,7 +1535,7 @@ async function loadInvoices() {
     iBody.innerHTML = (data || []).map(inv => `
       <tr>
         <td><b>${esc(inv.invoice_code || inv.id.slice(0, 8))}</b></td>
-        <td>${esc(inv.customer_name)}</td>
+        <td><a href="#" onclick="openCustomerStatementByDebtorName('${esc(inv.customer_name)}'); return false;" style="color:#0f233c; font-weight:bold; text-decoration:underline;">${esc(inv.customer_name)}</a></td>
         <td>${esc(inv.customer_phone)}</td>
         <td>${toArabicDigits(money(inv.total))} ج.م</td>
         <td style="color: #27ae60;">${toArabicDigits(money(inv.paid))} ج.م</td>
@@ -1677,7 +1698,7 @@ async function loadDebtors() {
   if (debtorsBody) {
     debtorsBody.innerHTML = Object.keys(map).length ? Object.keys(map).map(name => `
       <tr>
-        <td><b>${esc(name)}</b></td>
+        <td><b><a href="#" onclick="openCustomerStatement('${esc(name)}'); return false;" style="color:#0f233c; text-decoration: underline;">${esc(name)}</a></b></td>
         <td>${esc(map[name].phone)}</td>
         <td style="color: #c0392b; font-weight:bold;">${toArabicDigits(money(map[name].totalDebt))} ج.م</td>
         <td>${map[name].invoices.join(", ")}</td>
@@ -1687,6 +1708,22 @@ async function loadDebtors() {
         </td>
       </tr>`).join("") : `<tr><td colspan="5" style="text-align:center;">لا توجد ديون مستحقة على العملاء حالياً</td></tr>`;
   }
+}
+
+function filterOnlyDebtors() {
+  loadDebtors();
+  alert("تم عرض العملاء الذين عليهم ديون مستحقة فقط في القائمة.");
+}
+
+async function openCustomerStatementByDebtorName(customerName) {
+  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".tab-page").forEach(s => s.classList.add("hidden"));
+  const debtorTab = document.querySelector('[data-tab="debtors"]');
+  if (debtorTab) debtorTab.classList.add("active");
+  const debtorPage = document.getElementById("debtors");
+  if (debtorPage) debtorPage.classList.remove("hidden");
+  await loadDebtors();
+  openCustomerStatement(customerName);
 }
 
 async function openCustomerStatement(customerName) {
