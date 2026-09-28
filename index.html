@@ -1903,7 +1903,7 @@ async function refreshDashboard() {
     const lowProds = pList.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
     const lowStockDiv = document.getElementById("lowStock");
     if (lowStockDiv) {
-      lowStockDiv.innerHTML = lowProds.length ? lowProds.map(p => `<div>⚠️ صنف (${esc(p.name)}) وصل للكمية الحالية (${p.quantity}) يجب إعادة توريده فوراً!</div>`).join("") : "ممتاز! لا توجد أصناف ناقصة حالياً.";
+      lowStockDiv.innerHTML = lowProds.length ? lowProds.map(p => `<div>⚠️ صنف (${esc(p.name)}) وصل للكمية الحالية (${p.quantity}) ويجب إعادة توريده فوراً!</div>`).join("") : "ممتاز! لا توجد أصناف ناقصة حالياً.";
     }
   } catch (err) {
     console.error("Dashboard refresh error: ", err);
