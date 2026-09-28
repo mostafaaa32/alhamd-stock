@@ -19,6 +19,7 @@
         margin: 0;
         padding: 0;
         overflow-x: hidden;
+        background: #f4f6f9;
       }
       .btn-qty {
         background-color: #28a745;
@@ -136,6 +137,51 @@
         width: 100%;
       }
 
+      /* شاشة تسجيل الدخول */
+      #loginOverlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(135deg, #122b49 0%, #1b3b6f 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+      }
+      .login-card {
+        background: white;
+        padding: 40px;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+        text-align: center;
+        border-top: 6px solid #c59b45;
+      }
+      .login-card h2 {
+        color: #122b49;
+        margin-bottom: 5px;
+      }
+      .login-card input {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 15px;
+      }
+      .login-card button {
+        width: 100%;
+        padding: 12px;
+        background: #122b49;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+
       /* نافذة الفواتير وكشوفات الحساب الطباعية */
       .statement-modal {
         display: none;
@@ -158,7 +204,6 @@
         border-top: 6px solid #122b49;
       }
 
-      /* تصميم جمالي لفاتورة المعاينة والطباعة */
       .invoice-print-container {
         padding: 20px;
         background: #fff;
@@ -218,6 +263,18 @@
 </head>
 <body>
 
+  <!-- شاشة تسجيل الدخول -->
+  <div id="loginOverlay">
+    <div class="login-card">
+      <h2 id="loginStoreTitle">مكتب الحمد</h2>
+      <p style="color: #666; font-size: 14px; margin-top:0;">تسجيل الدخول للنظام</p>
+      <input id="loginUsername" placeholder="اسم المستخدم (Username)">
+      <input id="loginPassword" type="password" placeholder="كلمة المرور (Password)">
+      <button onclick="performLogin()">دخول للنظام</button>
+      <p id="loginError" style="color: red; font-size: 13px; margin-top: 10px;"></p>
+    </div>
+  </div>
+
   <div id="blessModal" class="modal-overlay">
     <div class="modal-card">
       <h2>✨ تذكرة طيبة ✨</h2>
@@ -226,6 +283,7 @@
     </div>
   </div>
 
+  <!-- نافذة طباعة كود الصنف (الباركود) -->
   <div id="labelModal" class="statement-modal">
     <div class="statement-content" style="max-width: 400px; text-align: center;">
       <div id="printableLabel" style="padding: 20px; border: 2px dashed #122b49; border-radius: 8px; margin-bottom: 15px;">
@@ -241,6 +299,7 @@
     </div>
   </div>
 
+  <!-- نافذة معاينة الفاتورة قبل أو بعد الحفظ -->
   <div id="invoicePreviewModal" class="statement-modal">
     <div class="statement-content" style="max-width: 700px;">
       <div id="printableInvoicePreview" class="invoice-print-container">
@@ -300,6 +359,7 @@
     </div>
   </div>
 
+  <!-- نافذة كشف حساب العميل والديون المفصلة -->
   <div id="statementModal" class="statement-modal">
     <div class="statement-content" style="max-width: 800px;">
       <div id="printableStatement" class="invoice-print-container">
@@ -320,8 +380,7 @@
           <div><b>الحالة العامة:</b> <span id="stStatusBadge" style="color: #c0392b; font-weight: bold;">يوجد مديونية مستحقة</span></div>
         </div>
 
-        <div id="stDetailedInvoicesContainer">
-          </div>
+        <div id="stDetailedInvoicesContainer"></div>
 
         <div style="text-align: left; font-size: 16px; font-weight: bold; background: #fdfbf7; padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-top: 15px;">
           إجمالي الديون المستحقة الحالية على العميل: <span id="stTotalDebt" style="color: #c0392b;">٠٫٠٠ ج.م</span>
@@ -340,7 +399,7 @@
     </div>
   </div>
 
-  <div id="appView">
+  <div id="appView" style="display: none;">
     <header class="topbar">
       <div class="brand">
         <img src="logo.png" alt="مكتب الحمد" id="mainHeaderLogo">
@@ -349,9 +408,10 @@
           <span>إدارة المخزن والمبيعات</span>
         </div>
       </div>
-      <div class="header-right">
-        <span class="connection"><i></i> متصل بقاعدة البيانات</span>
-        <span id="userLabel" class="muted" style="font-weight: bold; color: #122b49;">مكتب إبراهيم — نظام مفتوح</span>
+      <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+        <span class="connection"><i></i> متصل</span>
+        <span id="currentUserDisplay" class="muted" style="font-weight: bold; color: #122b49;">المستخدم: ---</span>
+        <button onclick="logout()" style="background: #e74c3c; color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">خروج</button>
       </div>
     </header>
 
@@ -364,6 +424,7 @@
       <button class="tab" data-tab="auditLogs">سجل النشاطات اليومية</button>
       <button class="tab" data-tab="debtors">الديون والحسابات</button>
       <button class="tab" data-tab="settings">إعدادات المكتب</button>
+      <button id="usersTabBtn" class="tab" data-tab="users" style="background: #d63031; color: white; display: none;">إدارة المستخدمين ⚙️</button>
     </nav>
 
     <main style="padding: 10px;">
@@ -655,6 +716,42 @@
           <p id="settingsMsg" class="msg"></p>
         </div>
       </section>
+
+      <!-- شاشة إدارة المستخدمين (خاصة بالآدمن فقط) -->
+      <section id="users" class="tab-page hidden">
+        <div class="card">
+          <h2>⚙️ إدارة مستخدمي النظام والصلاحيات</h2>
+          <p class="muted">يمكنك هنا (بصفتك آدمن) إضافة مستخدمين جدد للنظام وتحديد صلاحياتهم (آدمن أو موظف).</p>
+          
+          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+            <h3>إضافة مستخدم جديد</h3>
+            <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
+              <input id="newUsername" placeholder="اسم المستخدم (Username)" style="padding: 8px;">
+              <input id="newPassword" placeholder="كلمة المرور (Password)" style="padding: 8px;">
+              <select id="newRole" style="padding: 8px;">
+                <option value="admin">مشرف (آدمن)</option>
+                <option value="user">موظف (مبيعات)</option>
+              </select>
+              <button onclick="addNewUser()" style="background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">+ إضافة المستخدم</button>
+            </div>
+            <p id="userMsg" style="margin-top: 8px; font-size: 13px; font-weight: bold;"></p>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>اسم المستخدم</th>
+                  <th>الصلاحية</th>
+                  <th>تاريخ الإنشاء</th>
+                  <th>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -671,6 +768,7 @@ let allCustomers = [];
 let currentSortKey = "name";
 let currentSortAsc = true;
 let editingInvoiceId = null;
+let loggedInUser = null;
 
 let storeSettings = {
   store_name: "مكتب الحمد للمقاولات العامة",
@@ -680,6 +778,157 @@ let storeSettings = {
   logo_url: "logo.png",
   invoice_footer: "شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم وتوفير أفضل خامات المقاولات لكم."
 };
+
+// التأكد من وجود مستخدمين أساسيين في جدول users بقاعدة البيانات أو إنشائهم افتراضياً
+async function checkAndInitDefaultUsers() {
+  try {
+    const { data } = await sb.from("app_users").select("username");
+    if (!data || data.length === 0) {
+      // إدراج مصطفى وإبراهيم كآدمنز رئيسيين افتراضياً
+      await sb.from("app_users").insert([
+        { username: "mostafa", password: "123", role: "admin" },
+        { username: "ibrahim", password: "123", role: "admin" }
+      ]);
+    }
+  } catch(e) {
+    console.error("Users table might not exist yet:", e);
+  }
+}
+
+async function performLogin() {
+  const uInput = document.getElementById("loginUsername").value.trim();
+  const pInput = document.getElementById("loginPassword").value.trim();
+  const errEl = document.getElementById("loginError");
+
+  if (!uInput || !pInput) {
+    errEl.textContent = "الرجاء إدخال اسم المستخدم وكلمة المرور";
+    return;
+  }
+
+  try {
+    await checkAndInitDefaultUsers();
+    const { data, error } = await sb.from("app_users").select("*").eq("username", uInput).maybeSingle();
+    
+    if (error || !data) {
+      errEl.textContent = "اسم المستخدم غير موجود!";
+      return;
+    }
+
+    if (data.password !== pInput) {
+      errEl.textContent = "كلمة المرور غير صحيحة!";
+      return;
+    }
+
+    // تسجيل الدخول بنجاح
+    loggedInUser = data;
+    localStorage.setItem("hamd_logged_user", JSON.stringify(loggedInUser));
+    
+    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("appView").style.display = "block";
+    
+    initAfterLogin();
+  } catch(err) {
+    errEl.textContent = "حدث خطأ في الاتصال بقاعدة البيانات";
+  }
+}
+
+function logout() {
+  localStorage.removeItem("hamd_logged_user");
+  loggedInUser = null;
+  document.getElementById("appView").style.display = "none";
+  document.getElementById("loginOverlay").style.display = "flex";
+  document.getElementById("loginUsername").value = "";
+  document.getElementById("loginPassword").value = "";
+  document.getElementById("loginError").textContent = "";
+}
+
+// فحص هل المستخدم مسجل مسبقاً في الجلسة المحلية
+window.addEventListener("DOMContentLoaded", async () => {
+  const savedUser = localStorage.getItem("hamd_logged_user");
+  if (savedUser) {
+    try {
+      loggedInUser = JSON.parse(savedUser);
+      document.getElementById("loginOverlay").style.display = "none";
+      document.getElementById("appView").style.display = "block";
+      await initAfterLogin();
+    } catch(e) {
+      localStorage.removeItem("hamd_logged_user");
+    }
+  } else {
+    await checkAndInitDefaultUsers();
+  }
+});
+
+async function initAfterLogin() {
+  const userDisp = document.getElementById("currentUserDisplay");
+  if (userDisp) userDisp.textContent = `المستخدم: ${loggedInUser.username} (${loggedInUser.role === 'admin' ? 'آدمن' : 'موظف'})`;
+
+  // إظهار أو إخفاء زر إدارة المستخدمين (للآدمن فقط)
+  const usersBtn = document.getElementById("usersTabBtn");
+  if (usersBtn) {
+    if (loggedInUser.role === 'admin') {
+      usersBtn.style.display = "inline-block";
+    } else {
+      usersBtn.style.display = "none";
+    }
+  }
+
+  await loadStoreSettings();
+  await refreshDashboard();
+  await loadProducts();
+  await loadUniqueCustomers();
+  await generateNewInvoiceCode();
+}
+
+async function loadUsersList() {
+  if (!loggedInUser || loggedInUser.role !== 'admin') return;
+  const { data, error } = await sb.from("app_users").select("*").order("created_at", { ascending: false });
+  const tbody = document.getElementById("usersTableBody");
+  if (tbody && data) {
+    tbody.innerHTML = data.map(u => `
+      <tr>
+        <td><b>${esc(u.username)}</b></td>
+        <td><span class="badge" style="background: ${u.role === 'admin' ? '#c0392b' : '#2980b9'}; color:white;">${u.role === 'admin' ? 'مشرف (آدمن)' : 'موظف مبيعات'}</span></td>
+        <td>${u.created_at ? new Date(u.created_at).toLocaleString('ar-EG') : '---'}</td>
+        <td>
+          ${u.username !== 'mostafa' && u.username !== loggedInUser.username ? `<button class="danger small" onclick="deleteUser('${u.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">حذف</button>` : '<span class="muted">محمي</span>'}
+        </td>
+      </tr>
+    `).join("");
+  }
+}
+
+async function addNewUser() {
+  const u = document.getElementById("newUsername").value.trim();
+  const p = document.getElementById("newPassword").value.trim();
+  const r = document.getElementById("newRole").value;
+  const msg = document.getElementById("userMsg");
+
+  if (!u || !p) {
+    msg.style.color = "red";
+    msg.textContent = "يرجى كتابة اسم المستخدم وكلمة المرور!";
+    return;
+  }
+
+  const { error } = await sb.from("app_users").insert([{ username: u, password: p, role: r }]);
+  if (error) {
+    msg.style.color = "red";
+    msg.textContent = "خطأ (ربما اسم المستخدم موجود مسبقاً): " + error.message;
+  } else {
+    msg.style.color = "green";
+    msg.textContent = "✨ تم إضافة المستخدم بنجاح!";
+    document.getElementById("newUsername").value = "";
+    document.getElementById("newPassword").value = "";
+    loadUsersList();
+  }
+}
+
+async function deleteUser(id) {
+  if (!confirm("هل أنت متأكد من حذف هذا المستخدم؟")) return;
+  const { error } = await sb.from("app_users").delete().eq("id", id);
+  if (error) return alert("خطأ في الحذف: " + error.message);
+  loadUsersList();
+}
 
 function closeBlessModal() {
   const modal = document.getElementById("blessModal");
@@ -710,15 +959,8 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   if (btn.dataset.tab === "debtors") loadDebtors();
   if (btn.dataset.tab === "dashboard") refreshDashboard();
   if (btn.dataset.tab === "settings") loadStoreSettings();
+  if (btn.dataset.tab === "users") loadUsersList();
 }));
-
-window.addEventListener("DOMContentLoaded", async () => {
-  await loadStoreSettings();
-  await refreshDashboard();
-  await loadProducts();
-  await loadUniqueCustomers();
-  await generateNewInvoiceCode();
-});
 
 async function generateNewInvoiceCode() {
   if (editingInvoiceId) return;
@@ -758,11 +1000,15 @@ async function loadStoreSettings() {
   const headerName = document.getElementById("headerStoreName");
   if (headerName) headerName.textContent = storeSettings.store_name || "مكتب الحمد للمقاولات العامة";
   
+  const loginTitle = document.getElementById("loginStoreTitle");
+  if (loginTitle) loginTitle.textContent = storeSettings.store_name || "مكتب الحمد";
+
   const mainLogo = document.getElementById("mainHeaderLogo");
   if (mainLogo && storeSettings.logo_url) mainLogo.src = storeSettings.logo_url;
 }
 
 async function saveStoreSettings() {
+  if (loggedInUser.role !== 'admin') return alert("عذراً، هذه الصلاحية خاصة بالآدمن فقط!");
   const sName = document.getElementById("storeName");
   const sAddr = document.getElementById("storeAddress");
   const sPhone = document.getElementById("storePhone");
@@ -941,6 +1187,7 @@ async function editProduct(id) {
 }
 
 async function deleteProduct(id) {
+  if (loggedInUser.role !== 'admin') return alert("عذراً، صلاحية الحذف خاصة بالآدمن فقط!");
   if (!confirm("هل أنت متأكد من حذف هذا الصنف نهائياً؟")) return;
   const { error } = await sb.from("products").delete().eq("id", id);
   if (error) return alert("خطأ في الحذف: " + error.message);
@@ -1096,7 +1343,6 @@ function renderInvoice() {
   const remInput = document.getElementById("amountRemaining"); if(remInput) remInput.value = toArabicDigits(money(remaining));
 }
 
-// دالة معاينة الفاتورة الحالية بشكل جمالي احترافي باللوجو
 function previewCurrentInvoice() {
   if (invoiceItems.length === 0) return alert("لا توجد أصناف في الفاتورة الحالية لمعاينتها!");
   
@@ -1160,7 +1406,6 @@ function previewCurrentInvoice() {
   document.getElementById("invoicePreviewModal").style.display = "flex";
 }
 
-// دالة معاينة فاتورة سابقة من قسم الفواتير
 async function previewExistingInvoice(invoiceId) {
   const { data: inv } = await sb.from("invoices").select("*").eq("id", invoiceId).single();
   if (!inv) return alert("الفاتورة غير موجودة");
@@ -1435,6 +1680,7 @@ async function editInvoice(invoiceId) {
 }
 
 async function deleteInvoice(id) {
+  if (loggedInUser.role !== 'admin') return alert("عذراً، صلاحية حذف الفواتير خاصة بالآدمن فقط!");
   if (!confirm("هل أنت متأكد من إلغاء وحذف هذه الفاتورة؟ سيتم إرجاع الكميات المباعة إلى المخزن فوراً!")) return;
   
   const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
@@ -1541,7 +1787,6 @@ async function loadDebtors() {
   }
 }
 
-// دالة فتح كشف حساب تفصيلي كامل للعميل يحتوي على كل الفواتير والبنود والخصومات والطباعة المميزة
 async function openCustomerStatement(customerName) {
   const { data: invs } = await sb.from("invoices").select("*").eq("customer_name", customerName).order("created_at", { ascending: false });
   if (!invs || invs.length === 0) return alert("لا توجد فواتير لهذا العميل");
