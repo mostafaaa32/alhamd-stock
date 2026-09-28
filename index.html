@@ -153,7 +153,7 @@
       </div>
       <div class="header-right">
         <span class="connection"><i></i> متصل بقاعدة البيانات</span>
-        <span id="userLabel" class="muted" style="font-weight: bold; color: #122b49;">مدير النظام — المدير الأساسي</span>
+        <span id="userLabel" class="muted" style="font-weight: bold; color: #122b49;">مدير النظام — مصطفى سيف</span>
       </div>
     </header>
 
@@ -173,7 +173,7 @@
         <div class="welcome card" style="display: flex; flex-wrap: wrap; align-items: center; gap: 15px;">
           <img src="logo.png" alt="" style="max-width: 70px;">
           <div>
-            <h2>مرحبًا بك في نظام مكتب الحمد</h2>
+            <h2>مرحبًا بك يا مصطفى في نظام مكتب الحمد</h2>
             <p>إدارة كاملة وشاملة للمخزون والمبيعات والفواتير والمصروفات وحسابات العملاء.</p>
           </div>
         </div>
@@ -268,7 +268,7 @@
         <div class="card" style="min-height: 70vh; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
             <div class="row between" style="flex-wrap: wrap; gap: 10px;">
-              <h2>فاتورة بيع جديدة</h2>
+              <h2 id="invoiceTitleHeading">فاتورة بيع جديدة</h2>
               <div>
                 <span id="invoiceCodeDisplay" class="badge" style="margin-left: 8px;">كود الفاتورة: <input id="invoiceCodeInput" type="text" readonly style="border:none; background:transparent; font-weight:bold; width:130px;"></span>
                 <span id="invoiceNo" class="badge">جديدة</span>
@@ -340,7 +340,7 @@
               <div style="color: #c0392b;">المتبقي: <b id="remainingDisplayText">٠٫٠٠</b> ج.م</div>
             </div>
             <div class="row" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px;">
-              <button onclick="saveInvoice()" style="flex: 1; min-width: 100px; background: #27ae60; color: #fff; padding: 10px; border: none; font-weight: bold; cursor: pointer;">حفظ الفاتورة</button>
+              <button id="saveInvoiceBtn" onclick="saveInvoice()" style="flex: 1; min-width: 100px; background: #27ae60; color: #fff; padding: 10px; border: none; font-weight: bold; cursor: pointer;">حفظ الفاتورة</button>
               <button style="background-color: #f39c12; color: white; flex: 1; min-width: 100px; padding: 10px; border: none; cursor: pointer;" onclick="clearInvoiceItemsOnly()">مسح البنود فقط</button>
               <button style="background-color: #e74c3c; color: white; flex: 1; min-width: 100px; padding: 10px; border: none; cursor: pointer;" onclick="cancelInvoiceForm()">إلغاء الفاتورة</button>
             </div>
@@ -472,6 +472,8 @@ let invoiceItems = [];
 let allCustomers = [];
 let currentSortKey = "name";
 let currentSortAsc = true;
+let editingInvoiceId = null; // لتتبع حالة التعديل
+
 let storeSettings = {
   store_name: "مكتب الحمد للمقاولات العامة",
   address: "",
@@ -501,7 +503,9 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   if (targetPage) targetPage.classList.remove("hidden");
   
   if (btn.dataset.tab === "products") loadProducts();
-  if (btn.dataset.tab === "invoice") initInvoicePage();
+  if (btn.dataset.tab === "invoice") {
+    if (!editingInvoiceId) initInvoicePage();
+  }
   if (btn.dataset.tab === "invoices") loadInvoices();
   if (btn.dataset.tab === "expenses") loadExpenses();
   if (btn.dataset.tab === "auditLogs") loadAuditLogs();
@@ -519,6 +523,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function generateNewInvoiceCode() {
+  if (editingInvoiceId) return; // لا نغير الكود أثناء التعديل
   let nextNumber = 1;
   try {
     const { data } = await sb.from('invoices').select('invoice_code').order('id', { ascending: false }).limit(1);
@@ -758,11 +763,18 @@ function fillInvoiceProducts() {
 }
 
 function initInvoicePage() {
+  editingInvoiceId = null;
+  const titleHeading = document.getElementById("invoiceTitleHeading");
+  if (titleHeading) titleHeading.textContent = "فاتورة بيع جديدة";
+  const saveBtn = document.getElementById("saveInvoiceBtn");
+  if (saveBtn) saveBtn.textContent = "حفظ الفاتورة";
+  
   fillInvoiceProducts();
   const now = new Date();
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
   const dtInput = document.getElementById("invoiceDateTime");
   if (dtInput && !dtInput.value) dtInput.value = now.toISOString().slice(0, 16);
+  generateNewInvoiceCode();
 }
 
 function addInvoiceItem() {
@@ -783,6 +795,30 @@ function addInvoiceItem() {
   renderInvoice();
 }
 
+// تعديل كمية البند بالضغط على زر زائد أو ناقص
+function changeItemQty(index, delta) {
+  if (!invoiceItems[index]) return;
+  invoiceItems[index].quantity += delta;
+  if (invoiceItems[index].quantity <= 0) {
+    invoiceItems[index].quantity = 1;
+  }
+  renderInvoice();
+}
+
+// تعديل سعر الوحدة للبند مباشرة
+function editItemPrice(index) {
+  if (!invoiceItems[index]) return;
+  const currentPrice = invoiceItems[index].unit_price;
+  const newPriceStr = prompt(`أدخل سعر البيع الجديد للصنف (${invoiceItems[index].name}):`, currentPrice);
+  if (newPriceStr === null) return;
+  const newPrice = parseFloat(newPriceStr);
+  if (isNaN(newPrice) || newPrice < 0) {
+    return alert("يرجى إدخال سعر صحيح");
+  }
+  invoiceItems[index].unit_price = newPrice;
+  renderInvoice();
+}
+
 function renderInvoice() {
   let subTotal = 0;
   const iBody = document.getElementById("invoiceBody");
@@ -790,18 +826,39 @@ function renderInvoice() {
     iBody.innerHTML = invoiceItems.map((item, idx) => {
       const lineTotal = item.quantity * item.unit_price;
       subTotal += lineTotal;
-      return `<tr><td>${esc(item.name)}</td><td>${item.quantity}</td><td>${money(item.unit_price)}</td><td>${money(lineTotal)}</td><td><button onclick="invoiceItems.splice(${idx},1);renderInvoice()" style="background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">حذف</button></td></tr>`;
+      return `
+        <tr>
+          <td>${esc(item.name)}</td>
+          <td>
+            <button class="btn-qty" onclick="changeItemQty(${idx}, 1)">+</button>
+            <span style="margin: 0 8px; font-weight: bold;">${toArabicDigits(item.quantity)}</span>
+            <button class="btn-qty" style="background:#e67e22;" onclick="changeItemQty(${idx}, -1)">-</button>
+          </td>
+          <td>
+            ${toArabicDigits(money(item.unit_price))} ج.م 
+            <button class="btn-edit small" onclick="editItemPrice(${idx})" style="margin-right: 5px;">تعديل السعر</button>
+          </td>
+          <td><b>${toArabicDigits(money(lineTotal))} ج.م</b></td>
+          <td>
+            <button onclick="invoiceItems.splice(${idx},1);renderInvoice()" style="background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">حذف</button>
+          </td>
+        </tr>`;
     }).join("");
   }
 
   const discountEl = document.getElementById("invoiceDiscount");
   const discountRaw = discountEl ? discountEl.value.trim() : "";
   let discountVal = 0;
-  if (discountRaw.endsWith("%")) {
-    const pVal = parseFloat(discountRaw) || 0;
-    discountVal = (subTotal * pVal) / 100;
-  } else {
-    discountVal = parseFloat(discountRaw) || 0;
+  let isDiscountApplied = false;
+
+  if (discountRaw !== "") {
+    isDiscountApplied = true;
+    if (discountRaw.endsWith("%")) {
+      const pVal = parseFloat(discountRaw) || 0;
+      discountVal = (subTotal * pVal) / 100;
+    } else {
+      discountVal = parseFloat(discountRaw) || 0;
+    }
   }
 
   const finalTotal = Math.max(0, subTotal - discountVal);
@@ -810,6 +867,19 @@ function renderInvoice() {
   const remaining = Math.max(0, finalTotal - paid);
 
   const subTotalEl = document.getElementById("invoiceSubTotal"); if(subTotalEl) subTotalEl.textContent = toArabicDigits(money(subTotal));
+  
+  // اظهار سطر الخصم فقط إذا تم وضع خصم
+  const discountLine = document.getElementById("discountDisplayLine");
+  const discountTextEl = document.getElementById("invoiceDiscountText");
+  if (discountLine && discountTextEl) {
+    if (isDiscountApplied && discountVal > 0) {
+      discountLine.classList.remove("hidden");
+      discountTextEl.textContent = toArabicDigits(money(discountVal));
+    } else {
+      discountLine.classList.add("hidden");
+    }
+  }
+
   const totalEl = document.getElementById("invoiceTotal"); if(totalEl) totalEl.textContent = toArabicDigits(money(finalTotal));
   const paidTextEl = document.getElementById("paidDisplayText"); if(paidTextEl) paidTextEl.textContent = toArabicDigits(money(paid));
   const remTextEl = document.getElementById("remainingDisplayText"); if(remTextEl) remTextEl.textContent = toArabicDigits(money(remaining));
@@ -830,10 +900,12 @@ async function saveInvoice() {
   const discountEl = document.getElementById("invoiceDiscount");
   const discountRaw = discountEl ? discountEl.value.trim() : "";
   let discountVal = 0;
-  if (discountRaw.endsWith("%")) {
-    discountVal = (subTotal * (parseFloat(discountRaw) || 0)) / 100;
-  } else {
-    discountVal = parseFloat(discountRaw) || 0;
+  if (discountRaw !== "") {
+    if (discountRaw.endsWith("%")) {
+      discountVal = (subTotal * (parseFloat(discountRaw) || 0)) / 100;
+    } else {
+      discountVal = parseFloat(discountRaw) || 0;
+    }
   }
 
   const total = Math.max(0, subTotal - discountVal);
@@ -841,6 +913,66 @@ async function saveInvoice() {
   const paid = paidEl ? Number(paidEl.value) || 0 : 0;
   const remaining = Math.max(0, total - paid);
 
+  if (editingInvoiceId) {
+    // استرجاع كميات الفاتورة القديمة للمخزن أولاً قبل التعديل
+    const { data: oldItems } = await sb.from("invoice_items").select("*").eq("invoice_id", editingInvoiceId);
+    if (oldItems) {
+      for (const oldItm of oldItems) {
+        if (oldItm.product_id) {
+          const prod = products.find(p => p.id === oldItm.product_id);
+          if (prod) {
+            await sb.from("products").update({ quantity: Number(prod.quantity || 0) + Number(oldItm.quantity || 0) }).eq("id", prod.id);
+          }
+        }
+      }
+    }
+    await sb.from("invoice_items").delete().eq("invoice_id", editingInvoiceId);
+
+    // تحديث بيانات الفاتورة الأساسية
+    const { error: updateErr } = await sb.from("invoices").update({
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      total: total,
+      paid: paid,
+      remaining: remaining
+    }).eq("id", editingInvoiceId);
+
+    if (updateErr) return alert("خطأ في تحديث الفاتورة: " + updateErr.message);
+
+    const itemsPayload = invoiceItems.map(item => ({
+      invoice_id: editingInvoiceId,
+      product_id: item.product_id,
+      product_name: item.name,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      total: item.quantity * item.unit_price
+    }));
+
+    await sb.from("invoice_items").insert(itemsPayload);
+
+    // خصم الكميات الجديدة من المخزن
+    for (const item of invoiceItems) {
+      const prod = products.find(p => p.id === item.product_id);
+      if (prod) {
+        await sb.from("products").update({ quantity: Math.max(0, Number(prod.quantity || 0) - item.quantity) }).eq("id", prod.id);
+      }
+    }
+
+    alert("✨ تم تعديل وحفظ الفاتورة بنجاح!");
+    editingInvoiceId = null;
+    clearInvoiceItemsOnly();
+    await loadProducts();
+    await refreshDashboard();
+    // الانتقال لصفحة الفواتير
+    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-page").forEach(s => s.classList.add("hidden"));
+    document.querySelector('[data-tab="invoices"]').classList.add("active");
+    document.getElementById("invoices").classList.remove("hidden");
+    loadInvoices();
+    return;
+  }
+
+  // حفظ فاتورة جديدة
   const { data: invData, error: invError } = await sb.from("invoices").insert([{
     invoice_code: invoiceCode,
     customer_name: customerName,
@@ -859,8 +991,10 @@ async function saveInvoice() {
   const itemsPayload = invoiceItems.map(item => ({
     invoice_id: invoiceId,
     product_id: item.product_id,
+    product_name: item.name,
     quantity: item.quantity,
-    unit_price: item.unit_price
+    unit_price: item.unit_price,
+    total: item.quantity * item.unit_price
   }));
 
   const { error: itemsError } = await sb.from("invoice_items").insert(itemsPayload);
@@ -894,7 +1028,9 @@ function clearInvoiceItemsOnly() {
 
 function cancelInvoiceForm() {
   if (confirm("هل تريد إلغاء الفاتورة ومسح البنود؟")) {
+    editingInvoiceId = null;
     clearInvoiceItemsOnly();
+    initInvoicePage();
   }
 }
 
@@ -911,15 +1047,96 @@ async function loadInvoices() {
         <td style="color: #27ae60;">${toArabicDigits(money(inv.paid))} ج.م</td>
         <td style="color: #c0392b;">${toArabicDigits(money(inv.remaining))} ج.م</td>
         <td>${new Date(inv.created_at).toLocaleString('ar-EG')}</td>
-        <td><button class="danger small" onclick="deleteInvoice('${inv.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">حذف</button></td>
+        <td>
+          <button class="btn-pay" onclick="collectDebt('${inv.id}', ${inv.remaining}, '${esc(inv.customer_name)}')">تحصيل دين</button>
+          <button class="btn-edit small" onclick="editInvoice('${inv.id}')">تعديل</button>
+          <button class="danger small" onclick="deleteInvoice('${inv.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">إلغاء وحذف</button>
+        </td>
       </tr>`).join("");
   }
 }
 
-async function deleteInvoice(id) {
-  if (!confirm("هل أنت متأكد من حذف هذه الفاتورة؟")) return;
-  await sb.from("invoices").delete().eq("id", id);
+// زر تحصيل الدين وسداد المبلغ للعميل
+async function collectDebt(invoiceId, currentRemaining, customerName) {
+  if (currentRemaining <= 0) return alert("هذه الفاتورة مسددة بالكامل ولا يوجد عليها دين مستحق!");
+  const payStr = prompt(`المبلغ المتبقي على العميل (${customerName}) هو ${currentRemaining} ج.م.\nأدخل المبلغ المراد تحصيله وسداده:`, currentRemaining);
+  if (payStr === null) return;
+  const payAmount = parseFloat(payStr);
+  if (isNaN(payAmount) || payAmount <= 0) return alert("أدخل مبلغ صحيح");
+
+  const { data: inv } = await sb.from("invoices").select("*").eq("id", invoiceId).single();
+  if (!inv) return;
+
+  const newPaid = Number(inv.paid || 0) + payAmount;
+  const newRemaining = Math.max(0, Number(inv.total || 0) - newPaid);
+
+  const { error } = await sb.from("invoices").update({ paid: newPaid, remaining: newRemaining }).eq("id", invoiceId);
+  if (error) return alert("خطأ في تحديث التحصيل: " + error.message);
+
+  alert("✨ تم تحصيل وسداد المبلغ بنجاح وتحديث حساب العميل!");
   loadInvoices();
+  refreshDashboard();
+}
+
+// تعديل الفاتورة السابقة
+async function editInvoice(invoiceId) {
+  const { data: inv } = await sb.from("invoices").select("*").eq("id", invoiceId).single();
+  if (!inv) return alert("الفاتورة غير موجودة");
+
+  const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", invoiceId);
+  
+  editingInvoiceId = invoiceId;
+  invoiceItems = (items || []).map(i => ({
+    product_id: i.product_id,
+    name: i.product_name || "صنف",
+    quantity: i.quantity,
+    unit_price: i.unit_price
+  }));
+
+  const cName = document.getElementById("customerName"); if(cName) cName.value = inv.customer_name || "";
+  const cPhone = document.getElementById("customerPhone"); if(cPhone) cPhone.value = inv.customer_phone || "";
+  const cInput = document.getElementById("invoiceCodeInput"); if(cInput) cInput.value = inv.invoice_code || "";
+  const aPaid = document.getElementById("amountPaid"); if(aPaid) aPaid.value = inv.paid || 0;
+  
+  const titleHeading = document.getElementById("invoiceTitleHeading");
+  if (titleHeading) titleHeading.textContent = `تعديل الفاتورة: ${inv.invoice_code}`;
+  const saveBtn = document.getElementById("saveInvoiceBtn");
+  if (saveBtn) saveBtn.textContent = "حفظ التعديلات";
+
+  renderInvoice();
+
+  // الانتقال لصفحة الفاتورة
+  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".tab-page").forEach(s => s.classList.add("hidden"));
+  document.querySelector('[data-tab="invoice"]').classList.add("active");
+  document.getElementById("invoice").classList.remove("hidden");
+}
+
+// إلغاء الفاتورة وحذفها مع إرجاع الكميات للمخزن تلقائياً
+async function deleteInvoice(id) {
+  if (!confirm("هل أنت متأكد من إلغاء وحذف هذه الفاتورة؟ سيتم إرجاع الكميات المباعة إلى المخزن فوراً!")) return;
+  
+  // 1. استرجاع الكميات للمخزن
+  const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
+  if (items) {
+    for (const item of items) {
+      if (item.product_id) {
+        const prod = products.find(p => p.id === item.product_id);
+        if (prod) {
+          const restoredQty = Number(prod.quantity || 0) + Number(item.quantity || 0);
+          await sb.from("products").update({ quantity: restoredQty }).eq("id", prod.id);
+        }
+      }
+    }
+  }
+
+  // 2. حذف البنود والفاتورة
+  await sb.from("invoice_items").delete().eq("invoice_id", id);
+  await sb.from("invoices").delete().eq("id", id);
+
+  alert("✨ تم إلغاء الفاتورة بنجاح وإرجاع الكميات إلى المخزن!");
+  loadInvoices();
+  loadProducts();
   refreshDashboard();
 }
 
@@ -997,7 +1214,7 @@ async function loadDebtors() {
         <td>${esc(map[name].phone)}</td>
         <td style="color: #c0392b; font-weight:bold;">${toArabicDigits(money(map[name].totalDebt))} ج.م</td>
         <td>${map[name].invoices.join(", ")}</td>
-        <td><button class="btn-pay" onclick="alert('خاصية السداد قيد الاستخدام')">سداد الدين</button></td>
+        <td><button class="btn-pay" onclick="alert('توجه إلى صفحة الفواتير لتحصيل الديون وسدادها لكل فاتورة')">إدارة السداد</button></td>
       </tr>`).join("") : `<tr><td colspan="5" style="text-align:center;">لا توجد ديون مستحقة على العملاء حالياً</td></tr>`;
   }
 }
@@ -1034,7 +1251,6 @@ async function refreshDashboard() {
     const netProfit = totalSalesAll - totalBuyStock;
     const netProfitEl = document.getElementById("netProfitElement"); if(netProfitEl) netProfitEl.textContent = toArabicDigits(money(netProfit)) + " ج.م";
 
-    // أهم العملاء
     const clientStats = {};
     (invs || []).forEach(inv => {
       const cName = inv.customer_name || "غير معروف";
@@ -1071,7 +1287,6 @@ async function refreshDashboard() {
       }
     }
     
-    // الأصناف الناقصة
     const lowProds = pList.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
     const lowStockDiv = document.getElementById("lowStock");
     if (lowStockDiv) {
