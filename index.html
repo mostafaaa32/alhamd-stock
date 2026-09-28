@@ -482,7 +482,8 @@ let storeSettings = {
 };
 
 function closeBlessModal() {
-  document.getElementById("blessModal").style.display = "none";
+  const modal = document.getElementById("blessModal");
+  if (modal) modal.style.display = "none";
 }
 
 function toArabicDigits(input) {
@@ -496,7 +497,8 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".tab-page").forEach(s => s.classList.add("hidden"));
   btn.classList.add("active");
-  document.getElementById(btn.dataset.tab).classList.remove("hidden");
+  const targetPage = document.getElementById(btn.dataset.tab);
+  if (targetPage) targetPage.classList.remove("hidden");
   
   if (btn.dataset.tab === "products") loadProducts();
   if (btn.dataset.tab === "invoice") initInvoicePage();
@@ -541,33 +543,47 @@ async function loadStoreSettings() {
     const { data, error } = await sb.from("store_settings").select("*").eq("id", 1).maybeSingle();
     if (!error && data) {
       storeSettings = {...storeSettings, ...data};
-      document.getElementById("storeName").value = storeSettings.store_name || "";
-      document.getElementById("storeAddress").value = storeSettings.address || "";
-      document.getElementById("storePhone").value = storeSettings.phone || "";
-      document.getElementById("storeWhatsapp").value = storeSettings.whatsapp || "";
-      document.getElementById("logoUrl").value = storeSettings.logo_url || "";
-      document.getElementById("invoiceFooter").value = storeSettings.invoice_footer || "";
+      const sName = document.getElementById("storeName"); if(sName) sName.value = storeSettings.store_name || "";
+      const sAddr = document.getElementById("storeAddress"); if(sAddr) sAddr.value = storeSettings.address || "";
+      const sPhone = document.getElementById("storePhone"); if(sPhone) sPhone.value = storeSettings.phone || "";
+      const sWa = document.getElementById("storeWhatsapp"); if(sWa) sWa.value = storeSettings.whatsapp || "";
+      const sLogo = document.getElementById("logoUrl"); if(sLogo) sLogo.value = storeSettings.logo_url || "";
+      const sFoot = document.getElementById("invoiceFooter"); if(sFoot) sFoot.value = storeSettings.invoice_footer || "";
     }
   } catch(e) {}
-  document.getElementById("headerStoreName").textContent = storeSettings.store_name || "مكتب الحمد للمقاولات العامة";
+  const headerName = document.getElementById("headerStoreName");
+  if (headerName) headerName.textContent = storeSettings.store_name || "مكتب الحمد للمقاولات العامة";
 }
 
 async function saveStoreSettings() {
-  storeSettings.store_name = document.getElementById("storeName").value;
-  storeSettings.address = document.getElementById("storeAddress").value;
-  storeSettings.phone = document.getElementById("storePhone").value;
-  storeSettings.whatsapp = document.getElementById("storeWhatsapp").value;
-  storeSettings.logo_url = document.getElementById("logoUrl").value;
-  storeSettings.invoice_footer = document.getElementById("invoiceFooter").value;
+  const sName = document.getElementById("storeName");
+  const sAddr = document.getElementById("storeAddress");
+  const sPhone = document.getElementById("storePhone");
+  const sWa = document.getElementById("storeWhatsapp");
+  const sLogo = document.getElementById("logoUrl");
+  const sFoot = document.getElementById("invoiceFooter");
+
+  if (sName) storeSettings.store_name = sName.value;
+  if (sAddr) storeSettings.address = sAddr.value;
+  if (sPhone) storeSettings.phone = sPhone.value;
+  if (sWa) storeSettings.whatsapp = sWa.value;
+  if (sLogo) storeSettings.logo_url = sLogo.value;
+  if (sFoot) storeSettings.invoice_footer = sFoot.value;
 
   const { error } = await sb.from("store_settings").upsert([{ id: 1, ...storeSettings }]);
+  const msgEl = document.getElementById("settingsMsg");
   if (error) {
-    document.getElementById("settingsMsg").textContent = "خطأ في الحفظ: " + error.message;
-    document.getElementById("settingsMsg").style.color = "red";
+    if (msgEl) {
+      msgEl.textContent = "خطأ في الحفظ: " + error.message;
+      msgEl.style.color = "red";
+    }
   } else {
-    document.getElementById("settingsMsg").textContent = "✨ تم حفظ إعدادات المكتب بنجاح!";
-    document.getElementById("settingsMsg").style.color = "green";
-    document.getElementById("headerStoreName").textContent = storeSettings.store_name;
+    if (msgEl) {
+      msgEl.textContent = "✨ تم حفظ إعدادات المكتب بنجاح!";
+      msgEl.style.color = "green";
+    }
+    const headerName = document.getElementById("headerStoreName");
+    if (headerName) headerName.textContent = storeSettings.store_name;
   }
 }
 
@@ -597,10 +613,13 @@ async function loadUniqueCustomers() {
 }
 
 function onCustomerNameInput() {
-  const nameVal = document.getElementById("customerName").value.trim();
+  const nameInput = document.getElementById("customerName");
+  const phoneInput = document.getElementById("customerPhone");
+  if (!nameInput || !phoneInput) return;
+  const nameVal = nameInput.value.trim();
   const found = allCustomers.find(c => c.name === nameVal);
   if (found && found.phone) {
-    document.getElementById("customerPhone").value = found.phone;
+    phoneInput.value = found.phone;
   }
 }
 
@@ -623,7 +642,10 @@ function changeSortFromSelect(val) {
 }
 
 function renderProducts() {
-  const q = (document.getElementById("productSearch")?.value || "").toLowerCase();
+  const pBody = document.getElementById("productsBody");
+  if (!pBody) return;
+  const searchInput = document.getElementById("productSearch");
+  const q = searchInput ? searchInput.value.toLowerCase() : "";
   let rows = products.filter(p => (p.name || "").toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q));
   
   rows.sort((a, b) => {
@@ -641,7 +663,7 @@ function renderProducts() {
     return 0;
   });
 
-  document.getElementById("productsBody").innerHTML = rows.map(p => {
+  pBody.innerHTML = rows.map(p => {
     const qty = Number(p.quantity || 0);
     const minQty = Number(p.min_quantity || 0);
     let rowClass = "";
@@ -744,8 +766,11 @@ function initInvoicePage() {
 }
 
 function addInvoiceItem() {
-  const pId = document.getElementById("invoiceProduct").value;
-  const qty = Number(document.getElementById("invoiceQty").value) || 1;
+  const pSelect = document.getElementById("invoiceProduct");
+  const qInput = document.getElementById("invoiceQty");
+  if (!pSelect || !qInput) return;
+  const pId = pSelect.value;
+  const qty = Number(qInput.value) || 1;
   const prod = products.find(x => x.id === pId);
   if (!prod) return alert("اختر صنف صحيح");
 
@@ -760,13 +785,17 @@ function addInvoiceItem() {
 
 function renderInvoice() {
   let subTotal = 0;
-  document.getElementById("invoiceBody").innerHTML = invoiceItems.map((item, idx) => {
-    const lineTotal = item.quantity * item.unit_price;
-    subTotal += lineTotal;
-    return `<tr><td>${esc(item.name)}</td><td>${item.quantity}</td><td>${money(item.unit_price)}</td><td>${money(lineTotal)}</td><td><button onclick="invoiceItems.splice(${idx},1);renderInvoice()" style="background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">حذف</button></td></tr>`;
-  }).join("");
+  const iBody = document.getElementById("invoiceBody");
+  if (iBody) {
+    iBody.innerHTML = invoiceItems.map((item, idx) => {
+      const lineTotal = item.quantity * item.unit_price;
+      subTotal += lineTotal;
+      return `<tr><td>${esc(item.name)}</td><td>${item.quantity}</td><td>${money(item.unit_price)}</td><td>${money(lineTotal)}</td><td><button onclick="invoiceItems.splice(${idx},1);renderInvoice()" style="background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">حذف</button></td></tr>`;
+    }).join("");
+  }
 
-  const discountRaw = (document.getElementById("invoiceDiscount").value || "").trim();
+  const discountEl = document.getElementById("invoiceDiscount");
+  const discountRaw = discountEl ? discountEl.value.trim() : "";
   let discountVal = 0;
   if (discountRaw.endsWith("%")) {
     const pVal = parseFloat(discountRaw) || 0;
@@ -776,25 +805,30 @@ function renderInvoice() {
   }
 
   const finalTotal = Math.max(0, subTotal - discountVal);
-  const paid = Number(document.getElementById("amountPaid").value) || 0;
+  const paidEl = document.getElementById("amountPaid");
+  const paid = paidEl ? Number(paidEl.value) || 0 : 0;
   const remaining = Math.max(0, finalTotal - paid);
 
-  document.getElementById("invoiceSubTotal").textContent = toArabicDigits(money(subTotal));
-  document.getElementById("invoiceTotal").textContent = toArabicDigits(money(finalTotal));
-  document.getElementById("paidDisplayText").textContent = toArabicDigits(money(paid));
-  document.getElementById("remainingDisplayText").textContent = toArabicDigits(money(remaining));
-  document.getElementById("amountRemaining").value = toArabicDigits(money(remaining));
+  const subTotalEl = document.getElementById("invoiceSubTotal"); if(subTotalEl) subTotalEl.textContent = toArabicDigits(money(subTotal));
+  const totalEl = document.getElementById("invoiceTotal"); if(totalEl) totalEl.textContent = toArabicDigits(money(finalTotal));
+  const paidTextEl = document.getElementById("paidDisplayText"); if(paidTextEl) paidTextEl.textContent = toArabicDigits(money(paid));
+  const remTextEl = document.getElementById("remainingDisplayText"); if(remTextEl) remTextEl.textContent = toArabicDigits(money(remaining));
+  const remInput = document.getElementById("amountRemaining"); if(remInput) remInput.value = toArabicDigits(money(remaining));
 }
 
 async function saveInvoice() {
   if (invoiceItems.length === 0) return alert("لا توجد أصناف في الفاتورة!");
   
-  const customerName = document.getElementById("customerName").value.trim() || "عميل نقدي";
-  const customerPhone = document.getElementById("customerPhone").value.trim() || "---";
-  const invoiceCode = document.getElementById("invoiceCodeInput").value.trim() || `EL-Hamd${Math.floor(1000 + Math.random() * 9000)}`;
+  const cNameEl = document.getElementById("customerName");
+  const cPhoneEl = document.getElementById("customerPhone");
+  const codeInp = document.getElementById("invoiceCodeInput");
+  const customerName = cNameEl && cNameEl.value.trim() ? cNameEl.value.trim() : "عميل نقدي";
+  const customerPhone = cPhoneEl && cPhoneEl.value.trim() ? cPhoneEl.value.trim() : "---";
+  const invoiceCode = codeInp && codeInp.value.trim() ? codeInp.value.trim() : `EL-Hamd${Math.floor(1000 + Math.random() * 9000)}`;
   
   let subTotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-  const discountRaw = (document.getElementById("invoiceDiscount").value || "").trim();
+  const discountEl = document.getElementById("invoiceDiscount");
+  const discountRaw = discountEl ? discountEl.value.trim() : "";
   let discountVal = 0;
   if (discountRaw.endsWith("%")) {
     discountVal = (subTotal * (parseFloat(discountRaw) || 0)) / 100;
@@ -803,7 +837,8 @@ async function saveInvoice() {
   }
 
   const total = Math.max(0, subTotal - discountVal);
-  const paid = Number(document.getElementById("amountPaid").value) || 0;
+  const paidEl = document.getElementById("amountPaid");
+  const paid = paidEl ? Number(paidEl.value) || 0 : 0;
   const remaining = Math.max(0, total - paid);
 
   const { data: invData, error: invError } = await sb.from("invoices").insert([{
@@ -850,10 +885,10 @@ async function saveInvoice() {
 
 function clearInvoiceItemsOnly() {
   invoiceItems = [];
-  document.getElementById("customerName").value = "";
-  document.getElementById("customerPhone").value = "";
-  document.getElementById("invoiceDiscount").value = "";
-  document.getElementById("amountPaid").value = "0";
+  const cName = document.getElementById("customerName"); if(cName) cName.value = "";
+  const cPhone = document.getElementById("customerPhone"); if(cPhone) cPhone.value = "";
+  const iDisc = document.getElementById("invoiceDiscount"); if(iDisc) iDisc.value = "";
+  const aPaid = document.getElementById("amountPaid"); if(aPaid) aPaid.value = "0";
   renderInvoice();
 }
 
@@ -865,17 +900,20 @@ function cancelInvoiceForm() {
 
 async function loadInvoices() {
   const { data } = await sb.from("invoices").select("*").order("created_at", { ascending: false });
-  document.getElementById("invoicesBody").innerHTML = (data || []).map(inv => `
-    <tr>
-      <td><b>${esc(inv.invoice_code || inv.id.slice(0, 8))}</b></td>
-      <td>${esc(inv.customer_name)}</td>
-      <td>${esc(inv.customer_phone)}</td>
-      <td>${toArabicDigits(money(inv.total))} ج.م</td>
-      <td style="color: #27ae60;">${toArabicDigits(money(inv.paid))} ج.م</td>
-      <td style="color: #c0392b;">${toArabicDigits(money(inv.remaining))} ج.م</td>
-      <td>${new Date(inv.created_at).toLocaleString('ar-EG')}</td>
-      <td><button class="danger small" onclick="deleteInvoice('${inv.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">حذف</button></td>
-    </tr>`).join("");
+  const iBody = document.getElementById("invoicesBody");
+  if (iBody) {
+    iBody.innerHTML = (data || []).map(inv => `
+      <tr>
+        <td><b>${esc(inv.invoice_code || inv.id.slice(0, 8))}</b></td>
+        <td>${esc(inv.customer_name)}</td>
+        <td>${esc(inv.customer_phone)}</td>
+        <td>${toArabicDigits(money(inv.total))} ج.م</td>
+        <td style="color: #27ae60;">${toArabicDigits(money(inv.paid))} ج.م</td>
+        <td style="color: #c0392b;">${toArabicDigits(money(inv.remaining))} ج.م</td>
+        <td>${new Date(inv.created_at).toLocaleString('ar-EG')}</td>
+        <td><button class="danger small" onclick="deleteInvoice('${inv.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">حذف</button></td>
+      </tr>`).join("");
+  }
 }
 
 async function deleteInvoice(id) {
@@ -886,25 +924,31 @@ async function deleteInvoice(id) {
 }
 
 async function addExpense() {
-  const reason = document.getElementById("expenseReason").value.trim();
-  const amount = Number(document.getElementById("expenseAmount").value);
+  const reasonEl = document.getElementById("expenseReason");
+  const amountEl = document.getElementById("expenseAmount");
+  if (!reasonEl || !amountEl) return;
+  const reason = reasonEl.value.trim();
+  const amount = Number(amountEl.value);
   if (!reason || !amount) return alert("أدخل البيان والمبلغ");
   await sb.from("expenses").insert([{ reason, amount }]);
-  document.getElementById("expenseReason").value = "";
-  document.getElementById("expenseAmount").value = "";
+  reasonEl.value = "";
+  amountEl.value = "";
   loadExpenses();
   refreshDashboard();
 }
 
 async function loadExpenses() {
   const { data } = await sb.from("expenses").select("*").order("created_at", { ascending: false });
-  document.getElementById("expensesBody").innerHTML = (data || []).map(e => `
-    <tr>
-      <td>${esc(e.reason)}</td>
-      <td>${money(e.amount)} ج.م</td>
-      <td>${new Date(e.created_at).toLocaleString('ar-EG')}</td>
-      <td><button class="danger small" onclick="deleteExpense('${e.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">حذف</button></td>
-    </tr>`).join("");
+  const eBody = document.getElementById("expensesBody");
+  if (eBody) {
+    eBody.innerHTML = (data || []).map(e => `
+      <tr>
+        <td>${esc(e.reason)}</td>
+        <td>${money(e.amount)} ج.م</td>
+        <td>${new Date(e.created_at).toLocaleString('ar-EG')}</td>
+        <td><button class="danger small" onclick="deleteExpense('${e.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">حذف</button></td>
+      </tr>`).join("");
+  }
 }
 
 async function deleteExpense(id) {
@@ -915,17 +959,24 @@ async function deleteExpense(id) {
 
 async function loadAuditLogs() {
   const { data } = await sb.from("invoices").select("*").order("created_at", { ascending: false }).limit(20);
-  document.getElementById("auditLogsBody").innerHTML = (data || []).map(i => `
-    <tr>
-      <td>فاتورة بيع</td>
-      <td>العميل: ${esc(i.customer_name)} - الإجمالي: ${money(i.total)} ج.م</td>
-      <td>${new Date(i.created_at).toLocaleString('ar-EG')}</td>
-    </tr>`).join("");
+  const auditBody = document.getElementById("auditLogsBody");
+  if (auditBody) {
+    auditBody.innerHTML = (data || []).map(i => `
+      <tr>
+        <td>فاتورة بيع</td>
+        <td>العميل: ${esc(i.customer_name)} - الإجمالي: ${money(i.total)} ج.م</td>
+        <td>${new Date(i.created_at).toLocaleString('ar-EG')}</td>
+      </tr>`).join("");
+  }
   
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayInvs = (data || []).filter(i => i.created_at && i.created_at.startsWith(todayStr));
-  document.getElementById("todayInvoiceCountBadge").textContent = toArabicDigits(todayInvs.length) + " فاتورة";
-  document.getElementById("todayInvoicesList").innerHTML = todayInvs.length ? todayInvs.map(i => `<div>- فاتورة رقم ${esc(i.invoice_code || i.id.slice(0,6))} بمبلغ ${money(i.total)} ج.م للعميل ${esc(i.customer_name)}</div>`).join("") : "لا توجد فواتير اليوم";
+  const badge = document.getElementById("todayInvoiceCountBadge");
+  if (badge) badge.textContent = toArabicDigits(todayInvs.length) + " فاتورة";
+  const todayList = document.getElementById("todayInvoicesList");
+  if (todayList) {
+    todayList.innerHTML = todayInvs.length ? todayInvs.map(i => `<div>- فاتورة رقم ${esc(i.invoice_code || i.id.slice(0,6))} بمبلغ ${money(i.total)} ج.م للعميل ${esc(i.customer_name)}</div>`).join("") : "لا توجد فواتير اليوم";
+  }
 }
 
 async function loadDebtors() {
@@ -938,21 +989,25 @@ async function loadDebtors() {
     map[name].invoices.push(esc(inv.invoice_code || inv.id.slice(0,6)));
   });
 
-  document.getElementById("debtorsBody").innerHTML = Object.keys(map).length ? Object.keys(map).map(name => `
-    <tr>
-      <td><b>${esc(name)}</b></td>
-      <td>${esc(map[name].phone)}</td>
-      <td style="color: #c0392b; font-weight:bold;">${toArabicDigits(money(map[name].totalDebt))} ج.م</td>
-      <td>${map[name].invoices.join(", ")}</td>
-      <td><button class="btn-pay" onclick="alert('خاصية السداد قيد الاستخدام')">سداد الدين</button></td>
-    </tr>`).join("") : `<tr><td colspan="5" style="text-align:center;">لا توجد ديون مستحقة على العملاء حالياً</td></tr>`;
+  const debtorsBody = document.getElementById("debtorsBody");
+  if (debtorsBody) {
+    debtorsBody.innerHTML = Object.keys(map).length ? Object.keys(map).map(name => `
+      <tr>
+        <td><b>${esc(name)}</b></td>
+        <td>${esc(map[name].phone)}</td>
+        <td style="color: #c0392b; font-weight:bold;">${toArabicDigits(money(map[name].totalDebt))} ج.م</td>
+        <td>${map[name].invoices.join(", ")}</td>
+        <td><button class="btn-pay" onclick="alert('خاصية السداد قيد الاستخدام')">سداد الدين</button></td>
+      </tr>`).join("") : `<tr><td colspan="5" style="text-align:center;">لا توجد ديون مستحقة على العملاء حالياً</td></tr>`;
+  }
 }
 
 async function refreshDashboard() {
   try {
     const { data: prods } = await sb.from("products").select("*");
     const pList = prods || [];
-    document.getElementById("statProducts").textContent = toArabicDigits(pList.length);
+    const statProducts = document.getElementById("statProducts");
+    if (statProducts) statProducts.textContent = toArabicDigits(pList.length);
 
     let totalBuyStock = 0, totalSellStock = 0, lowCount = 0;
     pList.forEach(p => {
@@ -962,22 +1017,22 @@ async function refreshDashboard() {
       if (qty <= Number(p.min_quantity || 0)) lowCount++;
     });
 
-    document.getElementById("statStock").textContent = toArabicDigits(money(totalBuyStock)) + " ج.م";
-    document.getElementById("statSellStock").textContent = toArabicDigits(money(totalSellStock)) + " ج.م";
-    document.getElementById("statLow").textContent = toArabicDigits(lowCount);
+    const statStock = document.getElementById("statStock"); if(statStock) statStock.textContent = toArabicDigits(money(totalBuyStock)) + " ج.م";
+    const statSellStock = document.getElementById("statSellStock"); if(statSellStock) statSellStock.textContent = toArabicDigits(money(totalSellStock)) + " ج.م";
+    const statLow = document.getElementById("statLow"); if(statLow) statLow.textContent = toArabicDigits(lowCount);
 
     const { data: invs } = await sb.from("invoices").select("total, created_at, paid, customer_name");
     const totalSalesAll = (invs || []).reduce((sum, x) => sum + Number(x.total || 0), 0);
-    document.getElementById("statSales").textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
-    document.getElementById("totalSalesElement").textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
+    const statSales = document.getElementById("statSales"); if(statSales) statSales.textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
+    const totalSalesEl = document.getElementById("totalSalesElement"); if(totalSalesEl) totalSalesEl.textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
 
     const { data: exps } = await sb.from("expenses").select("amount");
     const totalExpAll = (exps || []).reduce((sum, x) => sum + Number(x.amount || 0), 0);
-    document.getElementById("statExpenses").textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
-    document.getElementById("totalExpensesElement").textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
+    const statExpenses = document.getElementById("statExpenses"); if(statExpenses) statExpenses.textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
+    const totalExpEl = document.getElementById("totalExpensesElement"); if(totalExpEl) totalExpEl.textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
 
     const netProfit = totalSalesAll - totalBuyStock;
-    document.getElementById("netProfitElement").textContent = toArabicDigits(money(netProfit)) + " ج.م";
+    const netProfitEl = document.getElementById("netProfitElement"); if(netProfitEl) netProfitEl.textContent = toArabicDigits(money(netProfit)) + " ج.م";
 
     // أهم العملاء
     const clientStats = {};
@@ -1018,7 +1073,10 @@ async function refreshDashboard() {
     
     // الأصناف الناقصة
     const lowProds = pList.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
-    document.getElementById("lowStock").innerHTML = lowProds.length ? lowProds.map(p => `<div>⚠️ صنف (${esc(p.name)}) وصل للكمية الحالية (${p.quantity})</div>`).join("") : "ممتاز! لا توجد أصناف ناقصة حالياً.";
+    const lowStockDiv = document.getElementById("lowStock");
+    if (lowStockDiv) {
+      lowStockDiv.innerHTML = lowProds.length ? lowProds.map(p => `<div>⚠️ صنف (${esc(p.name)}) وصل للكمية الحالية (${p.quantity})</div>`).join("") : "ممتاز! لا توجد أصناف ناقصة حالياً.";
+    }
   } catch (err) {
     console.error("Dashboard refresh error: ", err);
   }
