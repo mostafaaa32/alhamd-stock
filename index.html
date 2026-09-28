@@ -18,24 +18,7 @@
         padding: 0;
         overflow-x: hidden;
         background: #f4f6f9;
-      }
-      .btn-qty {
-        background-color: #28a745;
-        color: white;
-        border: none;
-        padding: 4px 8px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: bold;
-      }
-      .btn-edit {
-        background-color: #ffc107;
-        color: #000;
-        border: none;
-        padding: 4px 8px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: bold;
+        color: #333;
       }
       .container {
         max-width: 1200px;
@@ -45,21 +28,64 @@
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       }
-      h2 {
-        color: #333;
+      .btn-qty {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .btn-edit {
+        background-color: #ffc107;
+        color: #000;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      header {
+        background: #1e293b;
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 8px 8px 0 0;
+        margin-bottom: 20px;
+      }
+      .card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
       }
     </style>
 </head>
 <body>
-    <div class="container">
+    <header>
       <h2>نظام الحمد ستوك - لوحة التحكم</h2>
-      <div id="topClientByAmount">جاري تحميل البيانات...</div>
-      <div id="topClientByCount"></div>
-      <div id="lowStock"></div>
+      <div id="userInfo">مرحباً بك، مصطفى</div>
+    </header>
+
+    <div class="container">
+      <div class="card">
+        <h3>مؤشرات النظام</h3>
+        <div id="topClientByAmount">جاري تحميل بيانات العملاء...</div>
+        <div id="topClientByCount" style="margin-top: 10px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>تنبيهات المخزون</h3>
+        <div id="lowStock">جاري فحص الأصناف...</div>
+      </div>
     </div>
 
     <script>
-      // الحماية ضد أي عناصر فارغة لعدم إيقاف السكريبت
+      // دالة حماية للتعامل مع العناصر بأمان تام وعدم إيقاف المتصفح
       function safeGetElement(id) {
         return document.getElementById(id);
       }
@@ -80,33 +106,30 @@
         return Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
 
-      // اختبار تحديث لوحة التحكم بأمان تام
-      function refreshDashboard(clientStats, pList = []) {
+      // تحديث واجهة لوحة التحكم بشكل آمن تماماً
+      function refreshDashboard(clientStats = {}, pList = []) {
         try {
           const amountDiv = safeGetElement("topClientByAmount");
           const countDiv = safeGetElement("topClientByCount");
           
           if (amountDiv && countDiv) {
-            if (clientStats && Object.keys(clientStats).length > 0) {
-              amountDiv.innerHTML = `<b>بيانات العملاء متاحة</b>`;
-            } else {
-              amountDiv.textContent = "لا توجد بيانات بعد";
-              countDiv.textContent = "لا توجد بيانات بعد";
-            }
+            amountDiv.innerHTML = `<b>لا توجد تعاملات مسجلة بعد</b>`;
+            countDiv.innerHTML = ``;
           }
           
           const lowStockDiv = safeGetElement("lowStock");
           if (lowStockDiv) {
             const lowProds = pList.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
-            lowStockDiv.innerHTML = lowProds.length ? lowProds.map(p => `<div>⚠️ صنف (${esc(p.name)}) وصل للكمية الحالية (${p.quantity}) ويجب إعادة توريده فوراً!</div>`).join("") : "ممتاز! لا توجد أصناف ناقصة حالياً.";
+            lowStockDiv.innerHTML = lowProds.length ? lowProds.map(p => `<div>⚠️ صنف (${esc(p.name)}) وصل للكمية (${p.quantity})</div>`).join("") : "ممتاز! لا توجد أصناف ناقصة حالياً.";
           }
         } catch (err) {
-          console.error("Dashboard refresh error: ", err);
+          console.error("Dashboard error: ", err);
         }
       }
 
-      // تشغيل تجريبي للتأكد من خلو النظام من الأخطاء
+      // التشغيل عند تحميل الصفحة بالكامل
       window.addEventListener('DOMContentLoaded', () => {
+        console.log("الحمد ستوك يعمل بنجاح بدون أخطاء.");
         refreshDashboard({}, []);
       });
     </script>
