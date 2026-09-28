@@ -487,7 +487,7 @@
     <!-- القائمة الجانبية الموحدة لجميع الصفحات -->
     <aside class="sidebar" id="appSidebar">
       <div class="sidebar-brand">
-        <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150" alt="مكتب الحمد" id="mainHeaderLogo">
+        <img src="logo.png" alt="مكتب الحمد" id="mainHeaderLogo">
         <div style="color: #facc15; font-size: 13px; font-weight: bold; margin-top: 5px;">مكتب الحمد لمواد البناء</div>
       </div>
       <ul class="sidebar-menu">
@@ -832,7 +832,7 @@ let storeSettings = {
   address: "الحواتم - محافظة الفيوم",
   phone: "01012708298",
   whatsapp: "01277065063",
-  logo_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150",
+  logo_url: "logo.png",
   invoice_footer: "شكرًا لتعاملكم مع مكتب الحمد — نتمنى دائماً خدمتكم ❤️"
 };
 
@@ -914,7 +914,7 @@ async function loadStoreSettings() {
       const sAddr = document.getElementById("storeAddress"); if(sAddr) sAddr.value = storeSettings.address || "";
       const sPhone = document.getElementById("storePhone"); if(sPhone) sPhone.value = storeSettings.phone || "";
       const sWa = document.getElementById("storeWhatsapp"); if(sWa) sWa.value = storeSettings.whatsapp || "";
-      const sLogo = document.getElementById("logoUrl"); if(sLogo) sLogo.value = storeSettings.logo_url || "";
+      const sLogo = document.getElementById("logoUrl"); if(sLogo) sLogo.value = storeSettings.logo_url || "logo.png";
       const sFoot = document.getElementById("invoiceFooter"); if(sFoot) sFoot.value = storeSettings.invoice_footer || "";
     }
   } catch(e) {}
@@ -923,7 +923,7 @@ async function loadStoreSettings() {
   if (headerName) headerName.textContent = storeSettings.store_name || "مكتب الحمد لمواد البناء والتشطيبات";
   
   const mainLogo = document.getElementById("mainHeaderLogo");
-  if (mainLogo && storeSettings.logo_url) mainLogo.src = storeSettings.logo_url;
+  if (mainLogo) mainLogo.src = storeSettings.logo_url || "logo.png";
 }
 
 async function saveStoreSettings() {
@@ -938,7 +938,7 @@ async function saveStoreSettings() {
   if (sAddr) storeSettings.address = sAddr.value;
   if (sPhone) storeSettings.phone = sPhone.value;
   if (sWa) storeSettings.whatsapp = sWa.value;
-  if (sLogo) storeSettings.logo_url = sLogo.value;
+  if (sLogo) storeSettings.logo_url = sLogo.value || "logo.png";
   if (sFoot) storeSettings.invoice_footer = sFoot.value;
 
   const { error } = await sb.from("store_settings").upsert([{ id: 1, ...storeSettings }]);
@@ -949,6 +949,8 @@ async function saveStoreSettings() {
     if (msgEl) { msgEl.textContent = "✨ تم حفظ إعدادات المكتب بنجاح!"; msgEl.style.color = "green"; }
     const headerName = document.getElementById("headerStoreName");
     if (headerName) headerName.textContent = storeSettings.store_name;
+    const mainLogo = document.getElementById("mainHeaderLogo");
+    if (mainLogo) mainLogo.src = storeSettings.logo_url || "logo.png";
   }
 }
 
@@ -1252,7 +1254,7 @@ function previewCurrentInvoice() {
   
   document.getElementById("prevStoreName").textContent = storeSettings.store_name;
   document.getElementById("prevStoreDetails").textContent = `هاتف: ${storeSettings.phone} | عنوان: ${storeSettings.address}`;
-  document.getElementById("prevStoreLogo").src = storeSettings.logo_url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150";
+  document.getElementById("prevStoreLogo").src = storeSettings.logo_url || "logo.png";
   
   document.getElementById("prevInvCode").textContent = invCode;
   document.getElementById("prevInvDate").textContent = invDate;
@@ -1313,7 +1315,7 @@ async function previewExistingInvoice(invoiceId) {
 
   document.getElementById("prevStoreName").textContent = storeSettings.store_name;
   document.getElementById("prevStoreDetails").textContent = `هاتف: ${storeSettings.phone} | عنوان: ${storeSettings.address}`;
-  document.getElementById("prevStoreLogo").src = storeSettings.logo_url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150";
+  document.getElementById("prevStoreLogo").src = storeSettings.logo_url || "logo.png";
   
   document.getElementById("prevInvCode").textContent = inv.invoice_code || inv.id.slice(0,8);
   document.getElementById("prevInvDate").textContent = new Date(inv.created_at).toLocaleString('ar-EG');
@@ -1683,7 +1685,7 @@ async function openCustomerStatement(customerName) {
   if (!invs || invs.length === 0) return alert("لا توجد فواتير لهذا العميل");
 
   document.getElementById("stStoreName").textContent = storeSettings.store_name;
-  document.getElementById("stStoreLogo").src = storeSettings.logo_url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150";
+  document.getElementById("stStoreLogo").src = storeSettings.logo_url || "logo.png";
   document.getElementById("stCustomerName").textContent = customerName;
   document.getElementById("stCustomerPhone").textContent = invs[0].customer_phone || "---";
   document.getElementById("stDate").textContent = new Date().toLocaleString('ar-EG');
