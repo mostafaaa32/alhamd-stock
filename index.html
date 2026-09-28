@@ -9,6 +9,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS الخاص بـ Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- jQuery (مطلوب لـ Select2) و مكتبة Select2 JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <style>
       * {
         font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
@@ -377,7 +384,7 @@
             <p id="prevStoreDetails" style="margin: 4px 0 0 0; font-size: 12px; color: #e2e8f0;">بناء .. تشطيب .. ثقة | العمل في جميع أنحاء الجمهورية</p>
           </div>
           <div>
-            <img id="prevStoreLogo" src="logo.png" alt="الشعار">
+            <img id="prevStoreLogo" alt="الشعار">
           </div>
         </div>
 
@@ -595,10 +602,12 @@
                 </div>
               </div>
 
-              <div class="invoice-add" style="margin-top: 15px; display: flex; gap: 10px;">
-                <select id="invoiceProduct" style="flex: 2; padding: 8px; border:1px solid #cbd5e1; border-radius:6px;"></select>
+              <div class="invoice-add" style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
+                <select id="invoiceProduct" class="form-control" style="flex: 2; padding: 8px; border:1px solid #cbd5e1; border-radius:6px;">
+                  <option value="">اكتب أو اختر الصنف...</option>
+                </select>
                 <input id="invoiceQty" type="number" min="1" value="1" placeholder="الكمية" style="flex: 1; padding: 8px; border:1px solid #cbd5e1; border-radius:6px;">
-                <button onclick="addInvoiceItem()" style="flex: 1; background: #0f233c; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">إضافة بند</button>
+                <button onclick="addInvoiceItem()" style="flex: 1; background: #0f233c; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; height: 38px;">إضافة بند</button>
               </div>
 
               <div class="table-wrap" style="margin-top: 15px;">
@@ -872,6 +881,13 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
 }));
 
 window.addEventListener("DOMContentLoaded", async () => {
+  // تفعيل Select2 لعنصر اختيار المنتجات في الفاتورة
+  $('#invoiceProduct').select2({
+      placeholder: "ابحث عن الصنف بالاسم...",
+      allowClear: true,
+      dir: "rtl"
+  });
+
   await loadStoreSettings();
   await refreshDashboard();
   await loadProducts();
@@ -1150,7 +1166,9 @@ async function saveProduct(p) {
 function fillInvoiceProducts() {
   const sel = document.getElementById("invoiceProduct");
   if (!sel) return;
-  sel.innerHTML = products.map(p => `<option value="${p.id}">${esc(p.name)} (المتاح: ${p.quantity}) - ${p.sell_price} ج.م</option>`).join("");
+  sel.innerHTML = '<option value="">اكتب أو اختر الصنف...</option>' + products.map(p => `<option value="${p.id}">${esc(p.name)} (المتاح: ${p.quantity}) - ${p.sell_price} ج.م</option>`).join("");
+  // تحديث Select2 ليقوم بعرض العناصر الجديدة المحدثة
+  $('#invoiceProduct').trigger('change');
 }
 
 function initInvoicePage() {
