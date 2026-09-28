@@ -391,7 +391,7 @@
             <h2 id="prevStoreName" style="margin: 0; color: #facc15; font-size: 22px;">مكتب الحمد للمقاولات العامة</h2>
             <p style="margin: 4px 0; font-size: 13px; color: #f1f5f9;"><strong>خبرة سنين</strong> في مجال المقاولات والإنشاءات</p>
           </div>
-          <div style="font-size: 12px; color: #cbd5e1; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 6px; width: 100%; display: flex; justify-content: center; flex-wrap: wrap; gap: 15px;">
+          <div style="font-size: 12px; color: #cbd5e1; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 6px; width: 100%; display: flex; justify-content: center; flex-wrap: wrap; gap: 15px;" id="prevStoreDetails">
             <span><strong>عنوان المكتب:</strong> الحواتم ـ محافظة الفيوم</span>
             <span><strong>هاتف ١:</strong> ٠١٠١٢٧٠٨٢٩٨</span>
             <span><strong>هاتف ٢:</strong> ٠١٠٠٨٦٦٩٤٨٨</span>
@@ -493,7 +493,7 @@
     <!-- القائمة الجانبية الموحدة لجميع الصفحات -->
     <aside class="sidebar" id="appSidebar">
       <div class="sidebar-brand">
-        <img src="logo.png" alt="مكتب الحمد" id="mainHeaderLogo">
+        <img id="mainHeaderLogo" alt="مكتب الحمد">
         <div style="color: #facc15; font-size: 13px; font-weight: bold; margin-top: 5px;">مكتب الحمد لمواد البناء</div>
       </div>
       <ul class="sidebar-menu">
@@ -875,7 +875,6 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   const targetPage = document.getElementById(btn.dataset.tab);
   if (targetPage) targetPage.classList.remove("hidden");
   
-  // إغلاق القائمة الجانبية تلقائياً في الموبايل عند الضغط
   const sidebar = document.getElementById("appSidebar");
   if (sidebar) sidebar.classList.remove("mobile-open");
 
