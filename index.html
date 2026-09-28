@@ -49,29 +49,6 @@
         margin-left: 4px;
         margin-bottom: 4px;
       }
-      .btn-whatsapp {
-        background-color: #25d366;
-        color: white;
-        border: none;
-        padding: 6px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-left: 4px;
-        margin-bottom: 4px;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 13px;
-      }
-      .btn-cancel {
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        padding: 6px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-left: 4px;
-        margin-bottom: 4px;
-      }
       .grid.stats {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -97,7 +74,6 @@
       }
       .row-danger { background-color: #fdf2f2 !important; border-right: 4px solid #e74c3c; }
       .row-warning { background-color: #fef9e7 !important; border-right: 4px solid #f39c12; }
-      .badge-edited { background: #e67e22; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 5px; }
 
       .modal-overlay {
         position: fixed;
@@ -198,13 +174,13 @@
           <img src="logo.png" alt="" style="max-width: 70px;">
           <div>
             <h2>مرحبًا بك في نظام مكتب الحمد</h2>
-            <p>إدارة سهلة للمخزون والمبيعات والفواتير من الكمبيوتر أو الهاتف.</p>
+            <p>إدارة كاملة وشاملة للمخزون والمبيعات والفواتير والمصروفات وحسابات العملاء.</p>
           </div>
         </div>
 
         <div id="onlineUsersCard" class="card" style="border-right: 5px solid #27ae60; background: #f4fbf7;">
           <h3>🟢 حالة النظام والتشغيل</h3>
-          <div id="onlineUsersList" style="margin-top: 8px; font-weight: bold; color: #2c3e50;">الوضع المباشر - صلاحيات كاملة</div>
+          <div id="onlineUsersList" style="margin-top: 8px; font-weight: bold; color: #2c3e50;">الوضع المباشر - متصل بـ Supabase بنجاح</div>
         </div>
 
         <div class="grid stats">
@@ -227,7 +203,7 @@
             <b id="totalExpensesElement" style="color: #e74c3c;">٠٫٠٠ ج.م</b>
           </div>
           <div class="stat card" style="border-right: 4px solid #3498db;">
-            <span>صافي الربح الحقيقي</span>
+            <span>صافي الربح الحقيقي (تقريبي)</span>
             <b id="netProfitElement" style="color: #3498db;">٠٫٠٠ ج.م</b>
           </div>
         </div>
@@ -255,7 +231,7 @@
             <h2>الأصناف والمخزون</h2>
             <button id="btnAddProduct" onclick="openProductForm()">+ إضافة صنف جديد</button>
           </div>
-          <div class="sort-controls">
+          <div class="sort-controls" style="margin-top: 15px;">
             <input id="productSearch" placeholder="بحث بالاسم أو الكود" oninput="renderProducts()">
             <select id="sortSelect" onchange="changeSortFromSelect(this.value)">
               <option value="name_asc">الترتيب: بالاسم (أ-ي)</option>
@@ -306,7 +282,7 @@
                 <datalist id="customersList"></datalist>
               </div>
               <div>
-                <label style="font-size: 13px; font-weight: bold; color: #555;">هاتف العميل (يبدأ بـ 01):</label>
+                <label style="font-size: 13px; font-weight: bold; color: #555;">هاتف العميل:</label>
                 <input id="customerPhone" placeholder="مثال: 01012345678">
               </div>
             </div>
@@ -334,8 +310,8 @@
             </div>
 
             <div class="invoice-add" style="margin-top: 15px; display: flex; gap: 10px;">
-              <select id="invoiceProduct" style="flex: 2;"></select>
-              <input id="invoiceQty" type="number" min="1" value="1" placeholder="الكمية" style="flex: 1;">
+              <select id="invoiceProduct" style="flex: 2; padding: 8px;"></select>
+              <input id="invoiceQty" type="number" min="1" value="1" placeholder="الكمية" style="flex: 1; padding: 8px;">
               <button onclick="addInvoiceItem()" style="flex: 1;">إضافة بند</button>
             </div>
 
@@ -364,9 +340,9 @@
               <div style="color: #c0392b;">المتبقي: <b id="remainingDisplayText">٠٫٠٠</b> ج.م</div>
             </div>
             <div class="row" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px;">
-              <button onclick="saveInvoice()" style="flex: 1; min-width: 100px;">حفظ الفاتورة</button>
-              <button style="background-color: #f39c12; color: white; flex: 1; min-width: 100px;" onclick="clearInvoiceItemsOnly()">مسح البنود فقط</button>
-              <button style="background-color: #e74c3c; color: white; flex: 1; min-width: 100px;" onclick="cancelInvoiceForm()">إلغاء الفاتورة</button>
+              <button onclick="saveInvoice()" style="flex: 1; min-width: 100px; background: #27ae60; color: #fff; padding: 10px; border: none; font-weight: bold; cursor: pointer;">حفظ الفاتورة</button>
+              <button style="background-color: #f39c12; color: white; flex: 1; min-width: 100px; padding: 10px; border: none; cursor: pointer;" onclick="clearInvoiceItemsOnly()">مسح البنود فقط</button>
+              <button style="background-color: #e74c3c; color: white; flex: 1; min-width: 100px; padding: 10px; border: none; cursor: pointer;" onclick="cancelInvoiceForm()">إلغاء الفاتورة</button>
             </div>
           </div>
         </div>
@@ -400,8 +376,8 @@
           <h2>تسجيل المصروفات النثرية اليومية</h2>
           <p class="muted">سجل هنا أي مصروفات تخرج من الدرج لخصمها من نقدية الخزينة.</p>
           <div class="grid two" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-            <input id="expenseReason" placeholder="بيان المصروف (مثال: أجور نقل بضاعة)">
-            <input id="expenseAmount" type="number" step="0.01" placeholder="المبلغ (ج.م)">
+            <input id="expenseReason" placeholder="بيان المصروف (مثال: أجور نقل بضاعة)" style="padding: 8px;">
+            <input id="expenseAmount" type="number" step="0.01" placeholder="المبلغ (ج.م)" style="padding: 8px;">
             <button onclick="addExpense()">إضافة المصروف</button>
           </div>
           <div class="table-wrap">
@@ -465,17 +441,17 @@
       <section id="settings" class="tab-page hidden">
         <div class="card">
           <h2>بيانات مكتب الحمد</h2>
-          <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <label>اسم المكتب<input id="storeName" value="مكتب الحمد للمقاولات العامة"></label>
-            <label>العنوان<input id="storeAddress" placeholder="اكتب العنوان"></label>
-            <label>الهاتف<input id="storePhone" placeholder="رقم الهاتف"></label>
-            <label>واتساب<input id="storeWhatsapp" placeholder="رقم واتساب"></label>
+          <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <label>اسم المكتب<input id="storeName" value="مكتب الحمد للمقاولات العامة" style="width:100%; padding:8px; margin-top:5px;"></label>
+            <label>العنوان<input id="storeAddress" placeholder="اكتب العنوان" style="width:100%; padding:8px; margin-top:5px;"></label>
+            <label>الهاتف<input id="storePhone" placeholder="رقم الهاتف" style="width:100%; padding:8px; margin-top:5px;"></label>
+            <label>واتساب<input id="storeWhatsapp" placeholder="رقم واتساب" style="width:100%; padding:8px; margin-top:5px;"></label>
           </div>
           <label>رابط اللوجو (اختياري)
-            <input id="logoUrl" placeholder="اتركه فارغًا لاستخدام logo.png">
+            <input id="logoUrl" placeholder="اتركه فارغًا لاستخدام logo.png" style="width:100%; padding:8px; margin-top:5px; margin-bottom:10px;">
           </label>
           <label>عبارة أسفل الفاتورة
-            <input id="invoiceFooter" value="شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم وتوفير أفضل خامات المقاولات لكم.">
+            <input id="invoiceFooter" value="شكرًا لتعاملكم معنا — نعتز دائماً بخدمتكم وتوفير أفضل خامات المقاولات لكم." style="width:100%; padding:8px; margin-top:5px; margin-bottom:15px;">
           </label>
           <button onclick="saveStoreSettings()">حفظ بيانات المكتب</button>
           <p id="settingsMsg" class="msg"></p>
@@ -561,13 +537,42 @@ async function generateNewInvoiceCode() {
 }
 
 async function loadStoreSettings() {
-  const { data, error } = await sb.from("store_settings").select("*").eq("id", 1).maybeSingle();
-  if (!error && data) storeSettings = {...storeSettings, ...data};
+  try {
+    const { data, error } = await sb.from("store_settings").select("*").eq("id", 1).maybeSingle();
+    if (!error && data) {
+      storeSettings = {...storeSettings, ...data};
+      document.getElementById("storeName").value = storeSettings.store_name || "";
+      document.getElementById("storeAddress").value = storeSettings.address || "";
+      document.getElementById("storePhone").value = storeSettings.phone || "";
+      document.getElementById("storeWhatsapp").value = storeSettings.whatsapp || "";
+      document.getElementById("logoUrl").value = storeSettings.logo_url || "";
+      document.getElementById("invoiceFooter").value = storeSettings.invoice_footer || "";
+    }
+  } catch(e) {}
   document.getElementById("headerStoreName").textContent = storeSettings.store_name || "مكتب الحمد للمقاولات العامة";
 }
 
+async function saveStoreSettings() {
+  storeSettings.store_name = document.getElementById("storeName").value;
+  storeSettings.address = document.getElementById("storeAddress").value;
+  storeSettings.phone = document.getElementById("storePhone").value;
+  storeSettings.whatsapp = document.getElementById("storeWhatsapp").value;
+  storeSettings.logo_url = document.getElementById("logoUrl").value;
+  storeSettings.invoice_footer = document.getElementById("invoiceFooter").value;
+
+  const { error } = await sb.from("store_settings").upsert([{ id: 1, ...storeSettings }]);
+  if (error) {
+    document.getElementById("settingsMsg").textContent = "خطأ في الحفظ: " + error.message;
+    document.getElementById("settingsMsg").style.color = "red";
+  } else {
+    document.getElementById("settingsMsg").textContent = "✨ تم حفظ إعدادات المكتب بنجاح!";
+    document.getElementById("settingsMsg").style.color = "green";
+    document.getElementById("headerStoreName").textContent = storeSettings.store_name;
+  }
+}
+
 async function loadProducts() {
-  const { data, error } = await sb.from("products").select("*").order("name");
+  const { data, error } = await sb.from("products").select("*");
   if (error) return console.error(error);
   products = data || [];
   renderProducts();
@@ -655,7 +660,7 @@ function renderProducts() {
         <td>
           <button class="btn-qty small" onclick="addQuantity('${p.id}',${p.quantity})">+ كمية</button>
           <button class="btn-edit small" onclick="editProduct('${p.id}')">تعديل</button>
-          <button class="danger small" onclick="deleteProduct('${p.id}')">حذف</button>
+          <button class="danger small" onclick="deleteProduct('${p.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">حذف</button>
         </td>
       </tr>`;
   }).join("");
@@ -758,7 +763,7 @@ function renderInvoice() {
   document.getElementById("invoiceBody").innerHTML = invoiceItems.map((item, idx) => {
     const lineTotal = item.quantity * item.unit_price;
     subTotal += lineTotal;
-    return `<tr><td>${esc(item.name)}</td><td>${item.quantity}</td><td>${money(item.unit_price)}</td><td>${money(lineTotal)}</td><td><button onclick="invoiceItems.splice(${idx},1);renderInvoice()">حذف</button></td></tr>`;
+    return `<tr><td>${esc(item.name)}</td><td>${item.quantity}</td><td>${money(item.unit_price)}</td><td>${money(lineTotal)}</td><td><button onclick="invoiceItems.splice(${idx},1);renderInvoice()" style="background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">حذف</button></td></tr>`;
   }).join("");
 
   const discountRaw = (document.getElementById("invoiceDiscount").value || "").trim();
@@ -869,7 +874,7 @@ async function loadInvoices() {
       <td style="color: #27ae60;">${toArabicDigits(money(inv.paid))} ج.م</td>
       <td style="color: #c0392b;">${toArabicDigits(money(inv.remaining))} ج.م</td>
       <td>${new Date(inv.created_at).toLocaleString('ar-EG')}</td>
-      <td><button class="danger small" onclick="deleteInvoice('${inv.id}')">حذف</button></td>
+      <td><button class="danger small" onclick="deleteInvoice('${inv.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">حذف</button></td>
     </tr>`).join("");
 }
 
@@ -898,7 +903,7 @@ async function loadExpenses() {
       <td>${esc(e.reason)}</td>
       <td>${money(e.amount)} ج.م</td>
       <td>${new Date(e.created_at).toLocaleString('ar-EG')}</td>
-      <td><button class="danger small" onclick="deleteExpense('${e.id}')">حذف</button></td>
+      <td><button class="danger small" onclick="deleteExpense('${e.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">حذف</button></td>
     </tr>`).join("");
 }
 
@@ -944,46 +949,79 @@ async function loadDebtors() {
 }
 
 async function refreshDashboard() {
-  const { data: prods } = await sb.from("products").select("*");
-  const pList = prods || [];
-  document.getElementById("statProducts").textContent = toArabicDigits(pList.length);
+  try {
+    const { data: prods } = await sb.from("products").select("*");
+    const pList = prods || [];
+    document.getElementById("statProducts").textContent = toArabicDigits(pList.length);
 
-  let totalBuyStock = 0, totalSellStock = 0, lowCount = 0;
-  pList.forEach(p => {
-    const qty = Number(p.quantity || 0);
-    totalBuyStock += (qty * Number(p.buy_price || 0));
-    totalSellStock += (qty * Number(p.sell_price || 0));
-    if (qty <= Number(p.min_quantity || 0)) lowCount++;
-  });
+    let totalBuyStock = 0, totalSellStock = 0, lowCount = 0;
+    pList.forEach(p => {
+      const qty = Number(p.quantity || 0);
+      totalBuyStock += (qty * Number(p.buy_price || 0));
+      totalSellStock += (qty * Number(p.sell_price || 0));
+      if (qty <= Number(p.min_quantity || 0)) lowCount++;
+    });
 
-  document.getElementById("statStock").textContent = toArabicDigits(money(totalBuyStock)) + " ج.م";
-  document.getElementById("statSellStock").textContent = toArabicDigits(money(totalSellStock)) + " ج.م";
-  document.getElementById("statLow").textContent = toArabicDigits(lowCount);
+    document.getElementById("statStock").textContent = toArabicDigits(money(totalBuyStock)) + " ج.م";
+    document.getElementById("statSellStock").textContent = toArabicDigits(money(totalSellStock)) + " ج.م";
+    document.getElementById("statLow").textContent = toArabicDigits(lowCount);
 
-  const { data: invs } = await sb.from("invoices").select("total, created_at, paid");
-  const totalSalesAll = (invs || []).reduce((sum, x) => sum + Number(x.total || 0), 0);
-  document.getElementById("statSales").textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
-  document.getElementById("totalSalesElement").textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
+    const { data: invs } = await sb.from("invoices").select("total, created_at, paid, customer_name");
+    const totalSalesAll = (invs || []).reduce((sum, x) => sum + Number(x.total || 0), 0);
+    document.getElementById("statSales").textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
+    document.getElementById("totalSalesElement").textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
 
-  const { data: exps } = await sb.from("expenses").select("amount");
-  const totalExpAll = (exps || []).reduce((sum, x) => sum + Number(x.amount || 0), 0);
-  document.getElementById("statExpenses").textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
-  document.getElementById("totalExpensesElement").textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
+    const { data: exps } = await sb.from("expenses").select("amount");
+    const totalExpAll = (exps || []).reduce((sum, x) => sum + Number(x.amount || 0), 0);
+    document.getElementById("statExpenses").textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
+    document.getElementById("totalExpensesElement").textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
 
-  const netProfit = totalSalesAll - totalBuyStock; // تقريبي للأرباح
-  document.getElementById("netProfitElement").textContent = toArabicDigits(money(netProfit)) + " ج.م";
+    const netProfit = totalSalesAll - totalBuyStock;
+    document.getElementById("netProfitElement").textContent = toArabicDigits(money(netProfit)) + " ج.م";
 
-  // أهم العملاء
-  const clientStats = {};
-  (invs || []).forEach(inv => {
-    // يمكن تحسينها حسب الحاجة
-  });
-  document.getElementById("topClientByAmount").textContent = "---";
-  document.getElementById("topClientByCount").textContent = "---";
-  
-  // الأصناف الناقصة
-  const lowProds = pList.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
-  document.getElementById("lowStock").innerHTML = lowProds.length ? lowProds.map(p => `<div>⚠️ صنف (${esc(p.name)}) وصل للكمية الحالية (${p.quantity})</div>`).join("") : "ممتاز! لا توجد أصناف ناقصة حالياً.";
+    // أهم العملاء
+    const clientStats = {};
+    (invs || []).forEach(inv => {
+      const cName = inv.customer_name || "غير معروف";
+      if (!clientStats[cName]) {
+        clientStats[cName] = { count: 0, maxAmount: 0 };
+      }
+      clientStats[cName].count += 1;
+      if (Number(inv.total) > clientStats[cName].maxAmount) {
+        clientStats[cName].maxAmount = Number(inv.total);
+      }
+    });
+
+    let topByAmount = { name: "---", val: 0 };
+    let topByCount = { name: "---", val: 0 };
+
+    for (const [name, stats] of Object.entries(clientStats)) {
+      if (stats.maxAmount > topByAmount.val) {
+        topByAmount = { name, val: stats.maxAmount };
+      }
+      if (stats.count > topByCount.val) {
+        topByCount = { name, val: stats.count };
+      }
+    }
+
+    const amountDiv = document.getElementById("topClientByAmount");
+    const countDiv = document.getElementById("topClientByCount");
+    if (amountDiv && countDiv) {
+      if (Object.keys(clientStats).length > 0) {
+        amountDiv.innerHTML = `<b>${esc(topByAmount.name)}</b><br><span class="muted">قيمة أقوى فاتورة: ${toArabicDigits(money(topByAmount.val))} ج.م</span>`;
+        countDiv.innerHTML = `<b>${esc(topByCount.name)}</b><br><span class="muted">عدد الفواتير: ${toArabicDigits(topByCount.val)} فاتورة</span>`;
+      } else {
+        amountDiv.textContent = "لا توجد بيانات بعد";
+        countDiv.textContent = "لا توجد بيانات بعد";
+      }
+    }
+    
+    // الأصناف الناقصة
+    const lowProds = pList.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
+    document.getElementById("lowStock").innerHTML = lowProds.length ? lowProds.map(p => `<div>⚠️ صنف (${esc(p.name)}) وصل للكمية الحالية (${p.quantity})</div>`).join("") : "ممتاز! لا توجد أصناف ناقصة حالياً.";
+  } catch (err) {
+    console.error("Dashboard refresh error: ", err);
+  }
 }
 
 function money(val) {
