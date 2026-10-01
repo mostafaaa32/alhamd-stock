@@ -399,7 +399,6 @@
           <div><b>رقم الهاتف:</b> <span id="prevCustomerPhone">---</span></div>
         </div>
 
-        <!-- 4. خانة ملاحظات الفاتورة تظهر أسفل بيانات العميل في المعاينة والطباعة -->
         <div id="prevNotesRow" style="margin-bottom: 15px; background: #fffbeb; padding: 10px; border-radius: 6px; border: 1px solid #fef3c7; font-size: 14px; display: none;">
           <b>ملاحظات الفاتورة:</b> <span id="prevNotesText">---</span>
         </div>
@@ -408,7 +407,7 @@
           <thead>
             <tr style="background: #0f233c; color: #fff;">
               <th style="padding: 8px;">م</th>
-              <th style="padding: 8px;">الصنف</th>
+              <th style="padding: 8px;">الصنف / البند الخدمي</th>
               <th style="padding: 8px;">الكمية</th>
               <th style="padding: 8px;">سعر الوحدة</th>
               <th style="padding: 8px;">الإجمالي</th>
@@ -544,7 +543,6 @@
               <span>صافي الربح التقريبي</span>
               <b id="netProfitElement" style="color: #3498db;">٠٫٠٠ ج.م</b>
             </div>
-            <!-- 5. صافي الربح في الصفحة الرئيسية -->
             <div class="stat card" style="border-top: 4px solid #f39c12;">
               <span>صافي أرباح المبيعات الكلي</span>
               <b id="dashboardNetProfit" style="color: #f39c12;">٠٫٠٠ ج.م</b>
@@ -590,7 +588,6 @@
                 </div>
               </div>
 
-              <!-- 4. إضافة خانة ملاحظات للفاتورة تظهر أسفل بيانات العميل -->
               <div style="margin-top: 10px;">
                 <label style="font-size: 13px; font-weight: bold; color: #555;">ملاحظات الفاتورة:</label>
                 <input id="invoiceNotes" placeholder="أدخل أي ملاحظات خاصة بالفاتورة..." style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;">
@@ -618,6 +615,7 @@
                 </div>
               </div>
 
+              <!-- قسم اختيار الأصناف -->
               <div class="invoice-add" style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
                 <select id="invoiceProduct" class="form-control" style="flex: 2; padding: 8px; border:1px solid #cbd5e1; border-radius:6px;">
                   <option value="">اكتب أو اختر الصنف...</option>
@@ -626,11 +624,22 @@
                 <button onclick="addInvoiceItem()" style="flex: 1; background: #0f233c; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; height: 38px;">إضافة بند</button>
               </div>
 
+              <!-- قسم إضافة بند إضافي أو خدمي (عمالة، شيل، سيارة، إلخ) -->
+              <div style="margin-top: 10px; background: #fdfbf7; padding: 12px; border: 1px solid #e2dbca; border-radius: 8px;">
+                <label style="font-size: 13px; font-weight: bold; color: #0f233c; display: block; margin-bottom: 5px;">➕ إضافة بند خارجي / خدمة (عمالة، شيل، سيارة، توصيل...):</label>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                  <input id="customServiceName" placeholder="اسم الخدمة (مثال: عمالة / سيارة نقل)" style="flex: 2; min-width: 150px; padding: 8px; border:1px solid #cbd5e1; border-radius:6px;">
+                  <input id="customServiceQty" type="number" min="1" value="1" placeholder="العدد" style="flex: 1; min-width: 70px; padding: 8px; border:1px solid #cbd5e1; border-radius:6px;">
+                  <input id="customServicePrice" type="number" step="0.01" placeholder="السعر (ج.م)" style="flex: 1; min-width: 100px; padding: 8px; border:1px solid #cbd5e1; border-radius:6px;">
+                  <button onclick="addCustomServiceItem()" style="background: #27ae60; color: #fff; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">إضافة للفاتورة</button>
+                </div>
+              </div>
+
               <div class="table-wrap" style="margin-top: 15px;">
                 <table>
                   <thead>
                     <tr>
-                      <th>الصنف</th>
+                      <th>الصنف / البند</th>
                       <th>الكمية</th>
                       <th>سعر الوحدة</th>
                       <th>الإجمالي</th>
@@ -1209,7 +1218,6 @@ function addInvoiceItem() {
   const prod = products.find(x => x.id === pId);
   if (!prod) return alert("اختر صنف صحيح");
 
-  // 3. التحقق من عدم وجود زيادة في العدد داخل الفاتورة بحيث لا يكون أكبر من الكمية المتاحة
   const existingItem = invoiceItems.find(x => x.product_id === pId);
   const currentInListQty = existingItem ? existingItem.quantity : 0;
   const availableStock = Number(prod.quantity || 0);
@@ -1226,13 +1234,44 @@ function addInvoiceItem() {
       name: prod.name, 
       quantity: qty, 
       unit_price: Number(prod.sell_price) || 0,
-      buy_price: Number(prod.buy_price) || 0 // لحساب الربح
+      buy_price: Number(prod.buy_price) || 0 
     });
   }
   
-  // 2. إعادة ضبط أو إفراغ خانات الإدخال بعد إضافة البند
   qInput.value = "1";
   $(pSelect).val(null).trigger('change');
+
+  renderInvoice();
+}
+
+// إضافة بند خدمة إضافي يدوي (مثل عمالة، شيل، سيارة، إلخ)
+function addCustomServiceItem() {
+  const nameInput = document.getElementById("customServiceName");
+  const qtyInput = document.getElementById("customServiceQty");
+  const priceInput = document.getElementById("customServicePrice");
+  
+  if (!nameInput || !qtyInput || !priceInput) return;
+  
+  const serviceName = nameInput.value.trim();
+  const qty = Number(qtyInput.value) || 1;
+  const price = Number(priceInput.value);
+
+  if (!serviceName) return alert("يرجى كتابة اسم البند الخدمي (مثل عمالة، شيل، سيارة...)");
+  if (isNaN(price) || price < 0) return alert("يرجى إدخال سعر صحيح للخدمة");
+
+  // يتم إضافته كبند بدون product_id حتى لا يؤثر على كمية المخزن
+  invoiceItems.push({
+    product_id: null,
+    name: serviceName,
+    quantity: qty,
+    unit_price: price,
+    buy_price: 0
+  });
+
+  // تفريغ الحقول بعد الإضافة
+  nameInput.value = "";
+  qtyInput.value = "1";
+  priceInput.value = "";
 
   renderInvoice();
 }
@@ -1240,6 +1279,14 @@ function addInvoiceItem() {
 function changeItemQty(index, delta) {
   if (!invoiceItems[index]) return;
   const item = invoiceItems[index];
+  
+  // إذا كان بند خدمي حر (ليس صنف مخزني)
+  if (!item.product_id) {
+    item.quantity = Math.max(1, item.quantity + delta);
+    renderInvoice();
+    return;
+  }
+
   const prod = products.find(x => x.id === item.product_id);
   const availableStock = prod ? Number(prod.quantity || 0) : 999999;
 
@@ -1250,9 +1297,7 @@ function changeItemQty(index, delta) {
     return;
   }
 
-  // التحقق من الكمية عند الزيادة
   if (delta > 0 && prod) {
-    // الكمية الحالية في المخزن + ما تم حجزه في الفاتورة (تقريبي أو متاح)
     if (newQty > availableStock) {
       return alert(`عذراً، الكمية المطلوبة تتجاوز المتاح في المخزن (${availableStock})!`);
     }
@@ -1265,7 +1310,7 @@ function changeItemQty(index, delta) {
 function editItemPrice(index) {
   if (!invoiceItems[index]) return;
   const currentPrice = invoiceItems[index].unit_price;
-  const newPriceStr = prompt(`أدخل سعر البيع الجديد للصنف (${invoiceItems[index].name}):`, currentPrice);
+  const newPriceStr = prompt(`أدخل السعر الجديد لـ (${invoiceItems[index].name}):`, currentPrice);
   if (newPriceStr === null) return;
   const newPrice = parseFloat(newPriceStr);
   if (isNaN(newPrice) || newPrice < 0) {
@@ -1284,7 +1329,7 @@ function renderInvoice() {
       subTotal += lineTotal;
       return `
         <tr>
-          <td>${esc(item.name)}</td>
+          <td>${esc(item.name)} ${!item.product_id ? '<span style="font-size:11px; background:#e2e8f0; padding:2px 6px; border-radius:4px; color:#475569;">خدمة/إضافي</span>' : ''}</td>
           <td>
             <button class="btn-qty" onclick="changeItemQty(${idx}, 1)">+</button>
             <span style="margin: 0 8px; font-weight: bold;">${toArabicDigits(item.quantity)}</span>
@@ -1342,7 +1387,7 @@ function renderInvoice() {
 }
 
 function previewCurrentInvoice() {
-  if (invoiceItems.length === 0) return alert("لا توجد أصناف في الفاتورة الحالية لمعاينتها!");
+  if (invoiceItems.length === 0) return alert("لا توجد أصناف أو بنود في الفاتورة الحالية لمعاينتها!");
   
   const cName = document.getElementById("customerName").value.trim() || "عميل نقدي";
   const cPhone = document.getElementById("customerPhone").value.trim() || "---";
@@ -1359,7 +1404,6 @@ function previewCurrentInvoice() {
   document.getElementById("prevCustomerName").textContent = cName;
   document.getElementById("prevCustomerPhone").textContent = cPhone;
 
-  // إظهار الملاحظات في المعاينة إذا كانت موجودة
   const notesRow = document.getElementById("prevNotesRow");
   const notesText = document.getElementById("prevNotesText");
   if (cNotes) {
@@ -1478,7 +1522,7 @@ async function previewExistingInvoice(invoiceId) {
 }
 
 async function saveInvoice() {
-  if (invoiceItems.length === 0) return alert("لا توجد أصناف في الفاتورة!");
+  if (invoiceItems.length === 0) return alert("لا توجد أصناف أو بنود في الفاتورة!");
   
   const cNameEl = document.getElementById("customerName");
   const cPhoneEl = document.getElementById("customerPhone");
@@ -1542,9 +1586,11 @@ async function saveInvoice() {
     await sb.from("invoice_items").insert(itemsPayload);
 
     for (const item of invoiceItems) {
-      const prod = products.find(p => p.id === item.product_id);
-      if (prod) {
-        await sb.from("products").update({ quantity: Math.max(0, Number(prod.quantity || 0) - item.quantity) }).eq("id", prod.id);
+      if (item.product_id) {
+        const prod = products.find(p => p.id === item.product_id);
+        if (prod) {
+          await sb.from("products").update({ quantity: Math.max(0, Number(prod.quantity || 0) - item.quantity) }).eq("id", prod.id);
+        }
       }
     }
 
@@ -1590,9 +1636,11 @@ async function saveInvoice() {
   await sb.from("invoice_items").insert(itemsPayload);
 
   for (const item of invoiceItems) {
-    const prod = products.find(p => p.id === item.product_id);
-    if (prod) {
-      await sb.from("products").update({ quantity: Math.max(0, Number(prod.quantity || 0) - item.quantity) }).eq("id", prod.id);
+    if (item.product_id) {
+      const prod = products.find(p => p.id === item.product_id);
+      if (prod) {
+        await sb.from("products").update({ quantity: Math.max(0, Number(prod.quantity || 0) - item.quantity) }).eq("id", prod.id);
+      }
     }
   }
 
@@ -1610,6 +1658,9 @@ function clearInvoiceItemsOnly() {
   const cNotes = document.getElementById("invoiceNotes"); if(cNotes) cNotes.value = "";
   const iDisc = document.getElementById("invoiceDiscount"); if(iDisc) iDisc.value = "";
   const aPaid = document.getElementById("amountPaid"); if(aPaid) aPaid.value = "0";
+  const sName = document.getElementById("customServiceName"); if(sName) sName.value = "";
+  const sQty = document.getElementById("customServiceQty"); if(sQty) sQty.value = "1";
+  const sPrice = document.getElementById("customServicePrice"); if(sPrice) sPrice.value = "";
   renderInvoice();
 }
 
@@ -1646,12 +1697,11 @@ async function loadInvoices() {
   }
 }
 
-// 1. وظيفة زر المرتجع لخصم الصنف وارجاعه للمخزن
 async function openReturnModal(invoiceId, invoiceCode) {
   const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", invoiceId);
   if (!items || items.length === 0) return alert("لا توجد بنود مرتبطة بهذه الفاتورة.");
 
-  let itemsPromptList = items.map((it, i) => `${i + 1}. ${it.product_name} (الكمية المباعة: ${it.quantity})`).join("\n");
+  let itemsPromptList = items.map((it, i) => `${i + 1}. ${it.product_name} (الكمية: ${it.quantity})`).join("\n");
   const chosenIndexStr = prompt(`اختر رقم البند المراد إرجاعه من الفاتورة (${invoiceCode}):\n${itemsPromptList}`);
   if (chosenIndexStr === null) return;
 
@@ -1659,7 +1709,7 @@ async function openReturnModal(invoiceId, invoiceCode) {
   if (isNaN(idx) || !items[idx]) return alert("رقم البند غير صحيح.");
 
   const targetItem = items[idx];
-  const returnQtyStr = prompt(`أدخل الكمية المراد إرجاعها للصنف (${targetItem.product_name}) - أقصى كمية: ${targetItem.quantity}:`, "1");
+  const returnQtyStr = prompt(`أدخل الكمية المراد إرجاعها لـ (${targetItem.product_name}) - أقصى كمية: ${targetItem.quantity}:`, "1");
   if (returnQtyStr === null) return;
   const returnQty = parseInt(returnQtyStr);
 
@@ -1667,9 +1717,8 @@ async function openReturnModal(invoiceId, invoiceCode) {
     return alert("الكمية المدخلة غير صحيحة.");
   }
 
-  if (!confirm(`هل أنت متأكد من إرجاع عدد (${returnQty}) من صنف (${targetItem.product_name})؟ سيتم تعديل إجمالي الفاتورة وإرجاع الكمية للمخزن.`)) return;
+  if (!confirm(`هل أنت متأكد من إرجاع عدد (${returnQty}) من (${targetItem.product_name})؟`)) return;
 
-  // إرجاع الكمية للمخزن
   if (targetItem.product_id) {
     const prod = products.find(p => p.id === targetItem.product_id);
     if (prod) {
@@ -1678,7 +1727,6 @@ async function openReturnModal(invoiceId, invoiceCode) {
     }
   }
 
-  // تحديث أو حذف بند الفاتورة
   if (returnQty === targetItem.quantity) {
     await sb.from("invoice_items").delete().eq("id", targetItem.id);
   } else {
@@ -1687,13 +1735,10 @@ async function openReturnModal(invoiceId, invoiceCode) {
     await sb.from("invoice_items").update({ quantity: newQty, total: newTotalLine }).eq("id", targetItem.id);
   }
 
-  // إعادة حساب إجمالي الفاتورة الرئيسية
   const { data: remainingItems } = await sb.from("invoice_items").select("*").eq("invoice_id", invoiceId);
   const newSubTotal = (remainingItems || []).reduce((sum, x) => sum + Number(x.total || 0), 0);
   
   const { data: invData } = await sb.from("invoices").select("*").eq("id", invoiceId).single();
-  const oldTotal = Number(invData.total || 0);
-  const discountDiff = oldTotal > newSubTotal ? (oldTotal - newSubTotal) : 0;
   const newFinalTotal = Math.max(0, newSubTotal);
   const newRemaining = Math.max(0, newFinalTotal - Number(invData.paid || 0));
 
@@ -1702,13 +1747,12 @@ async function openReturnModal(invoiceId, invoiceCode) {
     remaining: newRemaining
   }).eq("id", invoiceId);
 
-  alert("✨ تم تنفيذ عملية المرتجع بنجاح وتحديث المخزن والفاتورة!");
+  alert("✨ تم تنفيذ عملية المرتجع بنجاح وتحديث الفاتورة!");
   loadInvoices();
   loadProducts();
   refreshDashboard();
 }
 
-// 5. صافي الربح لكل فاتورة منفصلة
 async function calculateInvoiceNetProfit(invoiceId) {
   const { data: inv } = await sb.from("invoices").select("*").eq("id", invoiceId).single();
   const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", invoiceId);
@@ -1721,7 +1765,6 @@ async function calculateInvoiceNetProfit(invoiceId) {
     const lineRevenue = Number(it.quantity) * Number(it.unit_price);
     totalRevenue += lineRevenue;
 
-    // جلب سعر الشراء الحالي للصنف من المخزن
     let buyPrice = 0;
     if (it.product_id) {
       const prod = products.find(p => p.id === it.product_id);
@@ -1763,7 +1806,7 @@ async function editInvoice(invoiceId) {
   editingInvoiceId = invoiceId;
   invoiceItems = (items || []).map(i => ({
     product_id: i.product_id,
-    name: i.product_name || "صنف",
+    name: i.product_name || "بند",
     quantity: i.quantity,
     unit_price: i.unit_price
   }));
@@ -1788,7 +1831,7 @@ async function editInvoice(invoiceId) {
 }
 
 async function deleteInvoice(id) {
-  if (!confirm("هل أنت متأكد من إلغاء وحذف هذه الفاتورة؟ سيتم إرجاع الكميات المباعة إلى المخزن فوراً!")) return;
+  if (!confirm("هل أنت متأكد من إلغاء وحذف هذه الفاتورة؟ سيتم إرجاع كميات الأصناف المباعة إلى المخزن فوراً!")) return;
   
   const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
   if (items) {
@@ -1806,7 +1849,7 @@ async function deleteInvoice(id) {
   await sb.from("invoice_items").delete().eq("invoice_id", id);
   await sb.from("invoices").delete().eq("id", id);
 
-  alert("✨ تم إلغاء الفاتورة بنجاح وإرجاع الكميات إلى المخزن!");
+  alert("✨ تم إلغاء الفاتورة بنجاح وإرجاع الأصناف إلى المخزن!");
   loadInvoices();
   loadProducts();
   refreshDashboard();
@@ -1954,7 +1997,7 @@ async function openCustomerStatement(customerName) {
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;" border="1">
           <thead>
             <tr style="background: #f8fafc; font-size: 13px;">
-              <th style="padding: 4px;">الصنف</th>
+              <th style="padding: 4px;">الصنف / البند</th>
               <th style="padding: 4px;">الكمية</th>
               <th style="padding: 4px;">سعر الوحدة</th>
               <th style="padding: 4px;">الإجمالي</th>
@@ -2013,109 +2056,135 @@ async function sendDebtReminderWhatsapp(customerName) {
   const phone = invs[0].customer_phone || "";
   const cleanPhone = phone.replace(/\D/g, '');
   const finalPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone;
-  if (!finalPhone || finalPhone.length < 10) return alert("رقم هاتف العميل غير صحيح أو غير مسجل!");
+  if (!finalPhone || finalPhone.length < 10) return alert("رقم هاتف العميل غير مسجل بشكل صحيح!");
   window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(waText)}`, '_blank');
 }
 
 async function refreshDashboard() {
-  try {
-    const { data: prods } = await sb.from("products").select("*");
-    const pList = prods || [];
-    const statProducts = document.getElementById("statProducts");
-    if (statProducts) statProducts.textContent = toArabicDigits(pList.length);
+  const { data: prods } = await sb.from("products").select("*");
+  const { data: invs } = await sb.from("invoices").select("*");
+  const { data: exps } = await sb.from("expenses").select("*");
 
-    let totalBuyStock = 0, totalSellStock = 0, lowCount = 0;
-    pList.forEach(p => {
-      const qty = Number(p.quantity || 0);
-      totalBuyStock += (qty * Number(p.buy_price || 0));
-      totalSellStock += (qty * Number(p.sell_price || 0));
-      if (qty <= Number(p.min_quantity || 0)) lowCount++;
-    });
+  const pList = prods || [];
+  const iList = invs || [];
+  const eList = exps || [];
 
-    const statStock = document.getElementById("statStock"); if(statStock) statStock.textContent = toArabicDigits(money(totalBuyStock)) + " ج.م";
-    const statSellStock = document.getElementById("statSellStock"); if(statSellStock) statSellStock.textContent = toArabicDigits(money(totalSellStock)) + " ج.م";
-    const statLow = document.getElementById("statLow"); if(statLow) statLow.textContent = toArabicDigits(lowCount);
+  const statProducts = document.getElementById("statProducts");
+  if(statProducts) statProducts.textContent = toArabicDigits(pList.length);
 
-    const { data: invs } = await sb.from("invoices").select("total, created_at, paid, customer_name, id");
-    const totalSalesAll = (invs || []).reduce((sum, x) => sum + Number(x.total || 0), 0);
-    const statSales = document.getElementById("statSales"); if(statSales) statSales.textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
-    const totalSalesEl = document.getElementById("totalSalesElement"); if(totalSalesEl) totalSalesEl.textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
+  let totalBuyVal = 0;
+  let totalSellVal = 0;
+  let lowStockCount = 0;
+  let lowStockHtml = "";
 
-    const { data: exps } = await sb.from("expenses").select("amount");
-    const totalExpAll = (exps || []).reduce((sum, x) => sum + Number(x.amount || 0), 0);
-    const statExpenses = document.getElementById("statExpenses"); if(statExpenses) statExpenses.textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
-    const totalExpEl = document.getElementById("totalExpensesElement"); if(totalExpEl) totalExpEl.textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
+  pList.forEach(p => {
+    const qty = Number(p.quantity || 0);
+    const minQty = Number(p.min_quantity || 0);
+    totalBuyVal += qty * (Number(p.buy_price) || 0);
+    totalSellVal += qty * (Number(p.sell_price) || 0);
+    if (qty <= minQty) {
+      lowStockCount++;
+      lowStockHtml += `<div style="padding: 6px; border-bottom: 1px solid #eee;">⚠️ الصنف: <b>${esc(p.name)}</b> (المتبقي: ${toArabicDigits(qty)} ${esc(p.unit)})</div>`;
+    }
+  });
 
-    // 5. حساب إجمالي صافي الأرباح للمبيعات الكلية وعرضه في الصفحة الرئيسية
-    let totalAllNetProfit = 0;
-    const { data: allInvoiceItems } = await sb.from("invoice_items").select("*");
-    if (allInvoiceItems) {
-      for (const it of allInvoiceItems) {
+  const statStock = document.getElementById("statStock"); if(statStock) statStock.textContent = toArabicDigits(money(totalBuyVal)) + " ج.م";
+  const statSellStock = document.getElementById("statSellStock"); if(statSellStock) statSellStock.textContent = toArabicDigits(money(totalSellVal)) + " ج.م";
+  const statLow = document.getElementById("statLow"); if(statLow) statLow.textContent = toArabicDigits(lowStockCount);
+  
+  const lowStockEl = document.getElementById("lowStock");
+  if(lowStockEl) lowStockEl.innerHTML = lowStockHtml || "لا توجد أصناف وصلت للحد الأدنى حالياً ✨";
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let todaySales = 0;
+  let todayCash = 0;
+  let totalSalesAll = 0;
+
+  iList.forEach(i => {
+    const tot = Number(i.total || 0);
+    const paid = Number(i.paid || 0);
+    totalSalesAll += tot;
+    if (i.created_at && i.created_at.startsWith(todayStr)) {
+      todaySales += tot;
+      todayCash += paid;
+    }
+  });
+
+  let todayExpenses = 0;
+  let totalExpensesAll = 0;
+  eList.forEach(e => {
+    const amt = Number(e.amount || 0);
+    totalExpensesAll += amt;
+    if (e.created_at && e.created_at.startsWith(todayStr)) {
+      todayExpenses += amt;
+    }
+  });
+
+  const statSales = document.getElementById("statSales"); if(statSales) statSales.textContent = toArabicDigits(money(todaySales)) + " ج.م";
+  const statExpenses = document.getElementById("statExpenses"); if(statExpenses) statExpenses.textContent = toArabicDigits(money(todayExpenses)) + " ج.م";
+  const statCashToday = document.getElementById("statCashToday"); if(statCashToday) statCashToday.textContent = toArabicDigits(money(todayCash - todayExpenses)) + " ج.م";
+
+  const totalSalesEl = document.getElementById("totalSalesElement"); if(totalSalesEl) totalSalesEl.textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
+  const totalExpEl = document.getElementById("totalExpensesElement"); if(totalExpEl) totalExpEl.textContent = toArabicDigits(money(totalExpensesAll)) + " ج.م";
+  
+  const netProfit = totalSalesAll - totalBuyVal; // تقريبي عام
+  const netProfitEl = document.getElementById("netProfitElement"); if(netProfitEl) netProfitEl.textContent = toArabicDigits(money(netProfit)) + " ج.م";
+
+  // حساب أرباح المبيعات الفعلية من قاعدة البيانات عبر بنود الفواتير
+  let totalInvoicesRealProfit = 0;
+  for (const inv of iList) {
+    const { data: invItems } = await sb.from("invoice_items").select("*").eq("invoice_id", inv.id);
+    if (invItems) {
+      for (const it of invItems) {
         const lineRev = Number(it.quantity) * Number(it.unit_price);
-        let bPrice = 0;
-        const pObj = pList.find(p => p.id === it.product_id);
-        if (pObj) bPrice = Number(pObj.buy_price || 0);
-        totalAllNetProfit += (lineRev - (Number(it.quantity) * bPrice));
+        let buy = 0;
+        if (it.product_id) {
+          const foundP = pList.find(x => x.id === it.product_id);
+          if (foundP) buy = Number(foundP.buy_price || 0);
+        }
+        totalInvoicesRealProfit += lineRev - (Number(it.quantity) * buy);
       }
     }
-    const dashNetProfitEl = document.getElementById("dashboardNetProfit");
-    if (dashNetProfitEl) dashNetProfitEl.textContent = toArabicDigits(money(totalAllNetProfit)) + " ج.م";
+  }
 
-    const netProfit = totalSalesAll - totalBuyStock;
-    const netProfitEl = document.getElementById("netProfitElement"); if(netProfitEl) netProfitEl.textContent = toArabicDigits(money(netProfit)) + " ج.م";
+  const dashNetProfit = document.getElementById("dashboardNetProfit");
+  if (dashNetProfit) dashNetProfit.textContent = toArabicDigits(money(totalInvoicesRealProfit)) + " ج.م";
 
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const todayInvs = (invs || []).filter(i => i.created_at && i.created_at.startsWith(todayStr));
-    const todaySalesAmount = todayInvs.reduce((sum, x) => sum + Number(x.total || 0), 0);
-    const tickerEl = document.getElementById("activityTickerText");
-    if (tickerEl) {
-      tickerEl.textContent = `حركة اليوم ممتازة: تم تسجيل ${toArabicDigits(todayInvs.length)} فاتورة اليوم بإجمالي مبيعات ${toArabicDigits(money(todaySalesAmount))} ج.م`;
-    }
+  const clientMapAmount = {};
+  const clientMapCount = {};
+  iList.forEach(i => {
+    const cName = i.customer_name || "عميل نقدي";
+    clientMapAmount[cName] = (clientMapAmount[cName] || 0) + Number(i.total || 0);
+    clientMapCount[cName] = (clientMapCount[cName] || 0) + 1;
+  });
 
-    const clientStats = {};
-    (invs || []).forEach(inv => {
-      const cName = inv.customer_name || "غير معروف";
-      if (!clientStats[cName]) clientStats[cName] = { count: 0, maxAmount: 0 };
-      clientStats[cName].count += 1;
-      if (Number(inv.total) > clientStats[cName].maxAmount) clientStats[cName].maxAmount = Number(inv.total);
-    });
+  const sortedByAmount = Object.keys(clientMapAmount).sort((a,b) => clientMapAmount[b] - clientMapAmount[a]).slice(0, 3);
+  const sortedByCount = Object.keys(clientMapCount).sort((a,b) => clientMapCount[b] - clientMapCount[a]).slice(0, 3);
 
-    let topByAmount = { name: "---", val: 0 };
-    let topByCount = { name: "---", val: 0 };
+  const topAmtEl = document.getElementById("topClientByAmount");
+  if (topAmtEl) {
+    topAmtEl.innerHTML = sortedByAmount.length ? sortedByAmount.map(c => `<div>⭐ <b>${esc(c)}</b> (${money(clientMapAmount[c])} ج.م)</div>`).join("") : "لا توجد بيانات";
+  }
 
-    for (const [name, stats] of Object.entries(clientStats)) {
-      if (stats.maxAmount > topByAmount.val) topByAmount = { name, val: stats.maxAmount };
-      if (stats.count > topByCount.val) topByCount = { name, val: stats.count };
-    }
+  const topCountEl = document.getElementById("topClientByCount");
+  if (topCountEl) {
+    topCountEl.innerHTML = sortedByCount.length ? sortedByCount.map(c => `<div>🏆 <b>${esc(c)}</b> (${toArabicDigits(clientMapCount[c])} فاتورة)</div>`).join("") : "لا توجد بيانات";
+  }
 
-    const amountDiv = document.getElementById("topClientByAmount");
-    const countDiv = document.getElementById("topClientByCount");
-    if (amountDiv && countDiv) {
-      if (Object.keys(clientStats).length > 0) {
-        amountDiv.innerHTML = `<b>${esc(topByAmount.name)}</b><br><span style="color:#64748b;">قيمة أقوى فاتورة: ${toArabicDigits(money(topByAmount.val))} ج.م</span>`;
-        countDiv.innerHTML = `<b>${esc(topByCount.name)}</b><br><span style="color:#64748b;">عدد الفواتير: ${toArabicDigits(topByCount.val)} فاتورة</span>`;
-      } else {
-        amountDiv.textContent = "لا توجد بيانات بعد";
-        countDiv.textContent = "لا توجد بيانات بعد";
-      }
-    }
-    
-    const lowProds = pList.filter(p => Number(p.quantity || 0) <= Number(p.min_quantity || 0));
-    const lowStockDiv = document.getElementById("lowStock");
-    if (lowStockDiv) {
-      lowStockDiv.innerHTML = lowProds.length ? lowProds.map(p => `<div>⚠️ صنف (${esc(p.name)}) وصل للكمية الحالية (${p.quantity}) ويجب إعادة توريده فوراً!</div>`).join("") : "ممتاز! لا توجد أصناف ناقصة حالياً.";
-    }
-  } catch (err) {
-    console.error("Dashboard refresh error: ", err);
+  const ticker = document.getElementById("activityTickerText");
+  if (ticker) {
+    ticker.textContent = `إجمالي المبيعات اليوم: ${money(todaySales)} ج.م | المصروفات اليومية: ${money(todayExpenses)} ج.م | عدد الأصناف بالمخزن: ${pList.length} صنف`;
   }
 }
 
 function money(val) {
-  return Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const num = Number(val) || 0;
+  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function esc(str) {
-  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  if (!str) return "";
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 </script>
 </body>
