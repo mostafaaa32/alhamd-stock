@@ -883,6 +883,16 @@ function toArabicDigits(input) {
   return str.replace(/[0-9]/g, d => arabicNumbers[parseInt(d)]);
 }
 
+function esc(str) {
+  if (!str) return "";
+  return String(str).replace(/"/g, '&quot;').replace(్‌‌/g, '');
+}
+
+function money(val) {
+  const n = Number(val) || 0;
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
   document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".tab-page").forEach(s => s.classList.add("hidden"));
@@ -2018,173 +2028,161 @@ async function openCustomerStatement(customerName) {
 
   document.getElementById("stDetailedInvoicesContainer").innerHTML = containerHtml;
   document.getElementById("stTotalDebt").textContent = toArabicDigits(money(totalDebt)) + " ج.م";
-
-  let waText = `مرحباً بك يا ${customerName}\nإليك تفاصيل كشف حسابك من ${storeSettings.store_name}:\n---------------------------\n`;
-  for (const inv of invs) {
-    waText += `📌 فاتورة رقم: ${inv.invoice_code || inv.id.slice(0,6)}\n`;
-    waText += `• المتبقي: ${money(inv.remaining)} ج.م (الإجمالي: ${money(inv.total)} - المدفوع: ${money(inv.paid)})\n`;
-  }
-  waText += `---------------------------\n💰 إجمالي الديون المستحقة عليك: ${money(totalDebt)} ج.م\nنعتز بخدمتكم دائماً.`;
-
-  window.currentStatementWhatsappText = waText;
-  window.currentStatementPhone = invs[0].customer_phone || "";
-
   document.getElementById("statementModal").style.display = "flex";
 }
 
-function sendStatementWhatsapp() {
-  const phone = window.currentStatementPhone || "";
-  const text = encodeURIComponent(window.currentStatementWhatsappText || "");
-  const cleanPhone = phone.replace(/\D/g, '');
-  const finalPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone;
-  if (!finalPhone || finalPhone.length < 10) return alert("رقم هاتف العميل غير صحيح أو غير مسجل!");
-  window.open(`https://wa.me/${finalPhone}?text=${text}`, '_blank');
+async function sendStatementWhatsapp() {
+  const name = document.getElementById("stCustomerName").textContent;
+  const phone = document.getElementById("stCustomerPhone").textContent;
+  const totalDebt = document.getElementById("stTotalDebt").textContent;
+  
+  if (!phone || phone === "---") return alert("رقم هاتف العميل غير متوفر لإرسال الواتساب.");
+  
+  let formattedPhone = phone.startsWith("0") ? "+2" + phone : phone;
+  const msg = `مرحباً بك يا فندم (${name}) من ${storeSettings.store_name} 🏗️\nنود التذكير بأن إجمالي المديونية المستحقة لديكم حتى تاريخه هو: *${totalDebt}*.\nنتمنى دائماً خدمتكم، ولأي استفسار يسعدنا تواصلكم معنا. ❤️`;
+  
+  window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
-async function sendDebtReminderWhatsapp(customerName) {
-  const { data: invs } = await sb.from("invoices").select("*").eq("customer_name", customerName).gt("remaining", 0);
-  if (!invs || invs.length === 0) return alert("لا توجد ديون مستحقة لهذا العميل");
-
-  let totalDebt = 0;
-  let waText = `مرحباً بك يا ${customerName}\nتذكير ودي من ${storeSettings.store_name} بالفواتير المستحقة:\n---------------------------\n`;
-  for (const inv of invs) {
-    totalDebt += Number(inv.remaining || 0);
-    waText += `📌 فاتورة (${inv.invoice_code || inv.id.slice(0,6)}): متبقي ${money(inv.remaining)} ج.م\n`;
+async function sendDebtReminderWhatsapp(name) {
+  const { data: invs } = await sb.from("invoices").select("*").eq("customer_name", name).gt("remaining", 0);
+  if (!invs || invs.length === 0) return alert("لا توجد ديون مستحقة على هذا العميل.");
+  
+  let totalDebt = invs.reduce((sum, i) => sum + Number(i.remaining || 0), 0);
+  let phone = invs[0].customer_phone || "";
+  if (!phone || phone === "---") {
+    phone = prompt(`أدخل رقم هاتف العميل (${name}) لإرسال رسالة الواتساب:`, "");
+    if (!phone) return;
   }
-  waText += `---------------------------\n💰 إجمالي المستحق: ${money(totalDebt)} ج.م\nشكراً لتعاونكم معنا.`;
 
-  const phone = invs[0].customer_phone || "";
-  const cleanPhone = phone.replace(/\D/g, '');
-  const finalPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone;
-  if (!finalPhone || finalPhone.length < 10) return alert("رقم هاتف العميل غير مسجل بشكل صحيح!");
-  window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(waText)}`, '_blank');
+  let formattedPhone = phone.startsWith("0") ? "+2" + phone : phone;
+  const msg = `مرحباً بك يا فندم (${name}) من ${storeSettings.store_name} 🏗️\nنود التذكير بوجود مديونية مستحقة لديكم بقيمة: *${money(totalDebt)} ج.م*.\nشاكرين تعاونكم معنا ودعمكم المستمر. ❤️`;
+  window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 async function refreshDashboard() {
   const { data: prods } = await sb.from("products").select("*");
-  const { data: invs } = await sb.from("invoices").select("*");
-  const { data: exps } = await sb.from("expenses").select("*");
-
-  const pList = prods || [];
-  const iList = invs || [];
-  const eList = exps || [];
-
-  const statProducts = document.getElementById("statProducts");
-  if(statProducts) statProducts.textContent = toArabicDigits(pList.length);
-
-  let totalBuyVal = 0;
-  let totalSellVal = 0;
+  const productList = prods || [];
+  
+  const totalProductsCount = productList.length;
+  let totalBuyStock = 0;
+  let totalSellStock = 0;
   let lowStockCount = 0;
   let lowStockHtml = "";
 
-  pList.forEach(p => {
+  productList.forEach(p => {
     const qty = Number(p.quantity || 0);
     const minQty = Number(p.min_quantity || 0);
-    totalBuyVal += qty * (Number(p.buy_price) || 0);
-    totalSellVal += qty * (Number(p.sell_price) || 0);
+    totalBuyStock += qty * (Number(p.buy_price) || 0);
+    totalSellStock += qty * (Number(p.sell_price) || 0);
+    
     if (qty <= minQty) {
       lowStockCount++;
-      lowStockHtml += `<div style="padding: 6px; border-bottom: 1px solid #eee;">⚠️ الصنف: <b>${esc(p.name)}</b> (المتبقي: ${toArabicDigits(qty)} ${esc(p.unit)})</div>`;
+      lowStockHtml += `<div style="padding: 6px; border-bottom: 1px solid #eee; color: #c0392b;">⚠️️ الصنف: <b>${esc(p.name)}</b> (المخزون الحالي: ${toArabicDigits(qty)} ${esc(p.unit)}) - الحد الأدنى: ${toArabicDigits(minQty)}</div>`;
     }
   });
 
-  const statStock = document.getElementById("statStock"); if(statStock) statStock.textContent = toArabicDigits(money(totalBuyVal)) + " ج.م";
-  const statSellStock = document.getElementById("statSellStock"); if(statSellStock) statSellStock.textContent = toArabicDigits(money(totalSellVal)) + " ج.م";
-  const statLow = document.getElementById("statLow"); if(statLow) statLow.textContent = toArabicDigits(lowStockCount);
-  
-  const lowStockEl = document.getElementById("lowStock");
-  if(lowStockEl) lowStockEl.innerHTML = lowStockHtml || "لا توجد أصناف وصلت للحد الأدنى حالياً ✨";
+  const statProductsEl = document.getElementById("statProducts"); if(statProductsEl) statProductsEl.textContent = toArabicDigits(totalProductsCount);
+  const statStockEl = document.getElementById("statStock"); if(statStockEl) statStockEl.textContent = toArabicDigits(money(totalBuyStock)) + " ج.م";
+  const statSellStockEl = document.getElementById("statSellStock"); if(statSellStockEl) statSellStockEl.textContent = toArabicDigits(money(totalSellStock)) + " ج.م";
+  const statLowEl = document.getElementById("statLow"); if(statLowEl) statLowEl.textContent = toArabicDigits(lowStockCount);
 
+  const lowStockContainer = document.getElementById("lowStock");
+  if (lowStockContainer) {
+    lowStockContainer.innerHTML = lowStockHtml || '<div style="color: #27ae60;">✨ ممتاز! جميع الأصناف في المخزن تتجاوز الحد الأدنى الآمن.</div>';
+  }
+
+  const { data: invs } = await sb.from("invoices").select("*");
+  const invoicesList = invs || [];
+  
   const todayStr = new Date().toISOString().slice(0, 10);
   let todaySales = 0;
-  let todayCash = 0;
-  let totalSalesAll = 0;
+  let totalSalesGeneral = 0;
+  const clientAmountMap = {};
+  const clientCountMap = {};
 
-  iList.forEach(i => {
-    const tot = Number(i.total || 0);
-    const paid = Number(i.paid || 0);
-    totalSalesAll += tot;
-    if (i.created_at && i.created_at.startsWith(todayStr)) {
-      todaySales += tot;
-      todayCash += paid;
+  invoicesList.forEach(inv => {
+    const invTotal = Number(inv.total || 0);
+    totalSalesGeneral += invTotal;
+    
+    if (inv.created_at && inv.created_at.startsWith(todayStr)) {
+      todaySales += invTotal;
+    }
+
+    const cName = inv.customer_name || "عميل نقدي";
+    if (cName !== "عميل نقدي") {
+      clientAmountMap[cName] = (clientAmountMap[cName] || 0) + invTotal;
+      clientCountMap[cName] = (clientCountMap[cName] || 0) + 1;
     }
   });
 
+  const { data: exps } = await sb.from("expenses").select("*");
+  const expensesList = exps || [];
   let todayExpenses = 0;
-  let totalExpensesAll = 0;
-  eList.forEach(e => {
-    const amt = Number(e.amount || 0);
-    totalExpensesAll += amt;
+  let totalExpensesGeneral = 0;
+
+  expensesList.forEach(e => {
+    const eAmt = Number(e.amount || 0);
+    totalExpensesGeneral += eAmt;
     if (e.created_at && e.created_at.startsWith(todayStr)) {
-      todayExpenses += amt;
+      todayExpenses += eAmt;
     }
   });
 
-  const statSales = document.getElementById("statSales"); if(statSales) statSales.textContent = toArabicDigits(money(todaySales)) + " ج.م";
-  const statExpenses = document.getElementById("statExpenses"); if(statExpenses) statExpenses.textContent = toArabicDigits(money(todayExpenses)) + " ج.م";
-  const statCashToday = document.getElementById("statCashToday"); if(statCashToday) statCashToday.textContent = toArabicDigits(money(todayCash - todayExpenses)) + " ج.م";
+  let todayCashIn = 0;
+  invoicesList.forEach(inv => {
+    if (inv.created_at && inv.created_at.startsWith(todayStr)) {
+      todayCashIn += Number(inv.paid || 0);
+    }
+  });
 
-  const totalSalesEl = document.getElementById("totalSalesElement"); if(totalSalesEl) totalSalesEl.textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
-  const totalExpEl = document.getElementById("totalExpensesElement"); if(totalExpEl) totalExpEl.textContent = toArabicDigits(money(totalExpensesAll)) + " ج.م";
+  const cashToday = todayCashIn - todayExpenses;
+
+  const statSalesEl = document.getElementById("statSales"); if(statSalesEl) statSalesEl.textContent = toArabicDigits(money(todaySales)) + " ج.م";
+  const statExpensesEl = document.getElementById("statExpenses"); if(statExpensesEl) statExpensesEl.textContent = toArabicDigits(money(todayExpenses)) + " ج.م";
+  const statCashTodayEl = document.getElementById("statCashToday"); if(statCashTodayEl) statCashTodayEl.textContent = toArabicDigits(money(cashToday)) + " ج.م";
+
+  const totalSalesEl = document.getElementById("totalSalesElement"); if(totalSalesEl) totalSalesEl.textContent = toArabicDigits(money(totalSalesGeneral)) + " ج.م";
+  const totalExpEl = document.getElementById("totalExpensesElement"); if(totalExpEl) totalExpEl.textContent = toArabicDigits(money(totalExpensesGeneral)) + " ج.م";
   
-  const netProfit = totalSalesAll - totalBuyVal; // تقريبي عام
-  const netProfitEl = document.getElementById("netProfitElement"); if(netProfitEl) netProfitEl.textContent = toArabicDigits(money(netProfit)) + " ج.م";
+  const netProfitApprox = totalSalesGeneral - totalBuyStock;
+  const netProfitEl = document.getElementById("netProfitElement"); if(netProfitEl) netProfitEl.textContent = toArabicDigits(money(netProfitApprox)) + " ج.م";
 
-  // حساب أرباح المبيعات الفعلية من قاعدة البيانات عبر بنود الفواتير
-  let totalInvoicesRealProfit = 0;
-  for (const inv of iList) {
-    const { data: invItems } = await sb.from("invoice_items").select("*").eq("invoice_id", inv.id);
-    if (invItems) {
-      for (const it of invItems) {
-        const lineRev = Number(it.quantity) * Number(it.unit_price);
-        let buy = 0;
-        if (it.product_id) {
-          const foundP = pList.find(x => x.id === it.product_id);
-          if (foundP) buy = Number(foundP.buy_price || 0);
-        }
-        totalInvoicesRealProfit += lineRev - (Number(it.quantity) * buy);
+  // حساب صافي أرباح المبيعات الكلي الفعلي من بنود الفواتير وتكلفة الشراء
+  let trueTotalNetProfit = 0;
+  const { data: allItems } = await sb.from("invoice_items").select("*");
+  if (allItems) {
+    allItems.forEach(it => {
+      const lineRev = Number(it.quantity || 0) * Number(it.unit_price || 0);
+      let buyP = 0;
+      if (it.product_id) {
+        const foundP = productList.find(p => p.id === it.product_id);
+        if (foundP) buyP = Number(foundP.buy_price || 0);
       }
-    }
+      trueTotalNetProfit += lineRev - (Number(it.quantity || 0) * buyP);
+    });
+  }
+  const dashboardNetProfitEl = document.getElementById("dashboardNetProfit");
+  if (dashboardNetProfitEl) dashboardNetProfitEl.textContent = toArabicDigits(money(trueTotalNetProfit)) + " ج.م";
+
+  // ترتيب أهم العملاء حسب الأعلى قيمة
+  const sortedByAmount = Object.keys(clientAmountMap).sort((a, b) => clientAmountMap[b] - clientAmountMap[a]).slice(0, 5);
+  const topClientByAmountEl = document.getElementById("topClientByAmount");
+  if (topClientByAmountEl) {
+    topClientByAmountEl.innerHTML = sortedByAmount.length ? sortedByAmount.map(name => `<div>👤 <b>${esc(name)}</b>: ${money(clientAmountMap[name])} ج.م</div>`).join("") : "لا توجد بيانات عملاء كافية";
   }
 
-  const dashNetProfit = document.getElementById("dashboardNetProfit");
-  if (dashNetProfit) dashNetProfit.textContent = toArabicDigits(money(totalInvoicesRealProfit)) + " ج.م";
-
-  const clientMapAmount = {};
-  const clientMapCount = {};
-  iList.forEach(i => {
-    const cName = i.customer_name || "عميل نقدي";
-    clientMapAmount[cName] = (clientMapAmount[cName] || 0) + Number(i.total || 0);
-    clientMapCount[cName] = (clientMapCount[cName] || 0) + 1;
-  });
-
-  const sortedByAmount = Object.keys(clientMapAmount).sort((a,b) => clientMapAmount[b] - clientMapAmount[a]).slice(0, 3);
-  const sortedByCount = Object.keys(clientMapCount).sort((a,b) => clientMapCount[b] - clientMapCount[a]).slice(0, 3);
-
-  const topAmtEl = document.getElementById("topClientByAmount");
-  if (topAmtEl) {
-    topAmtEl.innerHTML = sortedByAmount.length ? sortedByAmount.map(c => `<div>⭐ <b>${esc(c)}</b> (${money(clientMapAmount[c])} ج.م)</div>`).join("") : "لا توجد بيانات";
+  // ترتيب أهم العملاء حسب كثرة الفواتير
+  const sortedByCount = Object.keys(clientCountMap).sort((a, b) => clientCountMap[b] - clientCountMap[a]).slice(0, 5);
+  const topClientByCountEl = document.getElementById("topClientByCount");
+  if (topClientByCountEl) {
+    topClientByCountEl.innerHTML = sortedByCount.length ? sortedByCount.map(name => `<div>👤 <b>${esc(name)}</b>: ${toArabicDigits(clientCountMap[name])} فواتير</div>`).join("") : "لا توجد بيانات عملاء كافية";
   }
 
-  const topCountEl = document.getElementById("topClientByCount");
-  if (topCountEl) {
-    topCountEl.innerHTML = sortedByCount.length ? sortedByCount.map(c => `<div>🏆 <b>${esc(c)}</b> (${toArabicDigits(clientMapCount[c])} فاتورة)</div>`).join("") : "لا توجد بيانات";
+  const tickerText = document.getElementById("activityTickerText");
+  if (tickerText) {
+    tickerText.textContent = `حركة اليوم: تم إنجاز ${toArabicDigits(invoicesList.filter(i => i.created_at && i.created_at.startsWith(todayStr)).length)} فاتورة اليوم بإجمالي مبيعات ${money(todaySales)} ج.م. إجمالي مديونيات العملاء النشطة بالمكتب قيد المتابعة.`;
   }
-
-  const ticker = document.getElementById("activityTickerText");
-  if (ticker) {
-    ticker.textContent = `إجمالي المبيعات اليوم: ${money(todaySales)} ج.م | المصروفات اليومية: ${money(todayExpenses)} ج.م | عدد الأصناف بالمخزن: ${pList.length} صنف`;
-  }
-}
-
-function money(val) {
-  const num = Number(val) || 0;
-  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function esc(str) {
-  if (!str) return "";
-  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 </script>
 </body>
