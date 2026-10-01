@@ -399,6 +399,11 @@
           <div><b>رقم الهاتف:</b> <span id="prevCustomerPhone">---</span></div>
         </div>
 
+        <!-- 4. خانة ملاحظات الفاتورة تظهر أسفل بيانات العميل في المعاينة والطباعة -->
+        <div id="prevNotesRow" style="margin-bottom: 15px; background: #fffbeb; padding: 10px; border-radius: 6px; border: 1px solid #fef3c7; font-size: 14px; display: none;">
+          <b>ملاحظات الفاتورة:</b> <span id="prevNotesText">---</span>
+        </div>
+
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 14px;" border="1">
           <thead>
             <tr style="background: #0f233c; color: #fff;">
@@ -539,6 +544,11 @@
               <span>صافي الربح التقريبي</span>
               <b id="netProfitElement" style="color: #3498db;">٠٫٠٠ ج.م</b>
             </div>
+            <!-- 5. صافي الربح في الصفحة الرئيسية -->
+            <div class="stat card" style="border-top: 4px solid #f39c12;">
+              <span>صافي أرباح المبيعات الكلي</span>
+              <b id="dashboardNetProfit" style="color: #f39c12;">٠٫٠٠ ج.م</b>
+            </div>
           </div>
 
           <div class="grid two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
@@ -578,6 +588,12 @@
                   <label style="font-size: 13px; font-weight: bold; color: #555;">هاتف العميل:</label>
                   <input id="customerPhone" placeholder="مثال: 01012345678" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;">
                 </div>
+              </div>
+
+              <!-- 4. إضافة خانة ملاحظات للفاتورة تظهر أسفل بيانات العميل -->
+              <div style="margin-top: 10px;">
+                <label style="font-size: 13px; font-weight: bold; color: #555;">ملاحظات الفاتورة:</label>
+                <input id="invoiceNotes" placeholder="أدخل أي ملاحظات خاصة بالفاتورة..." style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;">
               </div>
 
               <div class="grid two" style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -881,7 +897,6 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
 }));
 
 window.addEventListener("DOMContentLoaded", async () => {
-  // تفعيل Select2 لعنصر اختيار المنتجات في الفاتورة
   $('#invoiceProduct').select2({
       placeholder: "ابحث عن الصنف بالاسم...",
       allowClear: true,
@@ -1167,7 +1182,6 @@ function fillInvoiceProducts() {
   const sel = document.getElementById("invoiceProduct");
   if (!sel) return;
   sel.innerHTML = '<option value="">اكتب أو اختر الصنف...</option>' + products.map(p => `<option value="${p.id}">${esc(p.name)} (المتاح: ${p.quantity}) - ${p.sell_price} ج.م</option>`).join("");
-  // تحديث Select2 ليقوم بعرض العناصر الجديدة المحدثة
   $('#invoiceProduct').trigger('change');
 }
 
@@ -1195,21 +1209,56 @@ function addInvoiceItem() {
   const prod = products.find(x => x.id === pId);
   if (!prod) return alert("اختر صنف صحيح");
 
-  const existing = invoiceItems.find(x => x.product_id === pId);
-  if (existing) {
-    existing.quantity += qty;
-  } else {
-    invoiceItems.push({ product_id: prod.id, name: prod.name, quantity: qty, unit_price: Number(prod.sell_price) || 0 });
+  // 3. التحقق من عدم وجود زيادة في العدد داخل الفاتورة بحيث لا يكون أكبر من الكمية المتاحة
+  const existingItem = invoiceItems.find(x => x.product_id === pId);
+  const currentInListQty = existingItem ? existingItem.quantity : 0;
+  const availableStock = Number(prod.quantity || 0);
+
+  if ((currentInListQty + qty) > availableStock) {
+    return alert(`عذراً، الكمية المطلوبة غير متوفرة بالكامل في المخزن! المتاح حالياً للصنف (${prod.name}) هو: ${availableStock}`);
   }
+
+  if (existingItem) {
+    existingItem.quantity += qty;
+  } else {
+    invoiceItems.push({ 
+      product_id: prod.id, 
+      name: prod.name, 
+      quantity: qty, 
+      unit_price: Number(prod.sell_price) || 0,
+      buy_price: Number(prod.buy_price) || 0 // لحساب الربح
+    });
+  }
+  
+  // 2. إعادة ضبط أو إفراغ خانات الإدخال بعد إضافة البند
+  qInput.value = "1";
+  $(pSelect).val(null).trigger('change');
+
   renderInvoice();
 }
 
 function changeItemQty(index, delta) {
   if (!invoiceItems[index]) return;
-  invoiceItems[index].quantity += delta;
-  if (invoiceItems[index].quantity <= 0) {
-    invoiceItems[index].quantity = 1;
+  const item = invoiceItems[index];
+  const prod = products.find(x => x.id === item.product_id);
+  const availableStock = prod ? Number(prod.quantity || 0) : 999999;
+
+  const newQty = item.quantity + delta;
+  if (newQty <= 0) {
+    item.quantity = 1;
+    renderInvoice();
+    return;
   }
+
+  // التحقق من الكمية عند الزيادة
+  if (delta > 0 && prod) {
+    // الكمية الحالية في المخزن + ما تم حجزه في الفاتورة (تقريبي أو متاح)
+    if (newQty > availableStock) {
+      return alert(`عذراً، الكمية المطلوبة تتجاوز المتاح في المخزن (${availableStock})!`);
+    }
+  }
+
+  item.quantity = newQty;
   renderInvoice();
 }
 
@@ -1297,6 +1346,7 @@ function previewCurrentInvoice() {
   
   const cName = document.getElementById("customerName").value.trim() || "عميل نقدي";
   const cPhone = document.getElementById("customerPhone").value.trim() || "---";
+  const cNotes = document.getElementById("invoiceNotes").value.trim();
   const invCode = document.getElementById("invoiceCodeInput").value.trim() || "#00125";
   const invDate = document.getElementById("invoiceDateTime").value ? new Date(document.getElementById("invoiceDateTime").value).toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG');
   
@@ -1308,6 +1358,16 @@ function previewCurrentInvoice() {
   document.getElementById("prevInvDate").textContent = invDate;
   document.getElementById("prevCustomerName").textContent = cName;
   document.getElementById("prevCustomerPhone").textContent = cPhone;
+
+  // إظهار الملاحظات في المعاينة إذا كانت موجودة
+  const notesRow = document.getElementById("prevNotesRow");
+  const notesText = document.getElementById("prevNotesText");
+  if (cNotes) {
+    notesText.textContent = cNotes;
+    notesRow.style.display = "block";
+  } else {
+    notesRow.style.display = "none";
+  }
 
   let subTotal = 0;
   const itemsHtml = invoiceItems.map((it, idx) => {
@@ -1370,6 +1430,15 @@ async function previewExistingInvoice(invoiceId) {
   document.getElementById("prevCustomerName").textContent = inv.customer_name || "عميل نقدي";
   document.getElementById("prevCustomerPhone").textContent = inv.customer_phone || "---";
 
+  const notesRow = document.getElementById("prevNotesRow");
+  const notesText = document.getElementById("prevNotesText");
+  if (inv.notes) {
+    notesText.textContent = inv.notes;
+    notesRow.style.display = "block";
+  } else {
+    notesRow.style.display = "none";
+  }
+
   let subTotal = 0;
   const itemsHtml = (items || []).map((it, idx) => {
     const lineTot = Number(it.quantity) * Number(it.unit_price);
@@ -1413,9 +1482,12 @@ async function saveInvoice() {
   
   const cNameEl = document.getElementById("customerName");
   const cPhoneEl = document.getElementById("customerPhone");
+  const cNotesEl = document.getElementById("invoiceNotes");
   const codeInp = document.getElementById("invoiceCodeInput");
+
   const customerName = cNameEl && cNameEl.value.trim() ? cNameEl.value.trim() : "عميل نقدي";
   const customerPhone = cPhoneEl && cPhoneEl.value.trim() ? cPhoneEl.value.trim() : "---";
+  const notes = cNotesEl ? cNotesEl.value.trim() : "";
   const invoiceCode = codeInp && codeInp.value.trim() ? codeInp.value.trim() : `#${Math.floor(10000 + Math.random() * 90000)}`;
   
   let subTotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
@@ -1452,6 +1524,7 @@ async function saveInvoice() {
     await sb.from("invoices").update({
       customer_name: customerName,
       customer_phone: customerPhone,
+      notes: notes,
       total: total,
       paid: paid,
       remaining: remaining
@@ -1493,6 +1566,7 @@ async function saveInvoice() {
     invoice_code: invoiceCode,
     customer_name: customerName,
     customer_phone: customerPhone,
+    notes: notes,
     total: total,
     paid: paid,
     remaining: remaining
@@ -1533,6 +1607,7 @@ function clearInvoiceItemsOnly() {
   invoiceItems = [];
   const cName = document.getElementById("customerName"); if(cName) cName.value = "";
   const cPhone = document.getElementById("customerPhone"); if(cPhone) cPhone.value = "";
+  const cNotes = document.getElementById("invoiceNotes"); if(cNotes) cNotes.value = "";
   const iDisc = document.getElementById("invoiceDiscount"); if(iDisc) iDisc.value = "";
   const aPaid = document.getElementById("amountPaid"); if(aPaid) aPaid.value = "0";
   renderInvoice();
@@ -1561,12 +1636,102 @@ async function loadInvoices() {
         <td>${new Date(inv.created_at).toLocaleString('ar-EG')}</td>
         <td>
           <button class="btn-preview" onclick="previewExistingInvoice('${inv.id}')">👁️ معاينة</button>
+          <button style="background-color: #e67e22; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-left: 4px;" onclick="openReturnModal('${inv.id}', '${esc(inv.invoice_code || inv.id.slice(0,8))}')">🔄 مرتجع</button>
+          <button style="background-color: #8e44ad; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-left: 4px;" onclick="calculateInvoiceNetProfit('${inv.id}')">📈 صافي الربح</button>
           <button class="btn-pay" onclick="collectDebt('${inv.id}', ${inv.remaining}, '${esc(inv.customer_name)}')">تحصيل</button>
           <button class="btn-edit small" onclick="editInvoice('${inv.id}')">تعديل</button>
           <button class="danger small" onclick="deleteInvoice('${inv.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">حذف</button>
         </td>
       </tr>`).join("");
   }
+}
+
+// 1. وظيفة زر المرتجع لخصم الصنف وارجاعه للمخزن
+async function openReturnModal(invoiceId, invoiceCode) {
+  const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", invoiceId);
+  if (!items || items.length === 0) return alert("لا توجد بنود مرتبطة بهذه الفاتورة.");
+
+  let itemsPromptList = items.map((it, i) => `${i + 1}. ${it.product_name} (الكمية المباعة: ${it.quantity})`).join("\n");
+  const chosenIndexStr = prompt(`اختر رقم البند المراد إرجاعه من الفاتورة (${invoiceCode}):\n${itemsPromptList}`);
+  if (chosenIndexStr === null) return;
+
+  const idx = parseInt(chosenIndexStr) - 1;
+  if (isNaN(idx) || !items[idx]) return alert("رقم البند غير صحيح.");
+
+  const targetItem = items[idx];
+  const returnQtyStr = prompt(`أدخل الكمية المراد إرجاعها للصنف (${targetItem.product_name}) - أقصى كمية: ${targetItem.quantity}:`, "1");
+  if (returnQtyStr === null) return;
+  const returnQty = parseInt(returnQtyStr);
+
+  if (isNaN(returnQty) || returnQty <= 0 || returnQty > targetItem.quantity) {
+    return alert("الكمية المدخلة غير صحيحة.");
+  }
+
+  if (!confirm(`هل أنت متأكد من إرجاع عدد (${returnQty}) من صنف (${targetItem.product_name})؟ سيتم تعديل إجمالي الفاتورة وإرجاع الكمية للمخزن.`)) return;
+
+  // إرجاع الكمية للمخزن
+  if (targetItem.product_id) {
+    const prod = products.find(p => p.id === targetItem.product_id);
+    if (prod) {
+      const restoredQty = Number(prod.quantity || 0) + returnQty;
+      await sb.from("products").update({ quantity: restoredQty }).eq("id", prod.id);
+    }
+  }
+
+  // تحديث أو حذف بند الفاتورة
+  if (returnQty === targetItem.quantity) {
+    await sb.from("invoice_items").delete().eq("id", targetItem.id);
+  } else {
+    const newQty = targetItem.quantity - returnQty;
+    const newTotalLine = newQty * Number(targetItem.unit_price);
+    await sb.from("invoice_items").update({ quantity: newQty, total: newTotalLine }).eq("id", targetItem.id);
+  }
+
+  // إعادة حساب إجمالي الفاتورة الرئيسية
+  const { data: remainingItems } = await sb.from("invoice_items").select("*").eq("invoice_id", invoiceId);
+  const newSubTotal = (remainingItems || []).reduce((sum, x) => sum + Number(x.total || 0), 0);
+  
+  const { data: invData } = await sb.from("invoices").select("*").eq("id", invoiceId).single();
+  const oldTotal = Number(invData.total || 0);
+  const discountDiff = oldTotal > newSubTotal ? (oldTotal - newSubTotal) : 0;
+  const newFinalTotal = Math.max(0, newSubTotal);
+  const newRemaining = Math.max(0, newFinalTotal - Number(invData.paid || 0));
+
+  await sb.from("invoices").update({
+    total: newFinalTotal,
+    remaining: newRemaining
+  }).eq("id", invoiceId);
+
+  alert("✨ تم تنفيذ عملية المرتجع بنجاح وتحديث المخزن والفاتورة!");
+  loadInvoices();
+  loadProducts();
+  refreshDashboard();
+}
+
+// 5. صافي الربح لكل فاتورة منفصلة
+async function calculateInvoiceNetProfit(invoiceId) {
+  const { data: inv } = await sb.from("invoices").select("*").eq("id", invoiceId).single();
+  const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", invoiceId);
+  if (!inv || !items) return alert("تعذر جلب تفاصيل الفاتورة.");
+
+  let totalRevenue = 0;
+  let totalCost = 0;
+
+  for (const it of items) {
+    const lineRevenue = Number(it.quantity) * Number(it.unit_price);
+    totalRevenue += lineRevenue;
+
+    // جلب سعر الشراء الحالي للصنف من المخزن
+    let buyPrice = 0;
+    if (it.product_id) {
+      const prod = products.find(p => p.id === it.product_id);
+      if (prod) buyPrice = Number(prod.buy_price || 0);
+    }
+    totalCost += Number(it.quantity) * buyPrice;
+  }
+
+  const netProfit = totalRevenue - totalCost;
+  alert(`📊 تقرير أرباح الفاتورة (${inv.invoice_code || invoiceId.slice(0,6)}):\n-----------------------------------\n🔹 إجمالي قيمة البيع: ${money(totalRevenue)} ج.م\n🔸 إجمالي تكلفة الشراء: ${money(totalCost)} ج.م\n✨ صافي المكسب من الفاتورة: ${money(netProfit)} ج.م`);
 }
 
 async function collectDebt(invoiceId, currentRemaining, customerName) {
@@ -1605,6 +1770,7 @@ async function editInvoice(invoiceId) {
 
   const cName = document.getElementById("customerName"); if(cName) cName.value = inv.customer_name || "";
   const cPhone = document.getElementById("customerPhone"); if(cPhone) cPhone.value = inv.customer_phone || "";
+  const cNotes = document.getElementById("invoiceNotes"); if(cNotes) cNotes.value = inv.notes || "";
   const cInput = document.getElementById("invoiceCodeInput"); if(cInput) cInput.value = inv.invoice_code || "";
   const aPaid = document.getElementById("amountPaid"); if(aPaid) aPaid.value = inv.paid || 0;
   
@@ -1784,6 +1950,7 @@ async function openCustomerStatement(customerName) {
           <span>فاتورة كود: ${esc(inv.invoice_code || inv.id.slice(0,6))}</span>
           <span>التاريخ: ${new Date(inv.created_at).toLocaleDateString('ar-EG')}</span>
         </div>
+        ${inv.notes ? `<div style="font-size: 13px; color: #b45309; background: #fffbeb; padding: 4px; border-radius: 4px; margin-bottom: 6px;">ملاحظات: ${esc(inv.notes)}</div>` : ''}
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;" border="1">
           <thead>
             <tr style="background: #f8fafc; font-size: 13px;">
@@ -1869,7 +2036,7 @@ async function refreshDashboard() {
     const statSellStock = document.getElementById("statSellStock"); if(statSellStock) statSellStock.textContent = toArabicDigits(money(totalSellStock)) + " ج.م";
     const statLow = document.getElementById("statLow"); if(statLow) statLow.textContent = toArabicDigits(lowCount);
 
-    const { data: invs } = await sb.from("invoices").select("total, created_at, paid, customer_name");
+    const { data: invs } = await sb.from("invoices").select("total, created_at, paid, customer_name, id");
     const totalSalesAll = (invs || []).reduce((sum, x) => sum + Number(x.total || 0), 0);
     const statSales = document.getElementById("statSales"); if(statSales) statSales.textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
     const totalSalesEl = document.getElementById("totalSalesElement"); if(totalSalesEl) totalSalesEl.textContent = toArabicDigits(money(totalSalesAll)) + " ج.م";
@@ -1878,6 +2045,21 @@ async function refreshDashboard() {
     const totalExpAll = (exps || []).reduce((sum, x) => sum + Number(x.amount || 0), 0);
     const statExpenses = document.getElementById("statExpenses"); if(statExpenses) statExpenses.textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
     const totalExpEl = document.getElementById("totalExpensesElement"); if(totalExpEl) totalExpEl.textContent = toArabicDigits(money(totalExpAll)) + " ج.م";
+
+    // 5. حساب إجمالي صافي الأرباح للمبيعات الكلية وعرضه في الصفحة الرئيسية
+    let totalAllNetProfit = 0;
+    const { data: allInvoiceItems } = await sb.from("invoice_items").select("*");
+    if (allInvoiceItems) {
+      for (const it of allInvoiceItems) {
+        const lineRev = Number(it.quantity) * Number(it.unit_price);
+        let bPrice = 0;
+        const pObj = pList.find(p => p.id === it.product_id);
+        if (pObj) bPrice = Number(pObj.buy_price || 0);
+        totalAllNetProfit += (lineRev - (Number(it.quantity) * bPrice));
+      }
+    }
+    const dashNetProfitEl = document.getElementById("dashboardNetProfit");
+    if (dashNetProfitEl) dashNetProfitEl.textContent = toArabicDigits(money(totalAllNetProfit)) + " ج.م";
 
     const netProfit = totalSalesAll - totalBuyStock;
     const netProfitEl = document.getElementById("netProfitElement"); if(netProfitEl) netProfitEl.textContent = toArabicDigits(money(netProfit)) + " ج.م";
