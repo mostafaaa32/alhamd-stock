@@ -356,6 +356,91 @@
         .grid.two { grid-template-columns: 1fr !important; }
       }
     </style>
+
+<style id="alhamd-premium-ui">
+:root{--ah-ink:#111827;--ah-navy:#172554;--ah-blue:#2563eb;--ah-gold:#d4a84f;--ah-bg:#f4f7fb;--ah-card:#fff;--ah-line:#e5e7eb;--ah-muted:#64748b;--ah-green:#16a34a;--ah-red:#dc2626;--ah-radius:18px;--ah-shadow:0 12px 35px rgba(15,23,42,.07)}
+html,body{background:var(--ah-bg)!important;color:var(--ah-ink)!important}
+body{font-family:'Cairo',sans-serif!important}
+#appView{display:flex!important;min-height:100vh!important;background:var(--ah-bg)!important}
+/* ===== SIDEBAR ===== */
+.sidebar{width:286px!important;background:linear-gradient(180deg,#101a35 0%,#172554 52%,#0f172a 100%)!important;border:0!important;box-shadow:-8px 0 35px rgba(15,23,42,.12)!important;padding:0 12px!important}
+.sidebar-brand{height:118px!important;padding:20px 12px!important;border:0!important;display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;position:relative!important}
+.sidebar-brand:after{content:"";position:absolute;bottom:0;right:15px;left:15px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent)}
+.sidebar-brand img{max-width:72px!important;max-height:58px!important;margin-bottom:7px!important;filter:drop-shadow(0 8px 15px rgba(0,0,0,.25))}
+.sidebar-brand div{color:#f6d98a!important;font-size:12px!important;letter-spacing:.2px!important}
+.sidebar-menu{padding:18px 0!important;overflow-y:auto!important}
+.sidebar-menu li{padding:0!important;margin:3px 0!important}
+.sidebar-menu button.tab{position:relative!important;width:100%!important;height:47px!important;border:1px solid transparent!important;border-radius:13px!important;background:transparent!important;color:#cbd5e1!important;padding:0 15px!important;font-size:13px!important;font-weight:700!important;gap:11px!important;box-shadow:none!important}
+.sidebar-menu button.tab:hover{background:rgba(255,255,255,.07)!important;color:#fff!important;border-color:rgba(255,255,255,.07)!important;transform:translateX(-2px)!important}
+.sidebar-menu button.tab.active{background:linear-gradient(90deg,#d4a84f,#edc86d)!important;color:#111827!important;border-color:#f1d58e!important;box-shadow:0 8px 20px rgba(212,168,79,.22)!important}
+.sidebar-menu button.tab.active:before{content:"";position:absolute;right:-12px;top:11px;width:4px;height:25px;border-radius:4px;background:#f4d27b}
+/* ===== MAIN / HEADER ===== */
+.main-content{margin-right:286px!important;background:var(--ah-bg)!important;min-width:0!important}
+.topbar{height:76px!important;padding:0 28px!important;background:rgba(255,255,255,.96)!important;color:var(--ah-ink)!important;border:0!important;border-bottom:1px solid var(--ah-line)!important;box-shadow:0 3px 18px rgba(15,23,42,.04)!important;position:sticky!important;top:0!important;z-index:900!important}
+.brand-top strong{color:var(--ah-navy)!important;font-size:18px!important;font-weight:800!important}
+.topbar-info{color:var(--ah-muted)!important;font-size:12px!important;gap:18px!important}
+.topbar-info span{background:#f8fafc!important;border:1px solid #e9edf3!important;padding:7px 11px!important;border-radius:10px!important}
+.mobile-menu-toggle{color:var(--ah-navy)!important}
+main{padding:28px!important;max-width:1700px!important;margin:auto!important;width:100%!important}
+/* ===== ALL CARDS ===== */
+.card{background:var(--ah-card)!important;border:1px solid var(--ah-line)!important;border-top:0!important;border-radius:var(--ah-radius)!important;padding:22px!important;box-shadow:var(--ah-shadow)!important;margin-bottom:20px!important}
+.card:hover{box-shadow:0 16px 42px rgba(15,23,42,.09)!important}
+.card h2{font-size:21px!important;font-weight:800!important;color:var(--ah-navy)!important}
+.card h3{font-weight:800!important}
+/* ===== DASHBOARD HERO ===== */
+#dashboard>.card:first-child{min-height:190px!important;border:0!important;border-radius:24px!important;background:radial-gradient(circle at 15% 20%,rgba(212,168,79,.24),transparent 28%),linear-gradient(135deg,#172554 0%,#1e3a8a 58%,#0f172a 100%)!important;box-shadow:0 18px 45px rgba(23,37,84,.18)!important;display:flex!important;align-items:center!important;position:relative!important;overflow:hidden!important;padding:34px!important}
+#dashboard>.card:first-child:after{content:"الحمد ستوك";position:absolute;left:35px;bottom:-25px;color:rgba(255,255,255,.055);font-size:95px;font-weight:900;line-height:1}
+#dashboard>.card:first-child h2{color:#fff!important;font-size:29px!important;margin:0 0 8px!important;position:relative;z-index:2}
+#dashboard>.card:first-child p{color:#dbeafe!important;position:relative;z-index:2}
+#activityTickerCard{border:1px solid #f0e4c6!important;border-right:5px solid var(--ah-gold)!important;background:#fffdf7!important;border-radius:15px!important;box-shadow:none!important}
+/* ===== STAT CARDS ===== */
+.grid.stats{gap:16px!important}
+.stat.card{min-height:126px!important;padding:20px!important;text-align:right!important;border:1px solid var(--ah-line)!important;border-right:4px solid var(--ah-gold)!important;border-top:0!important;position:relative!important;overflow:hidden!important}
+.stat.card:after{content:"";position:absolute;left:-25px;bottom:-35px;width:95px;height:95px;border-radius:50%;background:rgba(37,99,235,.055)}
+.stat.card span{font-size:12px!important;color:var(--ah-muted)!important;font-weight:700!important}
+.stat.card b{font-size:23px!important;color:var(--ah-navy)!important;display:block!important;margin-top:9px!important}
+/* ===== FORMS ===== */
+label{font-weight:700!important;color:#334155!important}
+input:not([type="checkbox"]):not([type="radio"]),select,textarea{border:1px solid #dbe2ea!important;background:#fff!important;border-radius:11px!important;min-height:42px!important;color:#1e293b!important;outline:none!important;transition:.2s!important}
+input:focus,select:focus,textarea:focus{border-color:#7aa2ff!important;box-shadow:0 0 0 4px rgba(37,99,235,.09)!important}
+button{font-family:'Cairo',sans-serif!important}
+button:not(.tab){border-radius:10px!important;font-weight:800!important;transition:transform .15s,box-shadow .15s,filter .15s!important}
+button:not(.tab):hover{filter:brightness(1.03)!important;transform:translateY(-1px)!important;box-shadow:0 7px 18px rgba(15,23,42,.10)!important}
+/* ===== TABLES ===== */
+.table-wrap{border:1px solid var(--ah-line)!important;border-radius:14px!important;overflow:auto!important;background:#fff!important}
+table{margin:0!important;min-width:720px!important}
+th{background:#f8fafc!important;color:#334155!important;border:0!important;border-bottom:1px solid #e5e7eb!important;font-size:12px!important;font-weight:800!important;padding:13px 11px!important;white-space:nowrap!important}
+td{border:0!important;border-bottom:1px solid #eef2f7!important;padding:12px 11px!important;font-size:12px!important;color:#334155!important}
+tbody tr:hover{background:#f8fbff!important}
+tbody tr:last-child td{border-bottom:0!important}
+/* ===== BADGES / CONTROLS ===== */
+.badge{border-radius:999px!important;font-weight:800!important}
+.sort-controls{background:#f8fafc!important;border:1px solid var(--ah-line)!important;padding:12px!important;border-radius:13px!important}
+/* ===== INVOICE / PROJECT SPECIAL ===== */
+#invoice .card,#projects .card,#workmanship .card,#projectSummary .card{overflow:hidden!important}
+#invoiceBody tr,#projectsBody tr,#workmanshipBody tr{transition:.15s!important}
+#workmanshipProjectInfo,#invoiceProjectHint{border-radius:12px!important;background:#f8fafc!important;border:1px solid #e5eaf1!important}
+/* ===== MODALS ===== */
+.statement-content,.modal-card{border:1px solid rgba(255,255,255,.5)!important;border-top:5px solid var(--ah-gold)!important;border-radius:20px!important;box-shadow:0 25px 70px rgba(15,23,42,.25)!important}
+.statement-modal,.modal-overlay{backdrop-filter:blur(7px)!important;background:rgba(15,23,42,.62)!important}
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:#eef2f7}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+/* ===== MOBILE ===== */
+@media(max-width:900px){
+ .sidebar{width:285px!important}
+ .main-content{margin-right:0!important}
+ .topbar{height:auto!important;min-height:68px!important;padding:12px 16px!important;gap:10px!important}
+ .topbar-info{display:none!important}
+ main{padding:15px!important}
+ #dashboard>.card:first-child{min-height:160px!important;padding:24px!important}
+ #dashboard>.card:first-child h2{font-size:22px!important}
+ .card{padding:16px!important;border-radius:15px!important}
+ .stat.card{min-height:105px!important}
+ .grid.stats{grid-template-columns:1fr 1fr!important}
+}
+@media(max-width:560px){.grid.stats{grid-template-columns:1fr!important}.brand-top strong{font-size:14px!important}main{padding:10px!important}.card{padding:13px!important}}
+@media print{.sidebar,.topbar{display:none!important}.main-content{margin:0!important}main{padding:0!important}.card{box-shadow:none!important;border:0!important}}
+</style>
 </head>
 <body>
 
@@ -3150,426 +3235,7 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
         th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; font-size: 13px; }
         th { background-color: #0f233c; color: white; }
         .no-print { display: none !important; }
-      
-
-/* =========================================================
-   ALHAMD STOCK — Professional UI Refresh
-   يحافظ على IDs والـ JavaScript الحالي بدون تغيير
-   ========================================================= */
-:root{
-  --navy:#081525;
-  --navy-2:#0d2036;
-  --navy-3:#132b45;
-  --gold:#d4a84f;
-  --gold-2:#f0c76b;
-  --bg:#f4f7fb;
-  --surface:#ffffff;
-  --surface-2:#f8fafc;
-  --text:#172033;
-  --muted:#718096;
-  --border:#e5eaf1;
-  --success:#16a36a;
-  --danger:#dc4c64;
-  --info:#2f80ed;
-  --warning:#e39a25;
-  --shadow:0 8px 28px rgba(9,28,49,.07);
-  --shadow-lg:0 18px 50px rgba(9,28,49,.12);
-  --radius:16px;
-}
-
-html{scroll-behavior:smooth}
-body{
-  background:
-    radial-gradient(circle at 10% 0%, rgba(212,168,79,.07), transparent 28%),
-    linear-gradient(180deg,#f7f9fc 0%,#eef3f8 100%);
-  color:var(--text);
-  font-size:14px;
-}
-button,input,select,textarea{font-family:'Cairo',system-ui,sans-serif !important}
-button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
-button:hover{transform:translateY(-1px);filter:brightness(1.02)}
-button:active{transform:translateY(0)}
-
-#appView{min-height:100vh}
-
-/* Sidebar */
-.sidebar{
-  width:274px;
-  background:
-    linear-gradient(180deg,#071321 0%,#0b1b2d 48%,#091727 100%);
-  border-left:1px solid rgba(255,255,255,.06);
-  box-shadow:10px 0 35px rgba(0,0,0,.12);
-}
-.sidebar-brand{
-  padding:24px 18px 20px;
-  border-bottom:1px solid rgba(255,255,255,.08);
-  background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);
-}
-.sidebar-brand img{
-  max-width:145px;
-  max-height:72px;
-  filter:drop-shadow(0 8px 18px rgba(0,0,0,.28));
-}
-.sidebar-brand div{
-  color:#f5d27e !important;
-  letter-spacing:.1px;
-}
-.sidebar-menu{
-  padding:16px 10px 22px;
-  scrollbar-width:thin;
-}
-.sidebar-menu li{padding:0;margin:3px 0}
-.sidebar-menu button.tab{
-  position:relative;
-  color:#b9c5d3;
-  padding:12px 14px;
-  min-height:46px;
-  border-radius:12px;
-  font-size:13.5px;
-  font-weight:600;
-  gap:12px;
-}
-.sidebar-menu button.tab::before{
-  content:"";
-  position:absolute;
-  right:0;
-  top:9px;
-  bottom:9px;
-  width:3px;
-  border-radius:8px;
-  background:transparent;
-  transition:.2s;
-}
-.sidebar-menu button.tab:hover{
-  background:rgba(255,255,255,.055);
-  color:#fff;
-  box-shadow:none;
-}
-.sidebar-menu button.tab:hover::before{background:rgba(212,168,79,.55)}
-.sidebar-menu button.tab.active{
-  background:linear-gradient(135deg,rgba(212,168,79,.98),rgba(240,199,107,.92));
-  color:#091727;
-  box-shadow:0 8px 22px rgba(212,168,79,.18);
-}
-.sidebar-menu button.tab.active::before{background:#fff}
-
-/* Main / topbar */
-.main-content{
-  margin-right:274px;
-  background:transparent;
-}
-.topbar{
-  position:sticky;
-  top:0;
-  z-index:900;
-  min-height:72px;
-  padding:12px 28px;
-  background:rgba(8,21,37,.94);
-  backdrop-filter:blur(16px);
-  border-bottom:1px solid rgba(212,168,79,.34);
-  box-shadow:0 8px 28px rgba(4,13,23,.13);
-}
-.brand-top strong{
-  font-size:17px !important;
-  color:#f0c76b !important;
-}
-.topbar-info{
-  gap:10px;
-  font-size:12px;
-}
-.topbar-info span{
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.07);
-  padding:7px 11px;
-  border-radius:999px;
-  color:#d8e0ea;
-}
-.mobile-menu-toggle{font-size:26px}
-
-/* Content */
-main{padding:28px;max-width:1700px;width:100%;margin:0 auto}
-.card{
-  background:rgba(255,255,255,.96);
-  border:1px solid var(--border);
-  border-top:0;
-  border-radius:var(--radius);
-  padding:22px;
-  box-shadow:var(--shadow);
-  margin-bottom:20px;
-}
-.card h2,.card h3{color:var(--text) !important}
-.card p{color:var(--muted)}
-.card:hover{box-shadow:0 10px 34px rgba(9,28,49,.085)}
-
-/* Dashboard hero */
-#dashboard > .card:first-child{
-  position:relative;
-  overflow:hidden;
-  border:0;
-  min-height:150px;
-  padding:30px 32px;
-  background:
-    radial-gradient(circle at 15% 10%,rgba(240,199,107,.18),transparent 32%),
-    linear-gradient(135deg,#081525 0%,#12304e 62%,#183b5d 100%) !important;
-  box-shadow:var(--shadow-lg);
-}
-#dashboard > .card:first-child::after{
-  content:"الحمد";
-  position:absolute;
-  left:34px;
-  bottom:-38px;
-  font-size:150px;
-  line-height:1;
-  font-weight:800;
-  color:rgba(255,255,255,.035);
-}
-#dashboard > .card:first-child h2{
-  color:#fff !important;
-  margin:0 0 6px;
-  font-size:25px;
-  position:relative;
-  z-index:1;
-}
-#dashboard > .card:first-child p{
-  color:#c7d4e2 !important;
-  position:relative;
-  z-index:1;
-}
-
-/* Activity */
-#activityTickerCard{
-  border:1px solid #f1e5c7 !important;
-  border-right:4px solid var(--gold) !important;
-  background:linear-gradient(90deg,#fffdf7,#fff) !important;
-  color:#304056 !important;
-}
-
-/* Stat cards */
-.grid.stats{gap:16px}
-.stat.card{
-  position:relative;
-  overflow:hidden;
-  border-top:0 !important;
-  min-height:112px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  text-align:right;
-  padding:19px 20px;
-  background:linear-gradient(145deg,#fff,#f9fbfd);
-}
-.stat.card::before{
-  content:"";
-  position:absolute;
-  right:0;
-  top:0;
-  bottom:0;
-  width:4px;
-  background:var(--gold);
-}
-.stat.card:nth-child(2)::before{background:var(--info)}
-.stat.card:nth-child(3)::before{background:var(--success)}
-.stat.card:nth-child(4)::before{background:#22a06b}
-.stat.card:nth-child(5)::before{background:var(--danger)}
-.stat.card:nth-child(6)::before{background:#16a0b8}
-.stat.card:nth-child(7)::before{background:var(--danger)}
-.stat.card span{
-  color:var(--muted);
-  font-size:12px;
-  margin-bottom:8px;
-}
-.stat.card b{
-  color:var(--text);
-  font-size:22px;
-  letter-spacing:.2px;
-}
-
-/* Charts */
-#dashboard canvas{max-height:260px}
-#dashboard .grid.two > .card{min-height:320px}
-
-/* Forms */
-input,select,textarea{
-  background:#fff !important;
-  color:var(--text) !important;
-  border:1px solid #d8e0ea !important;
-  border-radius:10px !important;
-  min-height:42px;
-  outline:none;
-  transition:border-color .18s,box-shadow .18s;
-}
-input:focus,select:focus,textarea:focus{
-  border-color:#c9a052 !important;
-  box-shadow:0 0 0 4px rgba(212,168,79,.12) !important;
-}
-label{color:#435166}
-::placeholder{color:#9aa7b6}
-
-/* Select2 */
-.select2-container--default .select2-selection--single{
-  height:42px !important;
-  border:1px solid #d8e0ea !important;
-  border-radius:10px !important;
-  display:flex !important;
-  align-items:center !important;
-}
-.select2-container--default .select2-selection--single .select2-selection__rendered{
-  line-height:40px !important;
-  color:var(--text) !important;
-}
-.select2-dropdown{
-  border:1px solid #d8e0ea !important;
-  box-shadow:var(--shadow-lg);
-  border-radius:10px;
-  overflow:hidden;
-}
-
-/* Buttons - override most inline colors visually */
-button[style*="background"]{
-  border-radius:10px !important;
-  box-shadow:0 4px 12px rgba(9,28,49,.08);
-}
-button[style*="#0f233c"]{
-  background:linear-gradient(135deg,#0b1d31,#143451) !important;
-  color:#f0c76b !important;
-}
-button[style*="#c59b45"],button[style*="#facc15"]{
-  color:#0b1d31 !important;
-}
-button[style*="#27ae60"]{box-shadow:0 5px 14px rgba(39,174,96,.15)}
-button[style*="#e74c3c"]{box-shadow:0 5px 14px rgba(231,76,60,.13)}
-button[style*="#25d366"]{box-shadow:0 5px 14px rgba(37,211,102,.14)}
-
-/* Tables */
-.table-wrap{
-  border:1px solid var(--border);
-  border-radius:13px;
-  overflow:auto;
-  background:#fff;
-  box-shadow:0 4px 16px rgba(9,28,49,.035);
-}
-table{
-  margin-top:0;
-  border-collapse:separate;
-  border-spacing:0;
-}
-th,td{
-  padding:12px 11px;
-  border:0;
-  border-bottom:1px solid #edf0f4;
-  font-size:13px;
-  white-space:nowrap;
-}
-th{
-  background:linear-gradient(135deg,#0b1d31,#123451) !important;
-  color:#f5f7fa !important;
-  font-weight:700;
-  position:sticky;
-  top:0;
-  z-index:2;
-}
-tr:last-child td{border-bottom:0}
-tbody tr{transition:background .15s}
-tbody tr:hover{background:#f7faff}
-.row-danger{background:#fff5f6 !important;border-right:4px solid var(--danger) !important}
-.row-warning{background:#fffaf0 !important;border-right:4px solid var(--warning) !important}
-
-/* Section headers */
-.tab-page > .card > div:first-child h2{
-  font-size:21px;
-}
-.tab-page > .card > div:first-child p{
-  font-size:12.5px;
-}
-
-/* Project / workmanship special info */
-#workmanshipProjectInfo,#projectSummaryEmpty{
-  background:linear-gradient(135deg,#f8fafc,#f1f5f9) !important;
-  border:1px dashed #cfd8e3 !important;
-  border-radius:12px !important;
-}
-#invoiceProjectHint{
-  padding:8px 10px;
-  border-radius:8px;
-  background:#f7f9fc;
-}
-
-/* Modal */
-.modal-overlay,.statement-modal{
-  background:rgba(4,12,22,.72);
-  backdrop-filter:blur(6px);
-}
-.modal-card,.statement-content{
-  border:1px solid rgba(255,255,255,.7);
-  border-top:0;
-  border-radius:18px;
-  box-shadow:0 24px 80px rgba(0,0,0,.28);
-}
-.modal-card{
-  padding:32px;
-}
-.statement-content{padding:24px}
-
-/* Invoice preview */
-.invoice-print-container{
-  border-radius:12px;
-  background:#fff;
-}
-.invoice-header-flex{
-  background:linear-gradient(135deg,#081525,#173a5c) !important;
-  border:0 !important;
-  border-radius:13px !important;
-  padding:18px !important;
-}
-.invoice-meta-grid{
-  background:#f7f9fc !important;
-  border:1px solid #e6ebf1 !important;
-  border-radius:12px !important;
-}
-
-/* Badges */
-.badge{
-  box-shadow:0 4px 14px rgba(0,0,0,.12);
-}
-
-/* Scrollbars */
-*{scrollbar-width:thin;scrollbar-color:#b8c4d2 transparent}
-::-webkit-scrollbar{width:8px;height:8px}
-::-webkit-scrollbar-thumb{background:#b8c4d2;border-radius:99px}
-::-webkit-scrollbar-track{background:transparent}
-
-/* Mobile */
-@media (max-width:900px){
-  .sidebar{width:285px}
-  .main-content{margin-right:0}
-  .topbar{padding:10px 15px;min-height:64px}
-  .topbar-info{display:none}
-  main{padding:16px 12px}
-  .card{padding:16px;border-radius:14px}
-  #dashboard > .card:first-child{padding:22px 20px;min-height:135px}
-  #dashboard > .card:first-child h2{font-size:20px}
-  .grid.stats{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .stat.card{min-height:100px;padding:15px}
-  .stat.card b{font-size:18px}
-  #dashboard .grid.two{grid-template-columns:1fr !important}
-  th,td{font-size:12px;padding:10px 8px}
-}
-@media (max-width:520px){
-  .grid.stats{grid-template-columns:1fr 1fr}
-  .stat.card span{font-size:10.5px}
-  .stat.card b{font-size:16px}
-  .brand-top strong{font-size:14px !important}
-  .sidebar-brand img{max-width:125px}
-}
-
-/* Print remains clean */
-@media print{
-  .topbar,.sidebar,.no-print{display:none !important}
-  .main-content{margin:0 !important}
-  body{background:#fff !important}
-}
-
-</style>
+      </style>
     </head>
     <body>
       <h2>${storeSettings.store_name}</h2>
