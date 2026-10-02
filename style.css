@@ -3,14 +3,14 @@
    ========================================================================== */
 :root {
   /* Colors - ألوان الهوية */
-  --primary: #07365f;
-  --primary-hover: #052847;
-  --primary-light: #eef5fb;
-  --accent: #1769aa;
-  --accent-hover: #115287;
+  --primary: #0b2f4f;
+  --primary-hover: #08243c;
+  --primary-light: #eef6fb;
+  --accent: #1479c9;
+  --accent-hover: #0d5f9f;
   
   /* Status Colors - ألوان الحالات */
-  --success: #121926;
+  --success: #12b76a;
   --success-bg: #ecfdf3;
   --success-text: #027a48;
   --danger: #d92d20;
@@ -20,20 +20,20 @@
   --warning-bg: #fffaeb;
   
   /* Neutral Colors - الألوان المحايدة */
-  --bg-body: #f4f6f9;
+  --bg-body: #f5f7fa;
   --bg-card: #ffffff;
-  --text-main: #1d2939;
+  --text-main: #17212f;
   --text-muted: #667085;
-  --border-color: #e4e8ee;
+  --border-color: #e2e8f0;
   --input-bg: #ffffff;
   
   /* Layout & Shadows - الأبعاد والظلال */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.05);
-  --shadow-md: 0 4px 16px rgba(16, 24, 40, 0.08);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 10px 28px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 20px 55px rgba(15, 23, 42, 0.16);
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -49,7 +49,7 @@ body {
   padding: 0;
   background-color: var(--bg-body);
   color: var(--text-main);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, Arial, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.6;
   direction: rtl;
@@ -63,13 +63,13 @@ body {
 header, .topbar {
   background: var(--primary);
   color: #ffffff;
-  padding: 14px 24px;
+  padding: 16px 28px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
-  box-shadow: var(--shadow-sm);
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  gap: 24px;
+  box-shadow: 0 4px 18px rgba(8, 36, 60, 0.12);
+  border-radius: 0 0 18px 18px;
 }
 
 .brand {
@@ -79,7 +79,7 @@ header, .topbar {
 }
 
 .brand img {
-  height: 48px;
+  height: 52px;
   width: auto;
   max-width: 160px;
   object-fit: contain;
@@ -91,7 +91,7 @@ header, .topbar {
 
 .brand strong {
   display: block;
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.3px;
 }
@@ -134,7 +134,7 @@ header, .topbar {
 .tabs {
   display: flex;
   gap: 8px;
-  padding: 12px 24px;
+  padding: 12px 28px;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
   overflow-x: auto;
@@ -146,7 +146,7 @@ header, .topbar {
   background: transparent;
   color: var(--text-muted);
   white-space: nowrap;
-  padding: 8px 18px;
+  padding: 9px 18px;
   font-size: 14px;
   font-weight: 600;
   border-radius: var(--radius-sm);
@@ -161,14 +161,14 @@ header, .topbar {
 .tab.active {
   background: var(--accent);
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(23, 105, 170, 0.25);
+  box-shadow: 0 6px 16px rgba(20, 121, 201, 0.22);
 }
 
 /* ==========================================================================
    5. CARDS & CONTAINERS (الحاويات والكروت)
    ========================================================================== */
 main {
-  padding: 24px;
+  padding: 26px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -176,10 +176,10 @@ main {
 .card {
   background: var(--bg-card);
   border-radius: var(--radius-md);
-  padding: 24px;
-  margin-bottom: 20px;
+  padding: 26px;
+  margin-bottom: 22px;
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 18px rgba(8, 36, 60, 0.12);
   transition: var(--transition);
 }
 
@@ -218,8 +218,8 @@ main {
 .welcome {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 24px;
+  margin-bottom: 22px;
   padding: 20px;
   border-radius: var(--radius-md);
   background: linear-gradient(90deg, var(--bg-card), var(--primary-light));
@@ -254,7 +254,7 @@ label {
 .card select {
   display: block;
   width: 100%;
-  padding: 10px 14px;
+  padding: 11px 14px;
   margin-top: 6px;
   margin-bottom: 14px;
   border: 1px solid var(--border-color);
@@ -276,7 +276,7 @@ label {
 button {
   border: 0;
   border-radius: var(--radius-sm);
-  padding: 10px 18px;
+  padding: 11px 20px;
   background: var(--accent);
   color: #ffffff;
   cursor: pointer;
@@ -343,7 +343,7 @@ button.small {
   padding: 18px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 18px rgba(8, 36, 60, 0.12);
 }
 
 .stat span {
@@ -544,5 +544,324 @@ tr:hover td {
 
   .auth-card {
     padding: 20px 16px;
+  }
+}
+
+
+/* ==========================================================================
+   11. PROFESSIONAL UI REFINEMENT
+   ========================================================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, rgba(20,121,201,.055), transparent 28rem),
+    var(--bg-body);
+}
+
+/* Header polish */
+header, .topbar {
+  position: relative;
+  z-index: 10;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.brand strong {
+  letter-spacing: -0.5px;
+}
+
+.brand span {
+  color: rgba(255,255,255,.72);
+}
+
+.connection {
+  border: 1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(8px);
+}
+
+/* Navigation */
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  box-shadow: 0 2px 10px rgba(15,23,42,.035);
+}
+
+.tab {
+  position: relative;
+}
+
+.tab.active {
+  background: linear-gradient(135deg, var(--accent), #0d65a9);
+}
+
+/* Main content */
+main {
+  width: min(100% - 40px, 1440px);
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(8px);
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--accent), transparent);
+  opacity: .0;
+  transition: var(--transition);
+}
+
+.card:hover::before {
+  opacity: .9;
+}
+
+/* Welcome area */
+.welcome {
+  min-height: 116px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.98), rgba(238,246,251,.95)),
+    var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.welcome img {
+  filter: drop-shadow(0 8px 16px rgba(15,23,42,.10));
+}
+
+/* Inputs */
+.auth-card input,
+.card input,
+.card select,
+textarea {
+  min-height: 44px;
+  border-color: #dbe3ec;
+  box-shadow: inset 0 1px 2px rgba(15,23,42,.025);
+}
+
+.auth-card input:hover,
+.card input:hover,
+.card select:hover,
+textarea:hover {
+  border-color: #b9c7d6;
+}
+
+.auth-card input:focus,
+.card input:focus,
+.card select:focus,
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 4px rgba(20,121,201,.10),
+    0 2px 8px rgba(15,23,42,.05);
+}
+
+/* Buttons */
+button {
+  min-height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), #0d65a9);
+  box-shadow: 0 3px 10px rgba(20,121,201,.16);
+}
+
+button:hover {
+  background: linear-gradient(135deg, var(--accent-hover), #0a568e);
+  transform: translateY(-2px);
+  box-shadow: 0 7px 16px rgba(20,121,201,.20);
+}
+
+button.secondary {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+button.secondary:hover {
+  background: #e8eef5;
+  box-shadow: 0 4px 10px rgba(15,23,42,.07);
+}
+
+button.danger {
+  background: linear-gradient(135deg, var(--danger), #b42318);
+}
+
+/* Statistics */
+.stat {
+  position: relative;
+  overflow: hidden;
+  min-height: 108px;
+  background: linear-gradient(145deg, #fff, #fbfdff);
+}
+
+.stat::after {
+  content: "";
+  position: absolute;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  inset-inline-end: -28px;
+  top: -28px;
+  background: rgba(20,121,201,.06);
+}
+
+.stat b {
+  font-size: 27px;
+  letter-spacing: -0.5px;
+}
+
+/* Rows */
+.user-row,
+.low-row {
+  min-height: 58px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  transition: var(--transition);
+}
+
+.user-row:hover,
+.low-row:hover {
+  background: #f7fafc;
+  padding-inline: 18px;
+}
+
+/* Tables */
+.table-wrap {
+  box-shadow: 0 2px 10px rgba(15,23,42,.035);
+}
+
+table {
+  border-spacing: 0;
+}
+
+th {
+  background: linear-gradient(180deg, #f8fafc, #f3f6f9);
+  color: #475467;
+  letter-spacing: .1px;
+}
+
+th, td {
+  padding: 14px 16px;
+}
+
+tbody tr {
+  transition: background .15s ease, transform .15s ease;
+}
+
+tbody tr:hover td {
+  background: #f4f9fd;
+}
+
+/* Totals */
+.totals {
+  background: linear-gradient(135deg, #f8fafc, #f2f7fb);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+/* Badges */
+.badge {
+  border: 1px solid rgba(20,121,201,.10);
+  background: #eef6ff;
+  box-shadow: 0 1px 3px rgba(15,23,42,.04);
+}
+
+/* Auth */
+.auth-wrap {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,.12), transparent 20rem),
+    linear-gradient(135deg, #082b49 0%, #0d5f9b 100%);
+}
+
+.auth-card {
+  border: 1px solid rgba(255,255,255,.55);
+  backdrop-filter: blur(12px);
+}
+
+.login-logo {
+  filter: drop-shadow(0 10px 20px rgba(15,23,42,.13));
+}
+
+/* Accessibility */
+button:focus-visible,
+.tab:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(20,121,201,.25);
+  outline-offset: 2px;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+/* Mobile refinement */
+@media (max-width: 768px) {
+  main {
+    width: min(100% - 24px, 1440px);
+  }
+
+  header, .topbar {
+    padding: 14px 16px;
+  }
+
+  .tabs {
+    padding: 10px 12px;
+  }
+
+  .welcome {
+    padding: 18px;
+  }
+
+  .stat {
+    min-height: 96px;
+  }
+}
+
+@media (max-width: 480px) {
+  main {
+    width: calc(100% - 16px);
+    padding: 8px;
+  }
+
+  .card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .brand span {
+    display: none;
+  }
+
+  .brand strong {
+    font-size: 15px;
+  }
+
+  button {
+    min-height: 42px;
   }
 }
