@@ -1814,76 +1814,7 @@ function printProjectSummary(){
   if(!currentProjectSummary)return alert("اختر مشروعًا أولاً");
   const r=currentProjectSummary,p=r.project;
   const html=`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>ملخص مشروع ${esc(p.name)}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px;color:#333}h1,h2{color:#0f233c}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #cbd5e1;padding:7px;text-align:center}th{background:#0f233c;color:#fff}.box{background:#f8fafc;padding:12px;border:1px solid #ddd;border-radius:8px;margin:10px 0}</style></head><body><h1>${esc(storeSettings.store_name)}</h1><h2>تقرير ملخص المشروع: ${esc(p.name)}</h2><div class="box">المبلغ المستلم من المالك: <b>${money(r.received)} ج.م</b> — إجمالي المبيعات: <b>${money(r.salesTotal)} ج.م</b> — إجمالي المصنعيات: <b>${money(r.workTotal)} ج.م</b> — إجمالي المدفوع: <b>${money(r.totalPaid)} ج.م</b> — الدين: <b>${money(r.salesDebt+r.workDebt)} ج.م</b> — المتبقي/العجز: <b>${money(r.balance)} ج.م</b></div><h3>فواتير البيع</h3><table><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.salesInvoices.map(x=>`<tr><td>${esc(x.invoice_code||x.id.slice(0,8))}</td><td>${esc(x.customer_name)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><h3>فواتير المصنعيات</h3><table><tr><th>الفاتورة</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.work.map(x=>`<tr><td>${esc(x.invoice_code)}</td><td>${esc(x.description)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p><script>window.onload=function(){window.print();window.close()}<\/script>
-<script id="invoice-pro-v5-js">
-(function(){
-  function enhanceInvoice(){
-    const sec=document.getElementById('invoice');
-    if(!sec || sec.dataset.proV5==='1') return;
-    const card=sec.querySelector(':scope > .card');
-    if(!card) return;
-    const original=card.innerHTML;
-    card.innerHTML=`<div class="invoice-shell">
-      <div class="invoice-head-pro">
-        <div><h2>🧾 فاتورة بيع جديدة</h2><div style="font-size:11px;color:#dbeafe;margin-top:3px">إنشاء فاتورة وحساب المدفوع والمتبقي وطباعة الفاتورة</div></div>
-        <div class="invoice-code-pro">رقم الفاتورة <input id="invoiceCodeInput" type="text" readonly></div>
-      </div>
-      <div class="invoice-body-pro" id="invoiceProBody">${original.replace(/<div class="row between"[\s\S]*?<\/div>\s*<div class="grid two"/,'<div class="invoice-pro-anchor"></div><div class="grid two"')}
-      </div></div>`;
-    sec.dataset.proV5='1';
-    // Restore duplicated heading/code issue safely by using the original body and hiding its old header.
-    const anchor=sec.querySelector('.invoice-pro-anchor');
-    const oldHead=sec.querySelector('.invoice-pro-anchor')?.previousElementSibling;
-    if(oldHead) oldHead.remove();
-    const body=sec.querySelector('#invoiceProBody');
-    if(body){
-      const oldTitle=body.querySelector('#invoiceTitleHeading');
-      if(oldTitle){const rh=oldTitle.closest('.row'); if(rh) rh.remove();}
-      const oldCode=body.querySelector('#invoiceCodeInput'); if(oldCode && oldCode!==sec.querySelector('.invoice-code-pro input')) oldCode.remove();
-    }
-    const firstGrid=body?.querySelector('.grid.two');
-    if(firstGrid){ firstGrid.classList.add('invoice-section-pro'); firstGrid.insertAdjacentHTML('afterbegin','<div class="invoice-section-title"><span>👤 بيانات العميل</span><span style="font-size:10px;color:#94a3b8">يمكن الكتابة أو اختيار عميل سابق</span></div>'); }
-    const project=body?.querySelector('#invoiceProject')?.closest('div[style*="margin-top"]'); if(project) project.classList.add('invoice-section-pro');
-    const notes=body?.querySelector('#invoiceNotes')?.closest('div[style*="margin-top"]'); if(notes) notes.classList.add('invoice-section-pro');
-    const dateGrid=body?.querySelector('#invoiceDateTime')?.closest('.grid.two'); if(dateGrid){dateGrid.classList.add('invoice-section-pro');}
-    const payGrid=body?.querySelector('#amountPaid')?.closest('.grid.two'); if(payGrid){payGrid.classList.add('invoice-section-pro','payment-pro');}
-    const add=body?.querySelector('.invoice-add'); if(add){add.insertAdjacentHTML('beforebegin','<div class="invoice-section-title" style="margin-top:4px"><span>📦 إضافة الأصناف</span><span style="font-size:10px;color:#94a3b8">اختر الصنف ثم الكمية</span></div>');}
-    const service=body?.querySelector('#customServiceName')?.closest('div[style*="margin-top"]'); if(service) service.classList.add('service-pro');
-    const items=body?.querySelector('#invoiceBody')?.closest('.table-wrap'); if(items){items.parentElement?.classList.add('invoice-items-pro');}
-    const total=body?.querySelector('.invoice-total');
-    if(total){
-      const old=total;
-      old.classList.add('invoice-summary-old');
-      const parent=old.parentElement;
-      const summary=document.createElement('div'); summary.className='invoice-summary-pro';
-      summary.innerHTML=`<div class="summary-grid-pro">
-        <div class="summary-box-pro"><span>إجمالي البنود</span><b id="proSubTotal">٠٫٠٠</b> ج.م</div>
-        <div class="summary-box-pro"><span>الخصم</span><b id="proDiscount">٠٫٠٠</b> ج.م</div>
-        <div class="summary-box-pro final"><span>الإجمالي النهائي</span><b id="proTotal">٠٫٠٠</b> ج.م</div>
-        <div class="summary-box-pro remaining"><span>المتبقي</span><b id="proRemaining">٠٫٠٠</b> ج.م</div>
-      </div>`;
-      parent.insertBefore(summary,old); old.style.display='none';
-      const actions=parent.querySelector('.row'); if(actions){actions.classList.add('invoice-actions-pro');}
-    }
-    const code=sec.querySelector('.invoice-code-pro input');
-    const oldCode=sec.querySelector('#invoiceCodeInput:not(.invoice-code-pro input)');
-    if(code && oldCode && oldCode!==code){code.value=oldCode.value;}
-    syncSummary();
-    ['invoiceDiscount','amountPaid','invoiceDateTime'].forEach(id=>document.getElementById(id)?.addEventListener('input',syncSummary));
-    const bodyObs=new MutationObserver(syncSummary); if(document.getElementById('invoiceBody')) bodyObs.observe(document.getElementById('invoiceBody'),{childList:true,subtree:true,characterData:true});
-    // Fast payment presets
-    const paid=document.getElementById('amountPaid');
-    if(paid){paid.insertAdjacentHTML('afterend','div class="invoice-shortcuts" style="margin-top:7px"><button type="button" class="invoice-chip" data-pay="0">صفر</button><button type="button" class="invoice-chip" data-pay="half">نصف الفاتورة</button><button type="button" class="invoice-chip" data-pay="all">دفع كامل</button></div>');
-      paid.parentElement?.querySelectorAll('.invoice-chip').forEach(b=>b.addEventListener('click',()=>{const t=Number((document.getElementById('invoiceTotal')?.textContent||'0').replace(/[^0-9.]/g,''))||0; paid.value=b.dataset.pay==='half'?(t/2).toFixed(2):b.dataset.pay==='all'?t.toFixed(2):'0'; if(typeof renderInvoice==='function')renderInvoice();syncSummary();}));}
-    document.addEventListener('keydown',function(e){if(!sec.classList.contains('hidden')){if(e.ctrlKey&&e.key.toLowerCase()==='s'){e.preventDefault();document.getElementById('saveInvoiceBtn')?.click();} if(e.key==='F2'){e.preventDefault();document.getElementById('invoiceProduct')?.focus();}}});
-  }
-  function syncSummary(){
-    const map=[['invoiceSubTotal','proSubTotal'],['invoiceDiscountText','proDiscount'],['invoiceTotal','proTotal'],['remainingDisplayText','proRemaining']];
-    map.forEach(([a,b])=>{const x=document.getElementById(a),y=document.getElementById(b);if(x&&y)y.textContent=x.textContent||'٠٫٠٠';});
-  }
-  window.addEventListener('load',()=>setTimeout(enhanceInvoice,250));
-  window.addEventListener('alhamd:invoice',enhanceInvoice);
-})();
-</script>
+
 
 </body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
@@ -3703,5 +3634,76 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   window.addEventListener('load',function(){setTimeout(inject,700);setTimeout(refreshPulse,1800);});
 })();
 </script>
+<script id="invoice-pro-v5-js">
+(function(){
+  function enhanceInvoice(){
+    const sec=document.getElementById('invoice');
+    if(!sec || sec.dataset.proV5==='1') return;
+    const card=sec.querySelector(':scope > .card');
+    if(!card) return;
+    const original=card.innerHTML;
+    card.innerHTML=`<div class="invoice-shell">
+      <div class="invoice-head-pro">
+        <div><h2>🧾 فاتورة بيع جديدة</h2><div style="font-size:11px;color:#dbeafe;margin-top:3px">إنشاء فاتورة وحساب المدفوع والمتبقي وطباعة الفاتورة</div></div>
+        <div class="invoice-code-pro">رقم الفاتورة <input id="invoiceCodeInput" type="text" readonly></div>
+      </div>
+      <div class="invoice-body-pro" id="invoiceProBody">${original.replace(/<div class="row between"[\s\S]*?<\/div>\s*<div class="grid two"/,'<div class="invoice-pro-anchor"></div><div class="grid two"')}
+      </div></div>`;
+    sec.dataset.proV5='1';
+    // Restore duplicated heading/code issue safely by using the original body and hiding its old header.
+    const anchor=sec.querySelector('.invoice-pro-anchor');
+    const oldHead=sec.querySelector('.invoice-pro-anchor')?.previousElementSibling;
+    if(oldHead) oldHead.remove();
+    const body=sec.querySelector('#invoiceProBody');
+    if(body){
+      const oldTitle=body.querySelector('#invoiceTitleHeading');
+      if(oldTitle){const rh=oldTitle.closest('.row'); if(rh) rh.remove();}
+      const oldCode=body.querySelector('#invoiceCodeInput'); if(oldCode && oldCode!==sec.querySelector('.invoice-code-pro input')) oldCode.remove();
+    }
+    const firstGrid=body?.querySelector('.grid.two');
+    if(firstGrid){ firstGrid.classList.add('invoice-section-pro'); firstGrid.insertAdjacentHTML('afterbegin','<div class="invoice-section-title"><span>👤 بيانات العميل</span><span style="font-size:10px;color:#94a3b8">يمكن الكتابة أو اختيار عميل سابق</span></div>'); }
+    const project=body?.querySelector('#invoiceProject')?.closest('div[style*="margin-top"]'); if(project) project.classList.add('invoice-section-pro');
+    const notes=body?.querySelector('#invoiceNotes')?.closest('div[style*="margin-top"]'); if(notes) notes.classList.add('invoice-section-pro');
+    const dateGrid=body?.querySelector('#invoiceDateTime')?.closest('.grid.two'); if(dateGrid){dateGrid.classList.add('invoice-section-pro');}
+    const payGrid=body?.querySelector('#amountPaid')?.closest('.grid.two'); if(payGrid){payGrid.classList.add('invoice-section-pro','payment-pro');}
+    const add=body?.querySelector('.invoice-add'); if(add){add.insertAdjacentHTML('beforebegin','<div class="invoice-section-title" style="margin-top:4px"><span>📦 إضافة الأصناف</span><span style="font-size:10px;color:#94a3b8">اختر الصنف ثم الكمية</span></div>');}
+    const service=body?.querySelector('#customServiceName')?.closest('div[style*="margin-top"]'); if(service) service.classList.add('service-pro');
+    const items=body?.querySelector('#invoiceBody')?.closest('.table-wrap'); if(items){items.parentElement?.classList.add('invoice-items-pro');}
+    const total=body?.querySelector('.invoice-total');
+    if(total){
+      const old=total;
+      old.classList.add('invoice-summary-old');
+      const parent=old.parentElement;
+      const summary=document.createElement('div'); summary.className='invoice-summary-pro';
+      summary.innerHTML=`<div class="summary-grid-pro">
+        <div class="summary-box-pro"><span>إجمالي البنود</span><b id="proSubTotal">٠٫٠٠</b> ج.م</div>
+        <div class="summary-box-pro"><span>الخصم</span><b id="proDiscount">٠٫٠٠</b> ج.م</div>
+        <div class="summary-box-pro final"><span>الإجمالي النهائي</span><b id="proTotal">٠٫٠٠</b> ج.م</div>
+        <div class="summary-box-pro remaining"><span>المتبقي</span><b id="proRemaining">٠٫٠٠</b> ج.م</div>
+      </div>`;
+      parent.insertBefore(summary,old); old.style.display='none';
+      const actions=parent.querySelector('.row'); if(actions){actions.classList.add('invoice-actions-pro');}
+    }
+    const code=sec.querySelector('.invoice-code-pro input');
+    const oldCode=sec.querySelector('#invoiceCodeInput:not(.invoice-code-pro input)');
+    if(code && oldCode && oldCode!==code){code.value=oldCode.value;}
+    syncSummary();
+    ['invoiceDiscount','amountPaid','invoiceDateTime'].forEach(id=>document.getElementById(id)?.addEventListener('input',syncSummary));
+    const bodyObs=new MutationObserver(syncSummary); if(document.getElementById('invoiceBody')) bodyObs.observe(document.getElementById('invoiceBody'),{childList:true,subtree:true,characterData:true});
+    // Fast payment presets
+    const paid=document.getElementById('amountPaid');
+    if(paid){paid.insertAdjacentHTML('afterend','div class="invoice-shortcuts" style="margin-top:7px"><button type="button" class="invoice-chip" data-pay="0">صفر</button><button type="button" class="invoice-chip" data-pay="half">نصف الفاتورة</button><button type="button" class="invoice-chip" data-pay="all">دفع كامل</button></div>');
+      paid.parentElement?.querySelectorAll('.invoice-chip').forEach(b=>b.addEventListener('click',()=>{const t=Number((document.getElementById('invoiceTotal')?.textContent||'0').replace(/[^0-9.]/g,''))||0; paid.value=b.dataset.pay==='half'?(t/2).toFixed(2):b.dataset.pay==='all'?t.toFixed(2):'0'; if(typeof renderInvoice==='function')renderInvoice();syncSummary();}));}
+    document.addEventListener('keydown',function(e){if(!sec.classList.contains('hidden')){if(e.ctrlKey&&e.key.toLowerCase()==='s'){e.preventDefault();document.getElementById('saveInvoiceBtn')?.click();} if(e.key==='F2'){e.preventDefault();document.getElementById('invoiceProduct')?.focus();}}});
+  }
+  function syncSummary(){
+    const map=[['invoiceSubTotal','proSubTotal'],['invoiceDiscountText','proDiscount'],['invoiceTotal','proTotal'],['remainingDisplayText','proRemaining']];
+    map.forEach(([a,b])=>{const x=document.getElementById(a),y=document.getElementById(b);if(x&&y)y.textContent=x.textContent||'٠٫٠٠';});
+  }
+  window.addEventListener('load',()=>setTimeout(enhanceInvoice,250));
+  window.addEventListener('alhamd:invoice',enhanceInvoice);
+})();
+</script>
+
 </body>
 </html>
