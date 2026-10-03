@@ -1792,7 +1792,7 @@ function updateInvoiceProjectHint(){
   const id=document.getElementById("invoiceProject")?.value;const p=projectById(id);const e=document.getElementById("invoiceProjectHint");if(e)e.innerHTML=p?`المشروع: <b>${esc(p.name)}</b> — المبلغ المستلم: <b>${toArabicDigits(money(p.received_amount))} ج.م</b>`:"الفاتورة ستظل فاتورة عامة إذا لم تختر مشروعًا.";
 }
 
-function showTab(tabId){document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));document.querySelectorAll(".tab-page").forEach(s=>s.classList.add("hidden"));const b=document.querySelector(`[data-tab="${tabId}"]`);if(b)b.classList.add("active");const p=document.getElementById(tabId);if(p)p.classList.remove("hidden");if(tabId==="projects")loadProjects();if(tabId==="workmanship"){loadWorkmanshipInvoices();clearWorkmanshipForm();}if(tabId==="projectSummary")loadProjectSummary();}
+function showTab(tabId){document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));document.querySelectorAll(".tab-page").forEach(s=>s.classList.add("hidden"));const b=document.querySelector(`[data-tab="${tabId}"]`);if(b)b.classList.add("active");const p=document.getElementById(tabId);if(p)p.classList.remove("hidden");if(tabId==="projects")loadProjects();if(tabId==="workmanship"){loadWorkmanshipInvoices();clearWorkmanshipForm();}if(tabId==="projectSummary")loadProjectSummary();if(tabId==="debtors")loadDebtors();}
 
 async function openProjectSummary(id){showTab("projectSummary");populateProjectSelects();const s=document.getElementById("summaryProject");if(s)s.value=id;await loadProjectSummary();}
 
@@ -1872,6 +1872,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   await loadStoreSettings();
   await loadProducts();
   await loadUniqueCustomers();
+  await loadDebtors();
   await loadPurchaseInvoices();
   await loadProjects();
   await loadWorkmanshipInvoices(false);
