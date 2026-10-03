@@ -323,20 +323,9 @@
       .hidden { display: none !important; }
 
       /* أنماط طباعة الإيصال الحراري 80mm أو A4 */
+      /* الطباعة تتم من نافذة مستقلة عبر printInvoiceDocument،
+         حتى لا تدخل عناصر النظام أو تخطيط الصفحة في الطباعة. */
       @media print {
-        body * { visibility: hidden; }
-        #printableStatement, #printableStatement * { visibility: visible; }
-        #printableStatement { position: absolute; left: 0; top: 0; width: 100%; }
-        
-        #printableLabel, #printableLabel * { visibility: visible; }
-        #printableLabel { position: absolute; left: 0; top: 0; width: 100%; text-align: center; }
-
-        #printableInvoicePreview, #printableInvoicePreview * { visibility: visible; }
-        #printableInvoicePreview { position: absolute; left: 0; top: 0; width: 100%; }
-        
-        #printableThermalReceipt, #printableThermalReceipt * { visibility: visible; }
-        #printableThermalReceipt { position: absolute; left: 0; top: 0; width: 80mm; }
-
         .no-print { display: none !important; }
       }
 
@@ -784,7 +773,7 @@ body.ah-drawer-open{overflow:hidden}
       
       <!-- خيارات طباعة الفاتورة (A4 أو إيصال حراري 80mm) -->
       <div class="no-print" style="background: #f1f5f9; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-weight: bold; font-size: 14px; color: #0f233c;">🖨️ خيارات الطباعة المتاحة:</span>
+        <span style="font-weight: bold; font-size: 14px; color: #0f233c;">🖨️ اختار مقاس الفاتورة للطباعة:</span>
         <div style="display: flex; gap: 8px;">
           <button onclick="printInvoiceA4()" style="background: #0f233c; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">فاتورة A4 كاملة</button>
           <button onclick="printThermalReceipt()" style="background: #17a2b8; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">إيصال حراري (80mm)</button>
@@ -2458,21 +2447,81 @@ function previewCurrentInvoice() {
   document.getElementById("invoicePreviewModal").style.display = "flex";
 }
 
+function printInvoiceDocument(elementId, mode = "a4") {
+  const source = document.getElementById(elementId);
+  if (!source) return alert("تعذر تجهيز الفاتورة للطباعة");
+
+  // ننسخ الفاتورة فقط إلى نافذة طباعة مستقلة، بدل طباعة صفحة النظام كلها.
+  const printWindow = window.open("", "_blank", "width=900,height=1000,noopener,noreferrer");
+  if (!printWindow) {
+    alert("المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع ثم حاول مرة أخرى.");
+    return;
+  }
+
+  const isThermal = mode === "thermal";
+  const pageCss = isThermal
+    ? `@page { size: 80mm auto; margin: 0; }`
+    : `@page { size: A4 portrait; margin: 0; }`;
+
+  const contentWidth = isThermal ? "80mm" : "190mm";
+  const contentPadding = isThermal ? "4mm" : "10mm";
+
+  printWindow.document.open();
+  printWindow.document.write(`<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>فاتورة ${esc(document.getElementById("prevInvCode")?.textContent || "")}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+${pageCss}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fff!important;color:#111;font-family:'Cairo',Tahoma,Arial,sans-serif!important}
+body{width:100%;}
+.print-page{width:${contentWidth};margin:0 auto;padding:${contentPadding};background:#fff;}
+.print-page *{font-family:'Cairo',Tahoma,Arial,sans-serif!important;}
+.no-print{display:none!important}
+img{max-width:100%;}
+@media print{html,body{width:100%;margin:0!important;padding:0!important;} .print-page{margin:0 auto!important;box-shadow:none!important;} }
+${isThermal ? `
+.invoice-header-flex{display:block!important;text-align:center!important;background:#fff!important;color:#111!important;border-bottom:1px dashed #111!important;border-radius:0!important;padding:0 0 8px!important;margin-bottom:8px!important}
+.invoice-header-flex h2{color:#111!important;font-size:15px!important}
+.invoice-header-flex p{color:#333!important;font-size:10px!important}
+.invoice-header-flex img{max-height:45px!important;margin:5px auto!important;display:block!important}
+.invoice-meta-grid{display:block!important;background:#fff!important;border:0!important;padding:0!important;font-size:10px!important}
+.invoice-meta-grid>div{padding:2px 0!important}
+.invoice-print-container table{font-size:9px!important}
+.invoice-print-container th,.invoice-print-container td{padding:3px 2px!important}
+.invoice-print-container h3{font-size:12px!important}
+` : `
+.invoice-header-flex{border-radius:10px!important;margin-bottom:12px!important}
+.invoice-meta-grid{font-size:12px!important}
+.invoice-print-container table{font-size:11px!important}
+`}
+</style>
+</head>
+<body>
+<div class="print-page">${source.outerHTML}</div>
+<script>
+window.addEventListener('load', function(){
+  setTimeout(function(){ window.print(); }, 250);
+});
+window.addEventListener('afterprint', function(){ setTimeout(function(){ window.close(); }, 150); });
+<\/script>
+</body>
+</html>`);
+  printWindow.document.close();
+}
+
 function printInvoiceA4() {
-  document.getElementById("printableInvoicePreview").classList.remove("hidden");
-  document.getElementById("printableThermalReceipt").classList.add("hidden");
-  window.print();
+  printInvoiceDocument("printableInvoicePreview", "a4");
 }
 
 function printThermalReceipt() {
-  document.getElementById("printableInvoicePreview").classList.add("hidden");
-  document.getElementById("printableThermalReceipt").classList.remove("hidden");
-  window.print();
-  // إعادة عرض A4 كافتراضي بعد الطباعة
-  setTimeout(() => {
-    document.getElementById("printableInvoicePreview").classList.remove("hidden");
-    document.getElementById("printableThermalReceipt").classList.add("hidden");
-  }, 500);
+  printInvoiceDocument("printableThermalReceipt", "thermal");
 }
 
 async function previewExistingInvoice(invoiceId) {
