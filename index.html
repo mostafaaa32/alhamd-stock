@@ -2025,7 +2025,7 @@ async function deleteAlhamdUser(id){
   if(!confirm('تأكيد حذف المستخدم '+(target?.username||'')+'؟'))return;
   const {data:{session}}=await sb.auth.getSession();
   const res=await fetch(SUPABASE_URL+'/functions/v1/admin-delete-user',{
-    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token'},
+    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
     body:JSON.stringify({user_id:id})
   });
   const payload=await res.json().catch(()=>({}));
