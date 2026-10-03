@@ -1333,7 +1333,7 @@ body.ah-drawer-open{overflow:hidden}
         <!-- صفحة الأصناف والمخزن مع الترتيب وخيارات الحذف المتعدد وتصدير Excel/PDF -->
         <section id="products" class="tab-page hidden">
 
-          <div class="stock-v11" id="stockV11Panel">
+          <div class="stock-v11" id="stockV11Panel" data-version="v12">
             <div class="stock-kpis">
               <div class="stock-kpi"><div class="k-label">إجمالي الأصناف</div><div class="k-value" id="stockV11Count">0</div></div>
               <div class="stock-kpi"><div class="k-label">قيمة المخزون بسعر الشراء</div><div class="k-value" id="stockV11Capital">0 ج.م</div></div>
@@ -3952,48 +3952,192 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
 </script>
 
 
-<script id="alhamd-stock-v11-js">
-function stockV11Num(v){return Number(v||0)}
-function stockV11Status(p){const q=stockV11Num(p.quantity),m=stockV11Num(p.min_quantity);if(q<=0)return ['out','نافد'];if(q<=m)return ['low','تحت الحد'];return ['ok','متوفر']}
-function stockV11Refresh(){
-  const list=Array.isArray(products)?products:[];
-  const count=document.getElementById('stockV11Count'),cap=document.getElementById('stockV11Capital'),low=document.getElementById('stockV11Low'),out=document.getElementById('stockV11Out');
-  if(count)count.textContent=toArabicDigits(list.length);
-  if(cap)cap.textContent=toArabicDigits(money(list.reduce((a,p)=>a+stockV11Num(p.quantity)*stockV11Num(p.buy_price),0)))+' ج.م';
-  if(low)low.textContent=toArabicDigits(list.filter(p=>stockV11Num(p.quantity)>0&&stockV11Num(p.quantity)<=stockV11Num(p.min_quantity)).length);
-  if(out)out.textContent=toArabicDigits(list.filter(p=>stockV11Num(p.quantity)<=0).length);
-  renderStockV11();
-}
-function renderStockV11(){
- const body=document.getElementById('stockV11Body');if(!body)return;const q=(document.getElementById('stockV11Search')?.value||'').trim().toLowerCase();const f=document.getElementById('stockV11Filter')?.value||'all';
- let list=(Array.isArray(products)?products:[]).filter(p=>(String(p.name||'').toLowerCase().includes(q)||String(p.code||'').toLowerCase().includes(q)));
- list=list.filter(p=>f==='all'||stockV11Status(p)[0]===f);
- if(!list.length){body.innerHTML='<tr><td colspan="10" class="stock-empty">لا توجد أصناف مطابقة للبحث</td></tr>';return}
- body.innerHTML=list.map(p=>{const [cls,label]=stockV11Status(p),qty=stockV11Num(p.quantity),val=qty*stockV11Num(p.buy_price);return `<tr class="stock-${cls}"><td><b>${esc(p.code||'—')}</b></td><td>${esc(p.name||'')}</td><td>${esc(p.unit||'قطعة')}</td><td><b>${toArabicDigits(qty)}</b></td><td>${toArabicDigits(stockV11Num(p.min_quantity))}</td><td>${toArabicDigits(money(p.buy_price))}</td><td>${toArabicDigits(money(p.sell_price))}</td><td><b>${toArabicDigits(money(val))} ج.م</b></td><td><span class="stock-badge ${cls}">${label}</span></td><td><div class="stock-v11-product-actions"><button class="stock-mini-btn primary" onclick="openStockV11Movements('${p.id}')">الحركة</button><button class="stock-mini-btn warn" onclick="stockV11AddFor('${p.id}')">+ كمية</button></div></td></tr>`}).join('');
-}
-async function stockV11AddFor(id){const p=(products||[]).find(x=>String(x.id)===String(id));if(!p)return;const raw=prompt(`أدخل الكمية المراد إضافتها للصنف: ${p.name}`,'1');if(raw===null)return;const n=Number(raw);if(!Number.isFinite(n)||n<=0)return alert('أدخل كمية صحيحة أكبر من صفر');const {error}=await sb.from('products').update({quantity:stockV11Num(p.quantity)+n}).eq('id',p.id);if(error)return alert('تعذر تحديث المخزون: '+error.message);await loadProducts();stockV11Refresh();await refreshDashboard();alert('تمت إضافة الكمية بنجاح');}
-async function stockV11QuickAdd(){const body=document.getElementById('stockV11Search');if(body&&body.value.trim()){const p=(products||[]).find(x=>String(x.name||'').toLowerCase()===body.value.trim().toLowerCase()||String(x.code||'').toLowerCase()===body.value.trim().toLowerCase());if(p)return stockV11AddFor(p.id)}const p=(products||[]).find(x=>stockV11Num(x.quantity)<=stockV11Num(x.min_quantity));if(p)return stockV11AddFor(p.id);alert('اكتب اسم أو كود الصنف أولاً');}
-function openStockV11Modal(title,html){let m=document.getElementById('stockV11Modal');if(!m){m=document.createElement('div');m.id='stockV11Modal';m.className='stock-modal';m.innerHTML='<div class="stock-modal-card"><div class="stock-modal-head"><h3 id="stockV11ModalTitle"></h3><button class="stock-close" onclick="closeStockV11Modal()">×</button></div><div class="stock-modal-body" id="stockV11ModalBody"></div></div>';document.body.appendChild(m)}document.getElementById('stockV11ModalTitle').textContent=title;document.getElementById('stockV11ModalBody').innerHTML=html;m.style.display='flex'}
-function closeStockV11Modal(){const m=document.getElementById('stockV11Modal');if(m)m.style.display='none'}
-async function openStockV11Movements(productId){
- let selected=null;if(productId)selected=(products||[]).find(p=>String(p.id)===String(productId));
- if(!selected){const q=(document.getElementById('stockV11Search')?.value||'').trim().toLowerCase();selected=(products||[]).find(p=>String(p.name||'').toLowerCase().includes(q)||String(p.code||'').toLowerCase()===q);}
- if(!selected){openStockV11Modal('حركة المخزون','<div class="stock-empty">اختر صنفًا من الجدول لعرض حركته، أو اكتب اسمه/كوده في البحث.</div>');return}
- openStockV11Modal('حركة الصنف: '+selected.name,'<div class="stock-empty">جاري تحميل الحركة...</div>');
- const [salesR,purR]=await Promise.all([
-   sb.from('invoice_items').select('*').eq('product_id',selected.id).order('created_at',{ascending:false}),
-   sb.from('purchase_invoice_items').select('*').ilike('product_name',selected.name).order('created_at',{ascending:false})
- ]);
- const sales=salesR.data||[],purs=purR.data||[];let totalOut=sales.reduce((a,x)=>a+stockV11Num(x.quantity),0),totalIn=purs.reduce((a,x)=>a+stockV11Num(x.quantity),0);
- const rows=[];
- sales.forEach(x=>rows.push({date:x.created_at,type:'بيع',qty:-stockV11Num(x.quantity),ref:x.invoice_id,price:x.unit_price}));
- purs.forEach(x=>rows.push({date:x.created_at,type:'شراء',qty:stockV11Num(x.quantity),ref:x.purchase_invoice_id,price:x.buy_price}));
- rows.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
- const body=rows.length?rows.map(r=>`<tr><td>${r.date?new Date(r.date).toLocaleString('ar-EG'):'—'}</td><td>${r.type}</td><td style="font-weight:900;color:${r.qty<0?'#b42318':'#18794e'}">${r.qty>0?'+':''}${toArabicDigits(r.qty)}</td><td>${esc(String(r.ref||'').slice(0,10))}</td><td>${toArabicDigits(money(r.price))} ج.م</td></tr>`).join(''):'<tr><td colspan="5" class="stock-empty">لا توجد حركة مسجلة لهذا الصنف في الفواتير الحالية.</td></tr>';
- openStockV11Modal('حركة الصنف: '+selected.name,`<div class="stock-movement-cards"><div class="stock-movement-card"><span>الرصيد الحالي</span><b>${toArabicDigits(stockV11Num(selected.quantity))}</b></div><div class="stock-movement-card"><span>إجمالي الداخل من المشتريات</span><b>${toArabicDigits(totalIn)}</b></div><div class="stock-movement-card"><span>إجمالي الخارج من المبيعات</span><b>${toArabicDigits(totalOut)}</b></div></div><div class="stock-table-wrap"><table class="stock-table"><thead><tr><th>التاريخ</th><th>الحركة</th><th>الكمية</th><th>المرجع</th><th>السعر</th></tr></thead><tbody>${body}</tbody></table></div>`);
-}
-function exportStockV11(){const list=Array.isArray(products)?products:[];const rows=list.map(p=>({الكود:p.code||'',الصنف:p.name||'',الوحدة:p.unit||'',الكمية:stockV11Num(p.quantity),الحد_الأدنى:stockV11Num(p.min_quantity),سعر_الشراء:stockV11Num(p.buy_price),سعر_البيع:stockV11Num(p.sell_price),قيمة_المخزون:stockV11Num(p.quantity)*stockV11Num(p.buy_price)}));if(typeof exportToExcel==='function')return exportToExcel(rows,'تقرير_المخزون');if(typeof exportTableToExcel==='function')return exportTableToExcel('productsTable','المخزن_والأصناف');alert('تم تجهيز بيانات المخزون للتصدير من خلال زر Excel الموجود بالأعلى');}
-(function(){const oldLoad=window.loadProducts;if(typeof oldLoad==='function'){window.loadProducts=async function(){const r=await oldLoad.apply(this,arguments);setTimeout(stockV11Refresh,0);return r}}document.addEventListener('DOMContentLoaded',()=>setTimeout(stockV11Refresh,600));})();
+<script id="alhamd-stock-v12-js">
+/* ALHAMD STOCK V12 — Supabase-safe inventory movement layer */
+(function(){
+  const num = v => {
+    if (typeof v === 'string') v = v.replace(/,/g,'').replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const escSafe = v => (typeof esc === 'function' ? esc(v) : String(v ?? '').replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])));
+  const moneySafe = v => typeof money === 'function' ? money(v) : num(v).toLocaleString('en-US',{maximumFractionDigits:2});
+  const ar = v => typeof toArabicDigits === 'function' ? toArabicDigits(v) : String(v);
+
+  function status(p){
+    const q=num(p?.quantity), m=num(p?.min_quantity);
+    if(q<=0) return ['out','نافد'];
+    if(q<=m) return ['low','تحت الحد'];
+    return ['ok','متوفر'];
+  }
+
+  function refresh(){
+    try{
+      const list=Array.isArray(window.products)?window.products:[];
+      const count=document.getElementById('stockV11Count');
+      const cap=document.getElementById('stockV11Capital');
+      const low=document.getElementById('stockV11Low');
+      const out=document.getElementById('stockV11Out');
+      if(count) count.textContent=ar(list.length);
+      if(cap) cap.textContent=ar(moneySafe(list.reduce((a,p)=>a+num(p.quantity)*num(p.buy_price),0)))+' ج.م';
+      if(low) low.textContent=ar(list.filter(p=>num(p.quantity)>0&&num(p.quantity)<=num(p.min_quantity)).length);
+      if(out) out.textContent=ar(list.filter(p=>num(p.quantity)<=0).length);
+      render();
+    }catch(e){ console.warn('Stock V12 refresh:',e); }
+  }
+
+  function render(){
+    const body=document.getElementById('stockV11Body'); if(!body)return;
+    const q=(document.getElementById('stockV11Search')?.value||'').trim().toLowerCase();
+    const f=document.getElementById('stockV11Filter')?.value||'all';
+    let list=(Array.isArray(window.products)?window.products:[]).filter(p=>
+      String(p.name||'').toLowerCase().includes(q)||String(p.code||'').toLowerCase().includes(q)
+    );
+    list=list.filter(p=>f==='all'||status(p)[0]===f);
+    if(!list.length){body.innerHTML='<tr><td colspan="10" class="stock-empty">لا توجد أصناف مطابقة للبحث</td></tr>';return;}
+    body.innerHTML=list.map(p=>{
+      const [cls,label]=status(p), qty=num(p.quantity), val=qty*num(p.buy_price);
+      return `<tr class="stock-${cls}">
+        <td><b>${escSafe(p.code||'—')}</b></td><td>${escSafe(p.name||'')}</td><td>${escSafe(p.unit||'قطعة')}</td>
+        <td><b>${ar(qty)}</b></td><td>${ar(num(p.min_quantity))}</td><td>${ar(moneySafe(p.buy_price))}</td>
+        <td>${ar(moneySafe(p.sell_price))}</td><td><b>${ar(moneySafe(val))} ج.م</b></td>
+        <td><span class="stock-badge ${cls}">${label}</span></td>
+        <td><div class="stock-v11-product-actions"><button class="stock-mini-btn primary" onclick="openStockV11Movements('${escSafe(p.id)}')">الحركة</button><button class="stock-mini-btn warn" onclick="stockV11AddFor('${escSafe(p.id)}')">+ كمية</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function addFor(id){
+    const p=(window.products||[]).find(x=>String(x.id)===String(id)); if(!p)return;
+    const raw=prompt(`أدخل الكمية المراد إضافتها للصنف: ${p.name}`,'1'); if(raw===null)return;
+    const n=num(raw); if(!Number.isFinite(n)||n<=0)return alert('أدخل كمية صحيحة أكبر من صفر');
+    try{
+      const {error}=await sb.from('products').update({quantity:num(p.quantity)+n}).eq('id',p.id);
+      if(error) throw error;
+      await loadProducts(); refresh();
+      if(typeof refreshDashboard==='function') await refreshDashboard();
+      alert('تمت إضافة الكمية بنجاح');
+    }catch(e){
+      console.error('Stock V12 quantity update:',e);
+      alert('تعذر تحديث المخزون:\n'+(e?.message||'خطأ غير معروف'));
+    }
+  }
+
+  function quickAdd(){
+    const el=document.getElementById('stockV11Search'), q=(el?.value||'').trim().toLowerCase();
+    if(q){
+      const p=(window.products||[]).find(x=>String(x.name||'').toLowerCase()===q||String(x.code||'').toLowerCase()===q);
+      if(p)return addFor(p.id);
+    }
+    const p=(window.products||[]).find(x=>num(x.quantity)<=num(x.min_quantity));
+    if(p)return addFor(p.id);
+    alert('اكتب اسم أو كود الصنف أولاً');
+  }
+
+  function modal(title,html){
+    let m=document.getElementById('stockV11Modal');
+    if(!m){
+      m=document.createElement('div');m.id='stockV11Modal';m.className='stock-modal';
+      m.innerHTML='<div class="stock-modal-card"><div class="stock-modal-head"><h3 id="stockV11ModalTitle"></h3><button class="stock-close" onclick="closeStockV11Modal()">×</button></div><div class="stock-modal-body" id="stockV11ModalBody"></div></div>';
+      document.body.appendChild(m);
+    }
+    document.getElementById('stockV11ModalTitle').textContent=title;
+    document.getElementById('stockV11ModalBody').innerHTML=html;
+    m.style.display='flex';
+  }
+  function closeModal(){const m=document.getElementById('stockV11Modal');if(m)m.style.display='none';}
+
+  async function queryItems(table, product, kind){
+    const errors=[];
+    // V12 intentionally avoids ordering by created_at on item tables.
+    // Older databases may not have created_at on invoice_items/purchase_invoice_items.
+    let q=sb.from(table).select('*');
+    if(kind==='sale' && product?.id) q=q.eq('product_id',product.id);
+    else if(product?.name) q=q.ilike('product_name',product.name);
+    let r=await q;
+    if(!r.error) return {data:r.data||[],error:null};
+    errors.push(r.error);
+
+    // Fallback for older invoice_items tables where product_id is absent or unreliable.
+    if(kind==='sale' && product?.name){
+      r=await sb.from(table).select('*').ilike('product_name',product.name);
+      if(!r.error) return {data:r.data||[],error:null};
+      errors.push(r.error);
+    }
+    return {data:[],error:errors[errors.length-1]||null,errors};
+  }
+
+  async function fetchDates(items, kind){
+    const ids=[...new Set(items.map(x=>kind==='sale'?x.invoice_id:x.purchase_invoice_id).filter(Boolean).map(String))];
+    if(!ids.length)return new Map();
+    const table=kind==='sale'?'invoices':'purchase_invoices';
+    try{
+      const r=await sb.from(table).select('id,created_at,invoice_code').in('id',ids);
+      if(r.error)return new Map();
+      return new Map((r.data||[]).map(x=>[String(x.id),x]));
+    }catch(e){return new Map();}
+  }
+
+  async function movements(productId){
+    let selected=null;
+    if(productId)selected=(window.products||[]).find(p=>String(p.id)===String(productId));
+    if(!selected){
+      const q=(document.getElementById('stockV11Search')?.value||'').trim().toLowerCase();
+      selected=(window.products||[]).find(p=>String(p.name||'').toLowerCase().includes(q)||String(p.code||'').toLowerCase()===q);
+    }
+    if(!selected){modal('حركة المخزون','<div class="stock-empty">اختر صنفًا من الجدول لعرض حركته، أو اكتب اسمه/كوده في البحث.</div>');return;}
+
+    modal('حركة الصنف: '+selected.name,'<div class="stock-empty">جاري تحميل الحركة...</div>');
+    try{
+      const [salesR,purR]=await Promise.all([
+        queryItems('invoice_items',selected,'sale'),
+        queryItems('purchase_invoice_items',selected,'purchase')
+      ]);
+      const sales=salesR.data||[], purs=purR.data||[];
+      const [saleDates,purDates]=await Promise.all([fetchDates(sales,'sale'),fetchDates(purs,'purchase')]);
+      const rows=[];
+      sales.forEach(x=>{
+        const parent=saleDates.get(String(x.invoice_id));
+        rows.push({date:x.created_at||parent?.created_at,type:'بيع',qty:-num(x.quantity),ref:parent?.invoice_code||x.invoice_id,price:x.unit_price??x.sell_price??x.price});
+      });
+      purs.forEach(x=>{
+        const parent=purDates.get(String(x.purchase_invoice_id));
+        rows.push({date:x.created_at||parent?.created_at,type:'شراء',qty:num(x.quantity),ref:parent?.invoice_code||x.purchase_invoice_id,price:x.buy_price??x.unit_price??x.price});
+      });
+      rows.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+      const totalOut=sales.reduce((a,x)=>a+num(x.quantity),0), totalIn=purs.reduce((a,x)=>a+num(x.quantity),0);
+      const queryErrors=[...(salesR.errors||[]),...(purR.errors||[])];
+      const warning=queryErrors.length && !rows.length ? `<div style="background:#fff7ed;border:1px solid #fed7aa;padding:12px;border-radius:10px;margin-bottom:12px;color:#9a3412">تعذر قراءة حركة الفواتير من قاعدة البيانات. المخزون الحالي يعمل، لكن راجع بنية جداول <b>invoice_items</b> و <b>purchase_invoice_items</b> إذا استمرت الرسالة.<br><small>${escSafe(queryErrors[0]?.message||'Supabase request error')}</small></div>` : '';
+      const body=rows.length?rows.map(r=>`<tr><td>${r.date?new Date(r.date).toLocaleString('ar-EG'):'—'}</td><td>${r.type}</td><td style="font-weight:900;color:${r.qty<0?'#b42318':'#18794e'}">${r.qty>0?'+':''}${ar(r.qty)}</td><td>${escSafe(String(r.ref||'').slice(0,18))}</td><td>${ar(moneySafe(r.price))} ج.م</td></tr>`).join(''):'<tr><td colspan="5" class="stock-empty">لا توجد حركة مسجلة لهذا الصنف في الفواتير الحالية.</td></tr>';
+      modal('حركة الصنف: '+selected.name,`${warning}<div class="stock-movement-cards"><div class="stock-movement-card"><span>الرصيد الحالي</span><b>${ar(num(selected.quantity))}</b></div><div class="stock-movement-card"><span>إجمالي الداخل من المشتريات</span><b>${ar(totalIn)}</b></div><div class="stock-movement-card"><span>إجمالي الخارج من المبيعات</span><b>${ar(totalOut)}</b></div></div><div class="stock-table-wrap"><table class="stock-table"><thead><tr><th>التاريخ</th><th>الحركة</th><th>الكمية</th><th>المرجع</th><th>السعر</th></tr></thead><tbody>${body}</tbody></table></div>`);
+    }catch(e){
+      console.error('Stock V12 movements:',e);
+      modal('حركة الصنف: '+selected.name,`<div style="background:#fff7ed;border:1px solid #fed7aa;padding:14px;border-radius:10px;color:#9a3412">تعذر تحميل حركة الصنف، لكن بيانات المخزون الأساسية لم تتأثر.<br><small>${escSafe(e?.message||'Supabase request error')}</small></div>`);
+    }
+  }
+
+  function exportStock(){
+    const list=Array.isArray(window.products)?window.products:[];
+    const rows=list.map(p=>({الكود:p.code||'',الصنف:p.name||'',الوحدة:p.unit||'',الكمية:num(p.quantity),الحد_الأدنى:num(p.min_quantity),سعر_الشراء:num(p.buy_price),سعر_البيع:num(p.sell_price),قيمة_المخزون:num(p.quantity)*num(p.buy_price)}));
+    if(typeof exportToExcel==='function')return exportToExcel(rows,'تقرير_المخزون_V12');
+    if(typeof exportTableToExcel==='function')return exportTableToExcel('productsTable','المخزن_والأصناف');
+    alert('تم تجهيز بيانات المخزون للتصدير من خلال زر Excel الموجود بالأعلى');
+  }
+
+  // Keep compatibility with the existing HTML buttons from V11.
+  window.stockV11Num=num;
+  window.stockV11Status=status;
+  window.stockV11Refresh=refresh;
+  window.renderStockV11=render;
+  window.stockV11AddFor=addFor;
+  window.stockV11QuickAdd=quickAdd;
+  window.openStockV11Modal=modal;
+  window.closeStockV11Modal=closeModal;
+  window.openStockV11Movements=movements;
+  window.exportStockV11=exportStock;
+
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(refresh,500));
+})();
 </script>
 </body>
 </html>
