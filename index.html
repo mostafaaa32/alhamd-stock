@@ -2671,160 +2671,14 @@ window.addEventListener('load', function(){
 window.addEventListener('afterprint', function(){ setTimeout(function(){ window.close(); }, 150); });
 <\/script>
 
-<script id="alhamd-supabase-auth-js">
-(function(){
-  const authScreen = document.getElementById('authScreen');
-  const authForm = document.getElementById('authForm');
-  const authEmail = document.getElementById('authEmail');
-  const authPassword = document.getElementById('authPassword');
-  const authConfirm = document.getElementById('authConfirmPassword');
-  const authConfirmWrap = document.getElementById('authConfirmWrap');
-  const authTitle = document.getElementById('authTitle');
-  const authSubtitle = document.getElementById('authSubtitle');
-  const authSubmit = document.getElementById('authSubmit');
-  const authModeBtn = document.getElementById('authModeBtn');
-  const authResetBtn = document.getElementById('authResetBtn');
-  const authBackBtn = document.getElementById('authBackBtn');
-  const authMsg = document.getElementById('authMsg');
-  const authUserEmail = document.getElementById('authUserEmail');
-  let authMode = 'login';
-  let authInitialized = false;
 
-  function msg(text, type){
-    if(!authMsg) return;
-    authMsg.textContent = text || '';
-    authMsg.className = 'auth-msg' + (text ? ' show ' + (type || 'error') : '');
-  }
-  function setMode(mode){
-    authMode = mode;
-    const register = mode === 'register';
-    authTitle.textContent = register ? 'إنشاء حساب' : 'تسجيل الدخول';
-    authSubtitle.textContent = register
-      ? 'أنشئ حسابًا للدخول إلى نظام مكتب الحمد. استخدم بريدًا إلكترونيًا يمكنك الوصول إليه.'
-      : 'الدخول إلى نظام مكتب الحمد لإدارة المخزون والمبيعات والمشتريات.';
-    authConfirmWrap.style.display = register ? 'block' : 'none';
-    authConfirm.required = register;
-    authPassword.autocomplete = register ? 'new-password' : 'current-password';
-    authSubmit.textContent = register ? 'إنشاء الحساب' : 'دخول آمن';
-    authModeBtn.style.display = register ? 'none' : 'inline-block';
-    authResetBtn.style.display = register ? 'none' : 'inline-block';
-    authBackBtn.style.display = register ? 'block' : 'none';
-    msg('');
-  }
-  function showLogin(){
-    authScreen.classList.add('show');
-    authScreen.setAttribute('aria-hidden','false');
-    document.documentElement.classList.add('auth-loading');
-  }
-  function hideLogin(){
-    authScreen.classList.remove('show');
-    authScreen.setAttribute('aria-hidden','true');
-    document.documentElement.classList.remove('auth-loading');
-    const app=document.getElementById('appView');
-    if(app) app.classList.remove('auth-locked');
-  }
-  function lockApp(){
-    const app=document.getElementById('appView');
-    if(app) app.classList.add('auth-locked');
-    showLogin();
-  }
-  function setUser(user){
-    if(authUserEmail) authUserEmail.textContent = user?.email || '';
-  }
-
-  window.logoutSupabase = async function(){
-    try{
-      const {error}=await sb.auth.signOut();
-      if(error) throw error;
-    }catch(e){
-      alert('تعذر تسجيل الخروج: ' + (e?.message || 'خطأ غير معروف'));
-    }
-  };
-
-  authModeBtn?.addEventListener('click',()=>setMode('register'));
-  authBackBtn?.addEventListener('click',()=>setMode('login'));
-
-  authResetBtn?.addEventListener('click', async ()=>{
-    const email=(authEmail.value||'').trim();
-    if(!email) return msg('اكتب البريد الإلكتروني أولاً ثم اضغط «نسيت كلمة المرور؟».','error');
-    authResetBtn.disabled=true;
-    try{
-      const redirectTo=window.location.origin + window.location.pathname;
-      const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
-      if(error) throw error;
-      msg('تم إرسال رابط إعادة تعيين كلمة المرور إلى البريد الإلكتروني إذا كان الحساب موجودًا.','success');
-    }catch(e){ msg('تعذر إرسال رابط إعادة التعيين: ' + (e?.message || 'خطأ غير معروف'),'error'); }
-    finally{ authResetBtn.disabled=false; }
-  });
-
-  authForm?.addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const email=(authEmail.value||'').trim();
-    const password=authPassword.value||'';
-    if(!email || !password) return msg('أدخل البريد الإلكتروني وكلمة المرور.','error');
-    if(authMode==='register' && password !== (authConfirm.value||'')) return msg('تأكيد كلمة المرور غير مطابق.','error');
-    authSubmit.disabled=true;
-    msg('جاري التحقق...','success');
-    try{
-      if(authMode==='register'){
-        const {data,error}=await sb.auth.signUp({email,password});
-        if(error) throw error;
-        if(data?.session){
-          msg('تم إنشاء الحساب وتسجيل الدخول.','success');
-        }else{
-          msg('تم إنشاء الحساب. إذا كان تأكيد البريد مفعّلًا في Supabase، افتح رسالة التأكيد ثم ارجع للموقع وسجّل الدخول.','success');
-          setMode('login');
-        }
-      }else{
-        const {data,error}=await sb.auth.signInWithPassword({email,password});
-        if(error) throw error;
-        if(data?.user) setUser(data.user);
-      }
-    }catch(e){
-      msg(e?.message || 'تعذر إتمام العملية. تحقق من البيانات وحاول مرة أخرى.','error');
-    }finally{ authSubmit.disabled=false; }
-  });
-
-  async function handleSession(session){
-    if(session?.user){
-      setUser(session.user);
-      hideLogin();
-      try{ await initializeAlhamdApp(); }catch(e){
-        console.error('Alhamd app initialization failed:',e);
-        alert('تم تسجيل الدخول، لكن تعذر تحميل بعض بيانات النظام. افتح الصفحة مرة أخرى إذا استمر الخطأ.');
-      }
-    }else{
-      lockApp();
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', async ()=>{
-    setMode('login');
-    const {data:{session},error}=await sb.auth.getSession();
-    if(error) console.error('Supabase auth session error:',error);
-    await handleSession(session);
-    authInitialized=true;
-  });
-
-  sb.auth.onAuthStateChange((event,session)=>{
-    if(event==='SIGNED_IN' || event==='INITIAL_SESSION' || event==='TOKEN_REFRESHED'){
-      if(session) setTimeout(()=>handleSession(session),0);
-    }else if(event==='SIGNED_OUT'){
-      alhamdAppBooted=false;
-      lockApp();
-      setMode('login');
-      authPassword.value='';
-      if(authConfirm) authConfirm.value='';
-      msg('تم تسجيل الخروج بأمان.','success');
-    }
-  });
-})();
-</script>
 
 </body>
 </html>`);
   printWindow.document.close();
 }
+
+
 
 function printInvoiceA4() {
   printInvoiceDocument("printableInvoicePreview", "a4");
@@ -3918,6 +3772,156 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   `);
   printWindow.document.close();
 }
+</script>
+
+<script id="alhamd-supabase-auth-js">
+(function(){
+  const authScreen = document.getElementById('authScreen');
+  const authForm = document.getElementById('authForm');
+  const authEmail = document.getElementById('authEmail');
+  const authPassword = document.getElementById('authPassword');
+  const authConfirm = document.getElementById('authConfirmPassword');
+  const authConfirmWrap = document.getElementById('authConfirmWrap');
+  const authTitle = document.getElementById('authTitle');
+  const authSubtitle = document.getElementById('authSubtitle');
+  const authSubmit = document.getElementById('authSubmit');
+  const authModeBtn = document.getElementById('authModeBtn');
+  const authResetBtn = document.getElementById('authResetBtn');
+  const authBackBtn = document.getElementById('authBackBtn');
+  const authMsg = document.getElementById('authMsg');
+  const authUserEmail = document.getElementById('authUserEmail');
+  let authMode = 'login';
+  let authInitialized = false;
+
+  function msg(text, type){
+    if(!authMsg) return;
+    authMsg.textContent = text || '';
+    authMsg.className = 'auth-msg' + (text ? ' show ' + (type || 'error') : '');
+  }
+  function setMode(mode){
+    authMode = mode;
+    const register = mode === 'register';
+    authTitle.textContent = register ? 'إنشاء حساب' : 'تسجيل الدخول';
+    authSubtitle.textContent = register
+      ? 'أنشئ حسابًا للدخول إلى نظام مكتب الحمد. استخدم بريدًا إلكترونيًا يمكنك الوصول إليه.'
+      : 'الدخول إلى نظام مكتب الحمد لإدارة المخزون والمبيعات والمشتريات.';
+    authConfirmWrap.style.display = register ? 'block' : 'none';
+    authConfirm.required = register;
+    authPassword.autocomplete = register ? 'new-password' : 'current-password';
+    authSubmit.textContent = register ? 'إنشاء الحساب' : 'دخول آمن';
+    authModeBtn.style.display = register ? 'none' : 'inline-block';
+    authResetBtn.style.display = register ? 'none' : 'inline-block';
+    authBackBtn.style.display = register ? 'block' : 'none';
+    msg('');
+  }
+  function showLogin(){
+    authScreen.classList.add('show');
+    authScreen.setAttribute('aria-hidden','false');
+    document.documentElement.classList.add('auth-loading');
+  }
+  function hideLogin(){
+    authScreen.classList.remove('show');
+    authScreen.setAttribute('aria-hidden','true');
+    document.documentElement.classList.remove('auth-loading');
+    const app=document.getElementById('appView');
+    if(app) app.classList.remove('auth-locked');
+  }
+  function lockApp(){
+    const app=document.getElementById('appView');
+    if(app) app.classList.add('auth-locked');
+    showLogin();
+  }
+  function setUser(user){
+    if(authUserEmail) authUserEmail.textContent = user?.email || '';
+  }
+
+  window.logoutSupabase = async function(){
+    try{
+      const {error}=await sb.auth.signOut();
+      if(error) throw error;
+    }catch(e){
+      alert('تعذر تسجيل الخروج: ' + (e?.message || 'خطأ غير معروف'));
+    }
+  };
+
+  authModeBtn?.addEventListener('click',()=>setMode('register'));
+  authBackBtn?.addEventListener('click',()=>setMode('login'));
+
+  authResetBtn?.addEventListener('click', async ()=>{
+    const email=(authEmail.value||'').trim();
+    if(!email) return msg('اكتب البريد الإلكتروني أولاً ثم اضغط «نسيت كلمة المرور؟».','error');
+    authResetBtn.disabled=true;
+    try{
+      const redirectTo=window.location.origin + window.location.pathname;
+      const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
+      if(error) throw error;
+      msg('تم إرسال رابط إعادة تعيين كلمة المرور إلى البريد الإلكتروني إذا كان الحساب موجودًا.','success');
+    }catch(e){ msg('تعذر إرسال رابط إعادة التعيين: ' + (e?.message || 'خطأ غير معروف'),'error'); }
+    finally{ authResetBtn.disabled=false; }
+  });
+
+  authForm?.addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const email=(authEmail.value||'').trim();
+    const password=authPassword.value||'';
+    if(!email || !password) return msg('أدخل البريد الإلكتروني وكلمة المرور.','error');
+    if(authMode==='register' && password !== (authConfirm.value||'')) return msg('تأكيد كلمة المرور غير مطابق.','error');
+    authSubmit.disabled=true;
+    msg('جاري التحقق...','success');
+    try{
+      if(authMode==='register'){
+        const {data,error}=await sb.auth.signUp({email,password});
+        if(error) throw error;
+        if(data?.session){
+          msg('تم إنشاء الحساب وتسجيل الدخول.','success');
+        }else{
+          msg('تم إنشاء الحساب. إذا كان تأكيد البريد مفعّلًا في Supabase، افتح رسالة التأكيد ثم ارجع للموقع وسجّل الدخول.','success');
+          setMode('login');
+        }
+      }else{
+        const {data,error}=await sb.auth.signInWithPassword({email,password});
+        if(error) throw error;
+        if(data?.user) setUser(data.user);
+      }
+    }catch(e){
+      msg(e?.message || 'تعذر إتمام العملية. تحقق من البيانات وحاول مرة أخرى.','error');
+    }finally{ authSubmit.disabled=false; }
+  });
+
+  async function handleSession(session){
+    if(session?.user){
+      setUser(session.user);
+      hideLogin();
+      try{ await initializeAlhamdApp(); }catch(e){
+        console.error('Alhamd app initialization failed:',e);
+        alert('تم تسجيل الدخول، لكن تعذر تحميل بعض بيانات النظام. افتح الصفحة مرة أخرى إذا استمر الخطأ.');
+      }
+    }else{
+      lockApp();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async ()=>{
+    setMode('login');
+    const {data:{session},error}=await sb.auth.getSession();
+    if(error) console.error('Supabase auth session error:',error);
+    await handleSession(session);
+    authInitialized=true;
+  });
+
+  sb.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_IN' || event==='INITIAL_SESSION' || event==='TOKEN_REFRESHED'){
+      if(session) setTimeout(()=>handleSession(session),0);
+    }else if(event==='SIGNED_OUT'){
+      alhamdAppBooted=false;
+      lockApp();
+      setMode('login');
+      authPassword.value='';
+      if(authConfirm) authConfirm.value='';
+      msg('تم تسجيل الخروج بأمان.','success');
+    }
+  });
+})();
 </script>
 
 <div id="ahSidebarBackdrop" aria-hidden="true"></div>
