@@ -3741,7 +3741,7 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
     const bodyObs=new MutationObserver(syncSummary); if(document.getElementById('invoiceBody')) bodyObs.observe(document.getElementById('invoiceBody'),{childList:true,subtree:true,characterData:true});
     // Fast payment presets
     const paid=document.getElementById('amountPaid');
-    if(paid){paid.insertAdjacentHTML('afterend','div class="invoice-shortcuts" style="margin-top:7px"><button type="button" class="invoice-chip" data-pay="0">صفر</button><button type="button" class="invoice-chip" data-pay="half">نصف الفاتورة</button><button type="button" class="invoice-chip" data-pay="all">دفع كامل</button></div>');
+    if(paid){paid.insertAdjacentHTML('afterend','<div class="invoice-shortcuts" style="margin-top:7px"><button type="button" class="invoice-chip" data-pay="0">صفر</button><button type="button" class="invoice-chip" data-pay="half">نصف الفاتورة</button><button type="button" class="invoice-chip" data-pay="all">دفع كامل</button></div>');
       paid.parentElement?.querySelectorAll('.invoice-chip').forEach(b=>b.addEventListener('click',()=>{const t=Number((document.getElementById('invoiceTotal')?.textContent||'0').replace(/[^0-9.]/g,''))||0; paid.value=b.dataset.pay==='half'?(t/2).toFixed(2):b.dataset.pay==='all'?t.toFixed(2):'0'; if(typeof renderInvoice==='function')renderInvoice();syncSummary();}));}
     document.addEventListener('keydown',function(e){if(!sec.classList.contains('hidden')){if(e.ctrlKey&&e.key.toLowerCase()==='s'){e.preventDefault();document.getElementById('saveInvoiceBtn')?.click();} if(e.key==='F2'){e.preventDefault();document.getElementById('invoiceProduct')?.focus();}}});
   }
@@ -3751,6 +3751,22 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   }
   window.addEventListener('load',()=>setTimeout(enhanceInvoice,250));
   window.addEventListener('alhamd:invoice',enhanceInvoice);
+  // Keep the product selector synchronized after the visual enhancement replaces the invoice card.
+  function ensureInvoiceProducts(){
+    try{
+      const sel=document.getElementById('invoiceProduct');
+      if(!sel || typeof products==='undefined' || !Array.isArray(products)) return;
+      if(typeof fillInvoiceProducts==='function') fillInvoiceProducts();
+      if(window.jQuery && jQuery.fn && jQuery.fn.select2 && !jQuery(sel).hasClass('select2-hidden-accessible')){
+        jQuery(sel).select2({placeholder:'ابحث عن الصنف بالاسم...',allowClear:true,dir:'rtl',width:'100%'});
+      }
+    }catch(e){ console.warn('Invoice product selector sync:',e); }
+  }
+  window.addEventListener('load',()=>setTimeout(ensureInvoiceProducts,600));
+  document.addEventListener('click',function(e){
+    const tab=e.target.closest?.('[data-tab="invoice"]');
+    if(tab) setTimeout(ensureInvoiceProducts,150);
+  });
 })();
 </script>
 
