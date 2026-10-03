@@ -680,6 +680,11 @@ body.ah-drawer-open{overflow:hidden}
 }
 </style>
 
+
+<style id="customers-pro-ui">
+.customer-pro-head{display:flex;justify-content:space-between;gap:18px;align-items:center;background:linear-gradient(135deg,#172554,#1e3a8a);color:#fff;padding:24px;border-radius:20px;margin-bottom:16px;box-shadow:0 14px 35px rgba(23,37,84,.16)}
+.customer-pro-kicker{font-size:11px;opacity:.72;font-weight:800}.customer-pro-head h2{margin:5px 0;font-size:24px}.customer-pro-head p{margin:0;color:#dbeafe;font-size:13px}.customer-pro-actions{display:flex;gap:8px;flex-wrap:wrap}.cp-btn{border:0;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}.cp-primary{background:#fff;color:#172554}.cp-green{background:#16a34a;color:#fff}.cp-red{background:#dc2626;color:#fff}.customer-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.customer-stat-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:17px;box-shadow:0 6px 20px rgba(15,23,42,.05)}.customer-stat-card span{display:block;color:#64748b;font-size:12px;font-weight:800}.customer-stat-card b{display:block;color:#172554;font-size:21px;margin:8px 0 3px}.customer-stat-card small{color:#94a3b8}.customer-stat-card.danger b{color:#c0392b}.customer-stat-card.success b{color:#16a34a}.customer-toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e5e7eb;padding:12px;border-radius:15px;margin-bottom:12px}.cp-search-wrap{display:flex;align-items:center;gap:8px;border:1px solid #dbe2ea;border-radius:11px;padding:0 12px;max-width:500px;width:100%;background:#f8fafc}.cp-search-wrap input{border:0;outline:0;background:transparent;width:100%;height:42px;font-family:inherit}.cp-check{font-size:13px;font-weight:800;color:#334155;white-space:nowrap}.customer-table-card{background:#fff;border:1px solid #e5e7eb;border-radius:17px;padding:14px}.customer-table-title{display:flex;justify-content:space-between;align-items:center;padding:4px 4px 13px;color:#172554}.customer-table-title span{font-size:12px;color:#94a3b8}.customer-pro-table{min-width:900px!important}.customer-pro-table td,.customer-pro-table th{text-align:right!important;vertical-align:middle}.cp-name{display:flex;align-items:center;gap:10px}.cp-name small{display:block;color:#94a3b8;font-size:10px;margin-top:3px}.cp-avatar{width:34px;height:34px;border-radius:10px;background:#e0e7ff;color:#1e3a8a;display:grid;place-items:center;font-weight:900}.cp-paid{color:#16a34a;font-weight:800}.cp-debt{color:#c0392b;font-weight:900}.cp-status{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:900}.cp-status.debt{background:#fee2e2;color:#b91c1c}.cp-status.paid{background:#dcfce7;color:#15803d}.cp-row-actions{display:flex;gap:5px;flex-wrap:wrap}.cp-row-actions button{border:1px solid #dbe2ea;background:#fff;border-radius:8px;padding:6px 8px;font-family:inherit;font-weight:800;font-size:10px;cursor:pointer}.cp-row-actions button.pay{background:#172554;color:#fff;border-color:#172554}.cp-empty{min-height:160px;align-items:center;justify-content:center;flex-direction:column;gap:7px;color:#94a3b8}.cp-empty strong{color:#334155}@media(max-width:900px){.customer-stats-grid{grid-template-columns:1fr 1fr}.customer-pro-head{align-items:flex-start;flex-direction:column}.customer-toolbar{align-items:stretch;flex-direction:column}.cp-search-wrap{max-width:none}}@media(max-width:560px){.customer-stats-grid{grid-template-columns:1fr}.customer-pro-head h2{font-size:20px}.customer-pro-actions{width:100%}.cp-btn{flex:1}.customer-table-card{padding:8px}}
+</style>
 </head>
 <body>
 
@@ -1429,31 +1434,42 @@ body.ah-drawer-open{overflow:hidden}
           </div>
         </section>
 
-        <!-- صفحة العملاء والديون مع ربط مباشر بالعملاء المديونين والتصدير -->
+        <!-- صفحة العملاء والديون - النسخة الاحترافية -->
         <section id="debtors" class="tab-page hidden">
-          <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-              <h2>👥 حسابات وديون العملاء</h2>
-              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button onclick="exportTableToExcel('debtorsTable', 'حسابات_العملاء_والديون')" style="background: #27ae60; color: #fff; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">📥 تصدير Excel</button>
-                <button onclick="exportTableToPDF('debtorsTable', 'تقرير حسابات وديون العملاء')" style="background: #e74c3c; color: #fff; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">📄 تصدير PDF</button>
-                <button onclick="filterOnlyDebtors()" style="background: #17a2b8; color: #fff; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">فلترة المديونين فقط</button>
-              </div>
+          <div class="customer-pro-head">
+            <div>
+              <span class="customer-pro-kicker">إدارة الحسابات</span>
+              <h2>👥 العملاء والمديونيات</h2>
+              <p>متابعة أرصدة العملاء، الفواتير، والتحصيل من مكان واحد.</p>
             </div>
-            <div class="table-wrap" style="margin-top: 15px;">
-              <table id="debtorsTable">
-                <thead>
-                  <tr>
-                    <th>اسم العميل</th>
-                    <th>رقم الهاتف</th>
-                    <th>إجمالي المبلغ المستحق (دين)</th>
-                    <th>الفواتير</th>
-                    <th>كشف الحساب والواتساب</th>
-                  </tr>
-                </thead>
+            <div class="customer-pro-actions">
+              <button class="cp-btn cp-primary" onclick="loadDebtors()">↻ تحديث</button>
+              <button class="cp-btn cp-green" onclick="exportTableToExcel('debtorsTable','حسابات_العملاء_والديون')">📥 Excel</button>
+              <button class="cp-btn cp-red" onclick="exportTableToPDF('debtorsTable','تقرير حسابات وديون العملاء')">📄 PDF</button>
+            </div>
+          </div>
+
+          <div class="customer-stats-grid">
+            <div class="customer-stat-card"><span>👥 إجمالي العملاء</span><b id="cpCustomersCount">٠</b><small>عميل مسجل</small></div>
+            <div class="customer-stat-card danger"><span>💳 إجمالي المديونيات</span><b id="cpTotalDebt">٠٫٠٠ ج.م</b><small>الرصيد المستحق</small></div>
+            <div class="customer-stat-card success"><span>💰 المحصل</span><b id="cpTotalPaid">٠٫٠٠ ج.م</b><small>إجمالي المدفوع</small></div>
+            <div class="customer-stat-card"><span>🧾 إجمالي الفواتير</span><b id="cpInvoicesCount">٠</b><small>فاتورة بيع</small></div>
+          </div>
+
+          <div class="customer-toolbar">
+            <div class="cp-search-wrap"><span>⌕</span><input id="cpCustomerSearch" type="search" placeholder="ابحث باسم العميل أو رقم الهاتف..." oninput="filterCustomersPro()"></div>
+            <label class="cp-check"><input id="cpDebtorsOnly" type="checkbox" onchange="filterCustomersPro()"> المديونين فقط</label>
+          </div>
+
+          <div class="customer-table-card">
+            <div class="customer-table-title"><strong>قائمة العملاء</strong><span id="cpVisibleCount">٠ عميل</span></div>
+            <div class="table-wrap">
+              <table id="debtorsTable" class="customer-pro-table">
+                <thead><tr><th>العميل</th><th>الهاتف</th><th>إجمالي الفواتير</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
                 <tbody id="debtorsBody"></tbody>
               </table>
             </div>
+            <div id="cpEmptyState" class="cp-empty" style="display:none">🔎<strong>لا توجد نتائج</strong><span>جرّب تغيير كلمة البحث أو إلغاء فلتر المديونين.</span></div>
           </div>
         </section>
 
@@ -3034,36 +3050,93 @@ async function deleteExpense(id) {
 }
 
 async function loadDebtors() {
-  const { data: invs } = await sb.from("invoices").select("*");
+  const { data: invs, error } = await sb.from("invoices").select("*").order("created_at", { ascending: false });
+  if (error) {
+    console.error("loadDebtors:", error);
+    const body = document.getElementById("debtorsBody");
+    if (body) body.innerHTML = `<tr><td colspan="7" style="padding:25px;color:#c0392b">تعذر تحميل حسابات العملاء: ${esc(error.message || "خطأ غير معروف")}</td></tr>`;
+    return;
+  }
   const map = {};
+  let allPaid = 0, allDebt = 0;
   (invs || []).forEach(inv => {
     const cName = (inv.customer_name || "عميل نقدي").trim();
-    if (!map[cName]) {
-      map[cName] = { name: cName, phone: inv.customer_phone || "---", totalDebt: 0, invoicesCount: 0, unpaidInvoices: [] };
-    }
-    map[cName].invoicesCount += 1;
-    const rem = Number(inv.remaining || 0);
-    map[cName].totalDebt += rem;
-    if (rem > 0) {
-      map[cName].unpaidInvoices.push(inv);
-    }
+    const key = cName.toLowerCase();
+    if (!map[key]) map[key] = { name:cName, phone:inv.customer_phone || "---", total:0, paid:0, debt:0, invoices:0, unpaid:0 };
+    const c = map[key];
+    if (inv.customer_phone && c.phone === "---") c.phone = inv.customer_phone;
+    c.total += Number(inv.total || 0);
+    c.paid += Number(inv.paid || 0);
+    c.debt += Math.max(0, Number(inv.remaining || 0));
+    c.invoices += 1;
+    if (Number(inv.remaining || 0) > 0) c.unpaid += 1;
+    allPaid += Number(inv.paid || 0);
+    allDebt += Math.max(0, Number(inv.remaining || 0));
   });
+  window._customersPro = Object.values(map).sort((a,b)=>b.debt-a.debt || b.total-a.total);
+  const countEl=document.getElementById("cpCustomersCount"); if(countEl) countEl.textContent=toArabicDigits(window._customersPro.length);
+  const debtEl=document.getElementById("cpTotalDebt"); if(debtEl) debtEl.textContent=toArabicDigits(money(allDebt))+" ج.م";
+  const paidEl=document.getElementById("cpTotalPaid"); if(paidEl) paidEl.textContent=toArabicDigits(money(allPaid))+" ج.م";
+  const invEl=document.getElementById("cpInvoicesCount"); if(invEl) invEl.textContent=toArabicDigits((invs||[]).length);
+  renderCustomersPro(window._customersPro);
+}
 
-  const debtorsList = Object.values(map);
-  const dBody = document.getElementById("debtorsBody");
-  if (dBody) {
-    dBody.innerHTML = debtorsList.map(d => `
-      <tr>
-        <td><b>${esc(d.name)}</b></td>
-        <td>${esc(d.phone)}</td>
-        <td><b style="color: ${d.totalDebt > 0 ? '#c0392b' : '#27ae60'};">${toArabicDigits(money(d.totalDebt))} ج.م</b></td>
-        <td>${toArabicDigits(d.invoicesCount)} فاتورة (${toArabicDigits(d.unpaidInvoices.length)} آجي)</td>
-        <td>
-          <button class="btn-preview" onclick="openCustomerStatementByDebtorName('${esc(d.name)}')">📄 كشف حساب</button>
-          <button class="btn-whatsapp" onclick="sendCustomerWhatsapp('${esc(d.name)}', ${d.totalDebt}, '${esc(d.phone)}')">واتساب</button>
-        </td>
-      </tr>`).join("");
+function renderCustomersPro(list) {
+  const body=document.getElementById("debtorsBody"); if(!body) return;
+  const empty=document.getElementById("cpEmptyState");
+  const visible=document.getElementById("cpVisibleCount");
+  if(visible) visible.textContent=toArabicDigits(list.length)+" عميل";
+  if(!list.length){ body.innerHTML=""; if(empty) empty.style.display="flex"; return; }
+  if(empty) empty.style.display="none";
+  body.innerHTML=list.map((d,i)=>{
+    const status=d.debt>0 ? `<span class="cp-status debt">عليه ${toArabicDigits(d.unpaid)} فاتورة</span>` : `<span class="cp-status paid">مسدد</span>`;
+    return `<tr data-customer-index="${i}">
+      <td><div class="cp-name"><span class="cp-avatar">${esc((d.name||"ع").charAt(0))}</span><div><strong>${esc(d.name)}</strong><small>${toArabicDigits(d.invoices)} فاتورة</small></div></div></td>
+      <td>${esc(d.phone)}</td>
+      <td>${toArabicDigits(money(d.total))} ج.م</td>
+      <td class="cp-paid">${toArabicDigits(money(d.paid))} ج.م</td>
+      <td class="cp-debt">${toArabicDigits(money(d.debt))} ج.م</td>
+      <td>${status}</td>
+      <td><div class="cp-row-actions"><button onclick="openCustomerStatementByDebtorName('${esc(d.name)}')">📄 كشف</button>${d.debt>0?`<button class="pay" onclick="collectCustomerDebt('${esc(d.name)}')">💰 تحصيل</button>`:''}<button onclick="sendCustomerWhatsapp('${esc(d.name)}',${d.debt},'${esc(d.phone)}')">واتساب</button></div></td>
+    </tr>`;
+  }).join("");
+}
+
+function filterCustomersPro(){
+  const q=(document.getElementById("cpCustomerSearch")?.value||"").trim().toLowerCase();
+  const only=!!document.getElementById("cpDebtorsOnly")?.checked;
+  const list=(window._customersPro||[]).filter(d=>{
+    const hay=(d.name+" "+d.phone).toLowerCase();
+    return (!q || hay.includes(q)) && (!only || d.debt>0);
+  });
+  renderCustomersPro(list);
+}
+
+async function collectCustomerDebt(customerName){
+  const {data:invs,error}=await sb.from("invoices").select("*").eq("customer_name",customerName).gt("remaining",0).order("created_at",{ascending:true});
+  if(error || !invs?.length) return alert("لا توجد مديونية مستحقة لهذا العميل.");
+  const total=invs.reduce((s,x)=>s+Number(x.remaining||0),0);
+  const raw=prompt(`إجمالي مديونية ${customerName}: ${money(total)} ج.م\nأدخل المبلغ المراد تحصيله:`, money(total));
+  if(raw===null) return;
+  const amount=parseFloat(String(raw).replace(/,/g,""));
+  if(!Number.isFinite(amount)||amount<=0) return alert("أدخل مبلغًا صحيحًا.");
+  if(amount>total+0.001) return alert("المبلغ أكبر من إجمالي المديونية.");
+  if(!confirm(`تأكيد تحصيل ${money(amount)} ج.م من ${customerName}؟`)) return;
+  let remainingToCollect=amount;
+  for(const inv of invs){
+    if(remainingToCollect<=0) break;
+    const rem=Number(inv.remaining||0);
+    const take=Math.min(rem,remainingToCollect);
+    const newPaid=Number(inv.paid||0)+take;
+    const newRemaining=Math.max(0,Number(inv.total||0)-newPaid);
+    const {error:updateError}=await sb.from("invoices").update({paid:newPaid,remaining:newRemaining}).eq("id",inv.id);
+    if(updateError) return alert("حدث خطأ أثناء تحديث إحدى الفواتير: "+updateError.message);
+    remainingToCollect-=take;
   }
+  alert("تم تسجيل التحصيل وتحديث مديونية العميل بنجاح ✅");
+  await loadDebtors();
+  await loadInvoices();
+  refreshDashboard();
 }
 
 function filterOnlyDebtors() {
