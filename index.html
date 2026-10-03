@@ -612,6 +612,26 @@ body.ah-drawer-open{overflow:hidden}
 }
 </style>
 
+<style id="alhamd-v4-pro-dashboard">
+/* v4 — Pro dashboard & workflow layer */
+.ah-v4-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;margin:16px 0}
+.ah-v4-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ah-v4-action{border:1px solid var(--ah-border,#e6eaf0);background:#fff;color:#172554;border-radius:12px;padding:10px 14px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(15,35,60,.05);transition:.18s;display:inline-flex;align-items:center;gap:7px}
+.ah-v4-action:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(15,35,60,.10);border-color:#cbd5e1}
+.ah-v4-action.primary{background:linear-gradient(135deg,#172554,#1e3a8a);color:#fff;border-color:transparent}
+.ah-v4-action.gold{background:linear-gradient(135deg,#b98a35,#d4a84f);color:#fff;border-color:transparent}
+.ah-v4-status{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#f8fafc,#fff);border:1px solid var(--ah-border,#e6eaf0);border-radius:14px;padding:12px 15px;min-width:250px}
+.ah-v4-dot{width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 5px rgba(34,197,94,.12);flex:0 0 auto}
+.ah-v4-status b{display:block;color:#172554;font-size:13px}.ah-v4-status small{display:block;color:#64748b;margin-top:2px}
+.ah-v4-insights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:15px 0}
+.ah-v4-insight{background:#fff;border:1px solid var(--ah-border,#e6eaf0);border-radius:16px;padding:16px;box-shadow:0 5px 18px rgba(15,35,60,.055);min-height:105px;position:relative;overflow:hidden}
+.ah-v4-insight:after{content:"";position:absolute;inset:auto -25px -35px auto;width:100px;height:100px;border-radius:50%;background:rgba(30,58,138,.05)}
+.ah-v4-insight .icon{font-size:24px}.ah-v4-insight strong{display:block;color:#172554;font-size:15px;margin-top:7px}.ah-v4-insight span{display:block;color:#64748b;font-size:12px;margin-top:5px}
+.ah-v4-insight.warn{border-right:4px solid #f59e0b}.ah-v4-insight.danger{border-right:4px solid #ef4444}.ah-v4-insight.success{border-right:4px solid #22c55e}
+.ah-v4-section-title{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 10px}.ah-v4-section-title h3{margin:0;color:#172554;font-size:17px}.ah-v4-section-title span{font-size:12px;color:#64748b}
+@media(max-width:900px){.ah-v4-tools{grid-template-columns:1fr}.ah-v4-status{min-width:0}.ah-v4-insights{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.ah-v4-actions{display:grid;grid-template-columns:1fr 1fr}.ah-v4-action{justify-content:center;padding:11px 8px;font-size:12px}.ah-v4-insights{grid-template-columns:1fr}.ah-v4-insight{min-height:92px}}
+</style>
 </head>
 <body>
 
@@ -3514,5 +3534,43 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
 })();
 </script>
 
+<script id="alhamd-v4-pro-dashboard-js">
+(function(){
+  const $=s=>document.querySelector(s);
+  function tab(name){ if(typeof window.showTab==='function') window.showTab(name); else { const b=document.querySelector('[data-tab="'+name+'"]'); if(b) b.click(); } }
+  function num(id){ const el=document.getElementById(id); return el?el.textContent.trim():'٠'; }
+  function setText(id,txt){const e=document.getElementById(id);if(e)e.textContent=txt;}
+  function refreshPulse(){
+    const low=num('statLow'), sales=num('statSales'), cash=num('statCashToday'), products=num('statProducts');
+    setText('ahV4Low', 'الأصناف الناقصة الآن: '+low);
+    setText('ahV4Sales', 'مبيعات اليوم: '+sales+' ج.م');
+    setText('ahV4Cash', 'نقدية الدرج: '+cash+' ج.م');
+    setText('ahV4Products', products+' صنف مسجل');
+  }
+  function inject(){
+    const dash=document.getElementById('dashboard'); if(!dash || document.getElementById('ahV4Tools')) return;
+    const hero=dash.querySelector('.card'); if(!hero) return;
+    const tools=document.createElement('div'); tools.id='ahV4Tools'; tools.className='ah-v4-tools';
+    tools.innerHTML=`<div class="ah-v4-actions">
+      <button class="ah-v4-action primary" onclick="showTab('invoice')">＋ فاتورة بيع</button>
+      <button class="ah-v4-action" onclick="showTab('products')">📦 إضافة صنف</button>
+      <button class="ah-v4-action" onclick="showTab('debtors')">👥 العملاء والديون</button>
+      <button class="ah-v4-action gold" onclick="showTab('suppliers')">🏭 المشتريات</button>
+    </div><div class="ah-v4-status"><i class="ah-v4-dot"></i><div><b>النظام يعمل بشكل طبيعي</b><small id="ahV4Products">جاري قراءة بيانات النظام...</small></div></div>`;
+    hero.insertAdjacentElement('afterend',tools);
+    const insights=document.createElement('div'); insights.className='ah-v4-insights';
+    insights.innerHTML=`<div class="ah-v4-insight danger"><div class="icon">⚠️</div><strong>مراقبة المخزون</strong><span id="ahV4Low">جاري قراءة الأصناف الناقصة...</span></div>
+      <div class="ah-v4-insight success"><div class="icon">💰</div><strong>حركة المبيعات</strong><span id="ahV4Sales">جاري قراءة المبيعات...</span></div>
+      <div class="ah-v4-insight warn"><div class="icon">🧾</div><strong>السيولة اليوم</strong><span id="ahV4Cash">جاري قراءة النقدية...</span></div>`;
+    tools.insertAdjacentElement('afterend',insights);
+    const ticker=document.getElementById('activityTickerText');
+    if(ticker) ticker.parentElement.setAttribute('title','ملخص سريع لحركة اليوم');
+    refreshPulse();
+    setInterval(refreshPulse,2500);
+  }
+  document.addEventListener('DOMContentLoaded',inject);
+  window.addEventListener('load',function(){setTimeout(inject,700);setTimeout(refreshPulse,1800);});
+})();
+</script>
 </body>
 </html>
