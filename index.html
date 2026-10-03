@@ -692,8 +692,54 @@ body.ah-drawer-open{overflow:hidden}
 @media(max-width:520px){.stock-kpis{grid-template-columns:1fr 1fr}.stock-kpi{padding:12px}.stock-kpi .k-value{font-size:20px}}
 </style>
 
+
+<style id="alhamd-auth-css">
+html.auth-loading,html.auth-loading body{overflow:hidden!important}
+#appView.auth-locked{display:none!important}
+#authScreen{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;padding:18px;background:radial-gradient(circle at 15% 15%,rgba(250,204,21,.12),transparent 30%),linear-gradient(135deg,#071426 0%,#10284a 55%,#07111f 100%);font-family:Cairo,Tahoma,sans-serif}
+#authScreen.show{display:flex}
+.auth-shell{width:min(460px,100%);background:rgba(255,255,255,.97);border:1px solid rgba(255,255,255,.35);border-radius:26px;padding:28px;box-shadow:0 30px 90px rgba(0,0,0,.35)}
+.auth-logo{width:70px;height:70px;border-radius:20px;background:#0f233c;color:#facc15;display:grid;place-items:center;font-size:32px;font-weight:900;margin:0 auto 12px}
+.auth-shell h1{margin:0;text-align:center;color:#0f233c;font-size:25px}.auth-sub{margin:7px 0 22px;text-align:center;color:#64748b;font-size:13px;line-height:1.8}
+.auth-field{margin-bottom:13px}.auth-field label{display:block;font-size:12px;font-weight:900;color:#334155;margin-bottom:6px}.auth-field input{width:100%;height:46px;border:1px solid #dbe2ea;border-radius:12px;padding:0 13px;box-sizing:border-box;font-family:inherit;outline:none;background:#f8fafc}.auth-field input:focus{border-color:#1e3a8a;box-shadow:0 0 0 3px rgba(30,58,138,.10);background:#fff}
+.auth-primary{width:100%;height:47px;border:0;border-radius:12px;background:#0f233c;color:#facc15;font-family:inherit;font-weight:900;cursor:pointer}.auth-primary:disabled{opacity:.65;cursor:wait}.auth-secondary{width:100%;height:43px;border:1px solid #dbe2ea;border-radius:12px;background:#fff;color:#0f233c;font-family:inherit;font-weight:800;cursor:pointer;margin-top:9px}.auth-link{border:0;background:none;color:#1e3a8a;font-family:inherit;font-weight:800;cursor:pointer;padding:7px 0;font-size:12px}.auth-row{display:flex;justify-content:space-between;align-items:center;margin-top:5px}.auth-msg{display:none;margin:12px 0 0;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.7}.auth-msg.show{display:block}.auth-msg.error{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c}.auth-msg.success{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}.auth-security{margin-top:17px;text-align:center;color:#94a3b8;font-size:10px;line-height:1.7}
+#authUserBox{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.auth-user-email{color:#dbeafe;font-size:11px;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.auth-logout-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;border-radius:9px;padding:7px 10px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer}.auth-logout-btn:hover{background:rgba(255,255,255,.15)}
+@media(max-width:700px){#authUserBox{display:none}.auth-shell{padding:22px;border-radius:20px}.auth-shell h1{font-size:22px}}
+</style>
+
 </head>
 <body>
+
+
+  <div id="authScreen" aria-hidden="true">
+    <div class="auth-shell">
+      <div class="auth-logo">ح</div>
+      <h1 id="authTitle">تسجيل الدخول</h1>
+      <p class="auth-sub" id="authSubtitle">الدخول إلى نظام مكتب الحمد لإدارة المخزون والمبيعات والمشتريات.</p>
+      <form id="authForm" autocomplete="on">
+        <div class="auth-field">
+          <label for="authEmail">البريد الإلكتروني</label>
+          <input id="authEmail" type="email" autocomplete="email" placeholder="name@example.com" required>
+        </div>
+        <div class="auth-field">
+          <label for="authPassword">كلمة المرور</label>
+          <input id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••" minlength="6" required>
+        </div>
+        <div class="auth-field" id="authConfirmWrap" style="display:none">
+          <label for="authConfirmPassword">تأكيد كلمة المرور</label>
+          <input id="authConfirmPassword" type="password" autocomplete="new-password" placeholder="••••••••" minlength="6">
+        </div>
+        <div class="auth-row">
+          <button type="button" class="auth-link" id="authModeBtn">إنشاء حساب جديد</button>
+          <button type="button" class="auth-link" id="authResetBtn">نسيت كلمة المرور؟</button>
+        </div>
+        <button type="submit" class="auth-primary" id="authSubmit">دخول آمن</button>
+        <button type="button" class="auth-secondary" id="authBackBtn" style="display:none">العودة لتسجيل الدخول</button>
+        <div id="authMsg" class="auth-msg" role="alert"></div>
+      </form>
+      <div class="auth-security">🔐 الاتصال يتم عبر Supabase Auth — لا يتم تخزين كلمة المرور داخل الموقع.</div>
+    </div>
+  </div>
 
   <div id="blessModal" class="modal-overlay">
     <div class="modal-card">
@@ -923,7 +969,7 @@ body.ah-drawer-open{overflow:hidden}
     </div>
   </div>
 
-  <div id="appView">
+  <div id="appView" class="auth-locked">
     <aside class="sidebar" id="appSidebar">
       <div class="sidebar-brand">
         <img id="mainHeaderLogo" alt="مكتب الحمد">
@@ -954,6 +1000,10 @@ body.ah-drawer-open{overflow:hidden}
         <div class="topbar-info">
           <span>📍 الحواتم - محافظة الفيوم</span>
           <span>📞 01012708298</span>
+        </div>
+        <div id="authUserBox">
+          <span id="authUserEmail" class="auth-user-email"></span>
+          <button class="auth-logout-btn" type="button" onclick="logoutSupabase()">خروج</button>
         </div>
       </header>
 
@@ -1896,7 +1946,10 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   if (btn.dataset.tab === "settings") loadStoreSettings();
 }));
 
-window.addEventListener("DOMContentLoaded", async () => {
+let alhamdAppBooted = false;
+async function initializeAlhamdApp() {
+  if (alhamdAppBooted) return;
+  alhamdAppBooted = true;
   $('#invoiceProduct').select2({
       placeholder: "ابحث عن الصنف بالاسم...",
       allowClear: true,
@@ -1915,6 +1968,11 @@ window.addEventListener("DOMContentLoaded", async () => {
   await generateNewInvoiceCode();
   
   setTimeout(() => { initDashboardCharts(); }, 300);
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await initializeAlhamdApp();
 });
 
 async function generateNewInvoiceCode() {
@@ -2612,6 +2670,157 @@ window.addEventListener('load', function(){
 });
 window.addEventListener('afterprint', function(){ setTimeout(function(){ window.close(); }, 150); });
 <\/script>
+
+<script id="alhamd-supabase-auth-js">
+(function(){
+  const authScreen = document.getElementById('authScreen');
+  const authForm = document.getElementById('authForm');
+  const authEmail = document.getElementById('authEmail');
+  const authPassword = document.getElementById('authPassword');
+  const authConfirm = document.getElementById('authConfirmPassword');
+  const authConfirmWrap = document.getElementById('authConfirmWrap');
+  const authTitle = document.getElementById('authTitle');
+  const authSubtitle = document.getElementById('authSubtitle');
+  const authSubmit = document.getElementById('authSubmit');
+  const authModeBtn = document.getElementById('authModeBtn');
+  const authResetBtn = document.getElementById('authResetBtn');
+  const authBackBtn = document.getElementById('authBackBtn');
+  const authMsg = document.getElementById('authMsg');
+  const authUserEmail = document.getElementById('authUserEmail');
+  let authMode = 'login';
+  let authInitialized = false;
+
+  function msg(text, type){
+    if(!authMsg) return;
+    authMsg.textContent = text || '';
+    authMsg.className = 'auth-msg' + (text ? ' show ' + (type || 'error') : '');
+  }
+  function setMode(mode){
+    authMode = mode;
+    const register = mode === 'register';
+    authTitle.textContent = register ? 'إنشاء حساب' : 'تسجيل الدخول';
+    authSubtitle.textContent = register
+      ? 'أنشئ حسابًا للدخول إلى نظام مكتب الحمد. استخدم بريدًا إلكترونيًا يمكنك الوصول إليه.'
+      : 'الدخول إلى نظام مكتب الحمد لإدارة المخزون والمبيعات والمشتريات.';
+    authConfirmWrap.style.display = register ? 'block' : 'none';
+    authConfirm.required = register;
+    authPassword.autocomplete = register ? 'new-password' : 'current-password';
+    authSubmit.textContent = register ? 'إنشاء الحساب' : 'دخول آمن';
+    authModeBtn.style.display = register ? 'none' : 'inline-block';
+    authResetBtn.style.display = register ? 'none' : 'inline-block';
+    authBackBtn.style.display = register ? 'block' : 'none';
+    msg('');
+  }
+  function showLogin(){
+    authScreen.classList.add('show');
+    authScreen.setAttribute('aria-hidden','false');
+    document.documentElement.classList.add('auth-loading');
+  }
+  function hideLogin(){
+    authScreen.classList.remove('show');
+    authScreen.setAttribute('aria-hidden','true');
+    document.documentElement.classList.remove('auth-loading');
+    const app=document.getElementById('appView');
+    if(app) app.classList.remove('auth-locked');
+  }
+  function lockApp(){
+    const app=document.getElementById('appView');
+    if(app) app.classList.add('auth-locked');
+    showLogin();
+  }
+  function setUser(user){
+    if(authUserEmail) authUserEmail.textContent = user?.email || '';
+  }
+
+  window.logoutSupabase = async function(){
+    try{
+      const {error}=await sb.auth.signOut();
+      if(error) throw error;
+    }catch(e){
+      alert('تعذر تسجيل الخروج: ' + (e?.message || 'خطأ غير معروف'));
+    }
+  };
+
+  authModeBtn?.addEventListener('click',()=>setMode('register'));
+  authBackBtn?.addEventListener('click',()=>setMode('login'));
+
+  authResetBtn?.addEventListener('click', async ()=>{
+    const email=(authEmail.value||'').trim();
+    if(!email) return msg('اكتب البريد الإلكتروني أولاً ثم اضغط «نسيت كلمة المرور؟».','error');
+    authResetBtn.disabled=true;
+    try{
+      const redirectTo=window.location.origin + window.location.pathname;
+      const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
+      if(error) throw error;
+      msg('تم إرسال رابط إعادة تعيين كلمة المرور إلى البريد الإلكتروني إذا كان الحساب موجودًا.','success');
+    }catch(e){ msg('تعذر إرسال رابط إعادة التعيين: ' + (e?.message || 'خطأ غير معروف'),'error'); }
+    finally{ authResetBtn.disabled=false; }
+  });
+
+  authForm?.addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const email=(authEmail.value||'').trim();
+    const password=authPassword.value||'';
+    if(!email || !password) return msg('أدخل البريد الإلكتروني وكلمة المرور.','error');
+    if(authMode==='register' && password !== (authConfirm.value||'')) return msg('تأكيد كلمة المرور غير مطابق.','error');
+    authSubmit.disabled=true;
+    msg('جاري التحقق...','success');
+    try{
+      if(authMode==='register'){
+        const {data,error}=await sb.auth.signUp({email,password});
+        if(error) throw error;
+        if(data?.session){
+          msg('تم إنشاء الحساب وتسجيل الدخول.','success');
+        }else{
+          msg('تم إنشاء الحساب. إذا كان تأكيد البريد مفعّلًا في Supabase، افتح رسالة التأكيد ثم ارجع للموقع وسجّل الدخول.','success');
+          setMode('login');
+        }
+      }else{
+        const {data,error}=await sb.auth.signInWithPassword({email,password});
+        if(error) throw error;
+        if(data?.user) setUser(data.user);
+      }
+    }catch(e){
+      msg(e?.message || 'تعذر إتمام العملية. تحقق من البيانات وحاول مرة أخرى.','error');
+    }finally{ authSubmit.disabled=false; }
+  });
+
+  async function handleSession(session){
+    if(session?.user){
+      setUser(session.user);
+      hideLogin();
+      try{ await initializeAlhamdApp(); }catch(e){
+        console.error('Alhamd app initialization failed:',e);
+        alert('تم تسجيل الدخول، لكن تعذر تحميل بعض بيانات النظام. افتح الصفحة مرة أخرى إذا استمر الخطأ.');
+      }
+    }else{
+      lockApp();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async ()=>{
+    setMode('login');
+    const {data:{session},error}=await sb.auth.getSession();
+    if(error) console.error('Supabase auth session error:',error);
+    await handleSession(session);
+    authInitialized=true;
+  });
+
+  sb.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_IN' || event==='INITIAL_SESSION' || event==='TOKEN_REFRESHED'){
+      if(session) setTimeout(()=>handleSession(session),0);
+    }else if(event==='SIGNED_OUT'){
+      alhamdAppBooted=false;
+      lockApp();
+      setMode('login');
+      authPassword.value='';
+      if(authConfirm) authConfirm.value='';
+      msg('تم تسجيل الخروج بأمان.','success');
+    }
+  });
+})();
+</script>
+
 </body>
 </html>`);
   printWindow.document.close();
@@ -3988,6 +4197,15 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   const moneySafe = v => typeof money === 'function' ? money(v) : num(v).toLocaleString('en-US',{maximumFractionDigits:2});
   const ar = v => typeof toArabicDigits === 'function' ? toArabicDigits(v) : String(v);
 
+  // The main app uses `let products = []`; top-level `let` is not exposed
+  // as window.products. Always read the live application array safely.
+  function stockProducts(){
+    try {
+      if (typeof products !== 'undefined' && Array.isArray(products)) return products;
+    } catch(e) {}
+    return Array.isArray(window.products) ? window.products : [];
+  }
+
   function status(p){
     const q=num(p?.quantity), m=num(p?.min_quantity);
     if(q<=0) return ['out','نافد'];
@@ -3997,7 +4215,7 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
 
   function refresh(){
     try{
-      const list=Array.isArray(window.products)?window.products:[];
+      const list=stockProducts();
       const count=document.getElementById('stockV11Count');
       const cap=document.getElementById('stockV11Capital');
       const low=document.getElementById('stockV11Low');
@@ -4014,7 +4232,7 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
     const body=document.getElementById('stockV11Body'); if(!body)return;
     const q=(document.getElementById('stockV11Search')?.value||'').trim().toLowerCase();
     const f=document.getElementById('stockV11Filter')?.value||'all';
-    let list=(Array.isArray(window.products)?window.products:[]).filter(p=>
+    let list=(stockProducts()).filter(p=>
       String(p.name||'').toLowerCase().includes(q)||String(p.code||'').toLowerCase().includes(q)
     );
     list=list.filter(p=>f==='all'||status(p)[0]===f);
@@ -4032,7 +4250,7 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   }
 
   async function addFor(id){
-    const p=(window.products||[]).find(x=>String(x.id)===String(id)); if(!p)return;
+    const p=stockProducts().find(x=>String(x.id)===String(id)); if(!p)return;
     const raw=prompt(`أدخل الكمية المراد إضافتها للصنف: ${p.name}`,'1'); if(raw===null)return;
     const n=num(raw); if(!Number.isFinite(n)||n<=0)return alert('أدخل كمية صحيحة أكبر من صفر');
     try{
@@ -4050,10 +4268,10 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   function quickAdd(){
     const el=document.getElementById('stockV11Search'), q=(el?.value||'').trim().toLowerCase();
     if(q){
-      const p=(window.products||[]).find(x=>String(x.name||'').toLowerCase()===q||String(x.code||'').toLowerCase()===q);
+      const p=stockProducts().find(x=>String(x.name||'').toLowerCase()===q||String(x.code||'').toLowerCase()===q);
       if(p)return addFor(p.id);
     }
-    const p=(window.products||[]).find(x=>num(x.quantity)<=num(x.min_quantity));
+    const p=stockProducts().find(x=>num(x.quantity)<=num(x.min_quantity));
     if(p)return addFor(p.id);
     alert('اكتب اسم أو كود الصنف أولاً');
   }
@@ -4073,22 +4291,33 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
 
   async function queryItems(table, product, kind){
     const errors=[];
-    // V12 intentionally avoids ordering by created_at on item tables.
-    // Older databases may not have created_at on invoice_items/purchase_invoice_items.
     let q=sb.from(table).select('*');
+
     if(kind==='sale' && product?.id) q=q.eq('product_id',product.id);
     else if(product?.name) q=q.ilike('product_name',product.name);
+
     let r=await q;
-    if(!r.error) return {data:r.data||[],error:null};
+    if(!r.error) return {data:r.data||[],error:null,errors:[],table};
+
     errors.push(r.error);
 
-    // Fallback for older invoice_items tables where product_id is absent or unreliable.
+    // بعض قواعد البيانات القديمة تستخدم purchase_items بدل purchase_invoice_items.
+    if(kind==='purchase' && table==='purchase_invoice_items'){
+      let legacy=sb.from('purchase_items').select('*');
+      if(product?.name) legacy=legacy.ilike('product_name',product.name);
+      const lr=await legacy;
+      if(!lr.error) return {data:lr.data||[],error:null,errors:[],table:'purchase_items'};
+      errors.push(lr.error);
+    }
+
+    // توافق مع invoice_items القديمة التي لا تحتوي product_id.
     if(kind==='sale' && product?.name){
       r=await sb.from(table).select('*').ilike('product_name',product.name);
-      if(!r.error) return {data:r.data||[],error:null};
+      if(!r.error) return {data:r.data||[],error:null,errors:[],table};
       errors.push(r.error);
     }
-    return {data:[],error:errors[errors.length-1]||null,errors};
+
+    return {data:[],error:errors[errors.length-1]||null,errors,table};
   }
 
   async function fetchDates(items, kind){
@@ -4104,21 +4333,22 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
 
   async function movements(productId){
     let selected=null;
-    if(productId)selected=(window.products||[]).find(p=>String(p.id)===String(productId));
+    if(productId)selected=stockProducts().find(p=>String(p.id)===String(productId));
     if(!selected){
       const q=(document.getElementById('stockV11Search')?.value||'').trim().toLowerCase();
-      selected=(window.products||[]).find(p=>String(p.name||'').toLowerCase().includes(q)||String(p.code||'').toLowerCase()===q);
+      selected=stockProducts().find(p=>String(p.name||'').toLowerCase().includes(q)||String(p.code||'').toLowerCase()===q);
     }
     if(!selected){modal('حركة المخزون','<div class="stock-empty">اختر صنفًا من الجدول لعرض حركته، أو اكتب اسمه/كوده في البحث.</div>');return;}
 
     modal('حركة الصنف: '+selected.name,'<div class="stock-empty">جاري تحميل الحركة...</div>');
     try{
-      const [salesR,purR]=await Promise.all([
-        queryItems('invoice_items',selected,'sale'),
-        queryItems('purchase_invoice_items',selected,'purchase')
-      ]);
+      const salesR=await queryItems('invoice_items',selected,'sale');
+      const purR=await queryItems('purchase_invoice_items',selected,'purchase');
       const sales=salesR.data||[], purs=purR.data||[];
-      const [saleDates,purDates]=await Promise.all([fetchDates(sales,'sale'),fetchDates(purs,'purchase')]);
+      const [saleDates,purDates]=await Promise.all([
+        fetchDates(sales,'sale'),
+        fetchDates(purs,'purchase')
+      ]);
       const rows=[];
       sales.forEach(x=>{
         const parent=saleDates.get(String(x.invoice_id));
@@ -4130,8 +4360,21 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
       });
       rows.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
       const totalOut=sales.reduce((a,x)=>a+num(x.quantity),0), totalIn=purs.reduce((a,x)=>a+num(x.quantity),0);
+      const purchaseMissing = !!(purR.error && purR.errors?.some(e => /purchase_invoice_items|schema cache|not found/i.test(String(e?.message||''))));
       const queryErrors=[...(salesR.errors||[]),...(purR.errors||[])];
-      const warning=queryErrors.length && !rows.length ? `<div style="background:#fff7ed;border:1px solid #fed7aa;padding:12px;border-radius:10px;margin-bottom:12px;color:#9a3412">تعذر قراءة حركة الفواتير من قاعدة البيانات. المخزون الحالي يعمل، لكن راجع بنية جداول <b>invoice_items</b> و <b>purchase_invoice_items</b> إذا استمرت الرسالة.<br><small>${escSafe(queryErrors[0]?.message||'Supabase request error')}</small></div>` : '';
+      const warning = purchaseMissing
+        ? `<div style="background:#fff7ed;border:1px solid #fed7aa;padding:12px;border-radius:10px;margin-bottom:12px;color:#9a3412">
+             <b>تنبيه:</b> جدول تفاصيل فواتير الشراء <b>purchase_invoice_items</b> غير موجود في قاعدة البيانات الحالية.
+             <br>تم عرض حركة المبيعات والمخزون الحالي بدون تعطيل النظام.
+             <br><small>${escSafe(purR.error?.message||'Supabase table not found')}</small>
+           </div>`
+        : (queryErrors.length && !rows.length
+          ? `<div style="background:#fff7ed;border:1px solid #fed7aa;padding:12px;border-radius:10px;margin-bottom:12px;color:#9a3412">
+               تعذر قراءة حركة الفواتير، لكن المخزون الحالي يعمل.
+               <br><small>${escSafe(queryErrors[0]?.message||'Supabase request error')}</small>
+             </div>`
+          : '');
+
       const body=rows.length?rows.map(r=>`<tr><td>${r.date?new Date(r.date).toLocaleString('ar-EG'):'—'}</td><td>${r.type}</td><td style="font-weight:900;color:${r.qty<0?'#b42318':'#18794e'}">${r.qty>0?'+':''}${ar(r.qty)}</td><td>${escSafe(String(r.ref||'').slice(0,18))}</td><td>${ar(moneySafe(r.price))} ج.م</td></tr>`).join(''):'<tr><td colspan="5" class="stock-empty">لا توجد حركة مسجلة لهذا الصنف في الفواتير الحالية.</td></tr>';
       modal('حركة الصنف: '+selected.name,`${warning}<div class="stock-movement-cards"><div class="stock-movement-card"><span>الرصيد الحالي</span><b>${ar(num(selected.quantity))}</b></div><div class="stock-movement-card"><span>إجمالي الداخل من المشتريات</span><b>${ar(totalIn)}</b></div><div class="stock-movement-card"><span>إجمالي الخارج من المبيعات</span><b>${ar(totalOut)}</b></div></div><div class="stock-table-wrap"><table class="stock-table"><thead><tr><th>التاريخ</th><th>الحركة</th><th>الكمية</th><th>المرجع</th><th>السعر</th></tr></thead><tbody>${body}</tbody></table></div>`);
     }catch(e){
@@ -4141,7 +4384,7 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   }
 
   function exportStock(){
-    const list=Array.isArray(window.products)?window.products:[];
+    const list=stockProducts();
     const rows=list.map(p=>({الكود:p.code||'',الصنف:p.name||'',الوحدة:p.unit||'',الكمية:num(p.quantity),الحد_الأدنى:num(p.min_quantity),سعر_الشراء:num(p.buy_price),سعر_البيع:num(p.sell_price),قيمة_المخزون:num(p.quantity)*num(p.buy_price)}));
     if(typeof exportToExcel==='function')return exportToExcel(rows,'تقرير_المخزون_V12');
     if(typeof exportTableToExcel==='function')return exportTableToExcel('productsTable','المخزن_والأصناف');
@@ -4157,6 +4400,8 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   window.stockV11QuickAdd=quickAdd;
   window.openStockV11Modal=modal;
   window.closeStockV11Modal=closeModal;
+  // Defensive global alias: inline onclick handlers always resolve this name.
+  window.closeStockV11Modal = window.closeStockV11Modal || closeModal;
   window.openStockV11Movements=movements;
   window.exportStockV11=exportStock;
 
