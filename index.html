@@ -1830,6 +1830,10 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   if (btn.dataset.tab === "projectSummary") loadProjectSummary();
   if (btn.dataset.tab === "invoice") {
     if (!editingInvoiceId) initInvoicePage();
+    // جلب الأصناف مرة أخرى عند فتح شاشة الفاتورة لضمان ظهور أحدث المخزون.
+    loadProducts().then(() => {
+      if (typeof fillInvoiceProducts === "function") fillInvoiceProducts();
+    });
   }
   if (btn.dataset.tab === "invoices") loadInvoices();
   if (btn.dataset.tab === "expenses") loadExpenses();
@@ -1933,11 +1937,25 @@ async function saveStoreSettings() {
 }
 
 async function loadProducts() {
-  const { data, error } = await sb.from("products").select("*");
-  if (error) return console.error(error);
-  products = data || [];
-  renderProducts();
-  fillInvoiceProducts();
+  try {
+    const { data, error } = await sb.from("products").select("*");
+    if (error) {
+      console.error("خطأ تحميل الأصناف:", error);
+      products = [];
+      fillInvoiceProducts();
+      return [];
+    }
+    products = Array.isArray(data) ? data : [];
+    // نبني قائمة الفاتورة أولاً، حتى لو حدثت مشكلة في رسم جدول المخزن لا تتأثر الفاتورة.
+    fillInvoiceProducts();
+    try { renderProducts(); } catch (e) { console.warn("renderProducts:", e); }
+    return products;
+  } catch (e) {
+    console.error("تعذر الاتصال ببيانات الأصناف:", e);
+    products = [];
+    fillInvoiceProducts();
+    return [];
+  }
 }
 
 async function loadUniqueCustomers() {
@@ -2161,8 +2179,40 @@ async function saveProduct(p) {
 function fillInvoiceProducts() {
   const sel = document.getElementById("invoiceProduct");
   if (!sel) return;
-  sel.innerHTML = '<option value="">اكتب أو اختر الصنف...</option>' + products.map(p => `<option value="${p.id}">${esc(p.name)} (المتاح: ${p.quantity}) - ${p.sell_price} ج.م</option>`).join("");
-  $('#invoiceProduct').trigger('change');
+
+  const $sel = window.jQuery ? jQuery(sel) : null;
+  const hadSelect2 = !!($sel && $sel.data('select2'));
+  const currentValue = sel.value;
+
+  // Select2 يحتفظ بواجهة داخلية؛ نفكها قبل إعادة بناء الخيارات ثم نعيد تشغيلها.
+  if (hadSelect2) {
+    try { $sel.select2('destroy'); } catch (e) {}
+  }
+
+  const list = Array.isArray(products) ? products : [];
+  sel.innerHTML = '<option value="">اكتب أو اختر الصنف...</option>' + list.map(p => {
+    const id = String(p.id ?? '');
+    const name = esc(p.name ?? 'صنف بدون اسم');
+    const qty = Number(p.quantity || 0);
+    const price = Number(p.sell_price || 0);
+    return `<option value="${id}">${name} (المتاح: ${qty}) - ${price} ج.م</option>`;
+  }).join("");
+
+  if (currentValue && list.some(p => String(p.id) === String(currentValue))) {
+    sel.value = currentValue;
+  } else {
+    sel.value = '';
+  }
+
+  if (window.jQuery && jQuery.fn && jQuery.fn.select2) {
+    jQuery(sel).select2({
+      placeholder: "ابحث عن الصنف بالاسم...",
+      allowClear: true,
+      dir: "rtl",
+      width: "100%"
+    });
+    jQuery(sel).val(sel.value).trigger('change');
+  }
 }
 
 function initInvoicePage() {
@@ -3690,6 +3740,12 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
     if(!sec || sec.dataset.proV5==='1') return;
     const card=sec.querySelector(':scope > .card');
     if(!card) return;
+    // Select2 يضيف عناصر واجهة خارج الـselect نفسه. يجب تدمير النسخة القديمة قبل نسخ محتوى البطاقة، وإلا سيظهر صندوق بحث مكرر.
+    const oldProductSelect = card.querySelector('#invoiceProduct');
+    if (oldProductSelect && window.jQuery && jQuery.fn && jQuery.fn.select2 && jQuery(oldProductSelect).data('select2')) {
+      try { jQuery(oldProductSelect).select2('destroy'); } catch (e) {}
+    }
+    card.querySelectorAll('.select2-container').forEach(el => el.remove());
     const original=card.innerHTML;
     card.innerHTML=`<div class="invoice-shell">
       <div class="invoice-head-pro">
@@ -3741,8 +3797,21 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
     const bodyObs=new MutationObserver(syncSummary); if(document.getElementById('invoiceBody')) bodyObs.observe(document.getElementById('invoiceBody'),{childList:true,subtree:true,characterData:true});
     // Fast payment presets
     const paid=document.getElementById('amountPaid');
-    if(paid){paid.insertAdjacentHTML('afterend','<div class="invoice-shortcuts" style="margin-top:7px"><button type="button" class="invoice-chip" data-pay="0">صفر</button><button type="button" class="invoice-chip" data-pay="half">نصف الفاتورة</button><button type="button" class="invoice-chip" data-pay="all">دفع كامل</button></div>');
-      paid.parentElement?.querySelectorAll('.invoice-chip').forEach(b=>b.addEventListener('click',()=>{const t=Number((document.getElementById('invoiceTotal')?.textContent||'0').replace(/[^0-9.]/g,''))||0; paid.value=b.dataset.pay==='half'?(t/2).toFixed(2):b.dataset.pay==='all'?t.toFixed(2):'0'; if(typeof renderInvoice==='function')renderInvoice();syncSummary();}));}
+    if(paid){
+      // منع تكرار أزرار الدفع إذا أعيد تهيئة شاشة الفاتورة.
+      paid.parentElement?.querySelector('.invoice-shortcuts')?.remove();
+      paid.insertAdjacentHTML('afterend','<div class="invoice-shortcuts" style="margin-top:7px"><button type="button" class="invoice-chip" data-pay="0">صفر</button><button type="button" class="invoice-chip" data-pay="half">نصف الفاتورة</button><button type="button" class="invoice-chip" data-pay="all">دفع كامل</button></div>');
+      const arabicToLatin = (value) => String(value ?? '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g,'.').replace(/٬/g,',');
+      paid.parentElement?.querySelectorAll('.invoice-chip').forEach(b=>b.addEventListener('click',()=>{
+        const raw = document.getElementById('invoiceTotal')?.textContent || '0';
+        const t = Number(arabicToLatin(raw).replace(/[^0-9.\-]/g,'')) || 0;
+        if (b.dataset.pay === 'half') paid.value=(t/2).toFixed(2);
+        else if (b.dataset.pay === 'all') paid.value=t.toFixed(2);
+        else paid.value='0';
+        if(typeof renderInvoice==='function') renderInvoice();
+        syncSummary();
+      }));
+    }
     document.addEventListener('keydown',function(e){if(!sec.classList.contains('hidden')){if(e.ctrlKey&&e.key.toLowerCase()==='s'){e.preventDefault();document.getElementById('saveInvoiceBtn')?.click();} if(e.key==='F2'){e.preventDefault();document.getElementById('invoiceProduct')?.focus();}}});
   }
   function syncSummary(){
@@ -3757,15 +3826,19 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
       const sel=document.getElementById('invoiceProduct');
       if(!sel || typeof products==='undefined' || !Array.isArray(products)) return;
       if(typeof fillInvoiceProducts==='function') fillInvoiceProducts();
-      if(window.jQuery && jQuery.fn && jQuery.fn.select2 && !jQuery(sel).hasClass('select2-hidden-accessible')){
-        jQuery(sel).select2({placeholder:'ابحث عن الصنف بالاسم...',allowClear:true,dir:'rtl',width:'100%'});
-      }
+      else return;
     }catch(e){ console.warn('Invoice product selector sync:',e); }
   }
-  window.addEventListener('load',()=>setTimeout(ensureInvoiceProducts,600));
+  window.addEventListener('load',()=>setTimeout(()=>{
+    if(typeof loadProducts==='function') loadProducts().finally(()=>ensureInvoiceProducts());
+    else ensureInvoiceProducts();
+  },800));
   document.addEventListener('click',function(e){
     const tab=e.target.closest?.('[data-tab="invoice"]');
-    if(tab) setTimeout(ensureInvoiceProducts,150);
+    if(tab) setTimeout(()=>{
+      if(typeof loadProducts==='function') loadProducts().finally(()=>ensureInvoiceProducts());
+      else ensureInvoiceProducts();
+    },150);
   });
 })();
 </script>
