@@ -632,6 +632,65 @@ body.ah-drawer-open{overflow:hidden}
 @media(max-width:900px){.ah-v4-tools{grid-template-columns:1fr}.ah-v4-status{min-width:0}.ah-v4-insights{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.ah-v4-actions{display:grid;grid-template-columns:1fr 1fr}.ah-v4-action{justify-content:center;padding:11px 8px;font-size:12px}.ah-v4-insights{grid-template-columns:1fr}.ah-v4-insight{min-height:92px}}
 </style>
+
+<style id="invoice-pro-v5-css">
+/* ===== Invoice Pro Workspace ===== */
+#invoice{max-width:1500px;margin:auto}
+#invoice>.card{padding:0!important;overflow:visible!important;background:transparent!important;border:0!important;box-shadow:none!important}
+#invoice .invoice-shell{background:#fff;border:1px solid #e5e7eb;border-radius:22px;box-shadow:0 15px 45px rgba(15,23,42,.08);overflow:hidden}
+#invoice .invoice-head-pro{padding:20px 22px;background:linear-gradient(135deg,#172554,#1e3a8a);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}
+#invoice .invoice-head-pro h2{color:#fff!important;margin:0!important;font-size:24px!important}
+#invoice .invoice-code-pro{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);padding:8px 13px;border-radius:12px;font-weight:800}
+#invoice .invoice-code-pro input{color:#f8d67b!important;width:110px!important;min-height:30px!important;border:0!important;background:transparent!important;font-weight:900!important;text-align:center}
+#invoice .invoice-body-pro{padding:20px}
+#invoice .invoice-section-pro{background:#f8fafc;border:1px solid #e8edf3;border-radius:16px;padding:16px;margin-bottom:15px}
+#invoice .invoice-section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;color:#172554;font-weight:900;font-size:14px}
+#invoice .invoice-section-title span:first-child{display:flex;align-items:center;gap:7px}
+#invoice .invoice-field label{display:block;margin-bottom:6px;font-size:12px;color:#475569;font-weight:800!important}
+#invoice .invoice-field input,#invoice .invoice-field select{width:100%!important;margin-top:0!important}
+#invoice .invoice-items-pro{background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;margin-top:15px}
+#invoice .invoice-items-toolbar{padding:12px;background:#f8fafc;border-bottom:1px solid #e5e7eb;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#invoice .invoice-add{background:linear-gradient(180deg,#f8fbff,#f1f6ff)!important;border:1px solid #dbe7ff!important;border-radius:15px!important;padding:12px!important}
+#invoice .invoice-add select{min-height:46px!important;border-radius:12px!important;font-weight:700!important}
+#invoice .invoice-add input{min-height:46px!important;border-radius:12px!important}
+#invoice .invoice-add button{min-height:46px!important;border-radius:12px!important;background:#172554!important;color:#fff!important;padding:0 20px!important}
+#invoice .invoice-items-pro .table-wrap{border:0!important;border-radius:0!important}
+#invoice .invoice-items-pro table{min-width:650px!important}
+#invoice .invoice-items-pro tbody td{font-size:13px!important}
+#invoice .invoice-summary-pro{position:sticky;bottom:12px;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border:1px solid #dfe6ef;border-radius:18px;padding:15px;box-shadow:0 15px 40px rgba(15,23,42,.12);margin-top:15px}
+#invoice .summary-grid-pro{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+#invoice .summary-box-pro{padding:11px 13px;border-radius:13px;background:#f8fafc;border:1px solid #e8edf3}
+#invoice .summary-box-pro span{display:block;font-size:11px;color:#64748b;font-weight:800;margin-bottom:3px}
+#invoice .summary-box-pro b{font-size:18px;color:#172554}
+#invoice .summary-box-pro.final{background:#172554;border-color:#172554}.summary-box-pro.final span,.summary-box-pro.final b{color:#fff}
+#invoice .summary-box-pro.remaining{background:#fff7ed;border-color:#fed7aa}.summary-box-pro.remaining b{color:#c2410c}
+#invoice .invoice-actions-pro{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#invoice .invoice-actions-pro button{min-height:46px!important;padding:0 17px!important}
+#invoice .invoice-shortcuts{display:flex;gap:7px;flex-wrap:wrap}
+#invoice .invoice-chip{border:1px solid #dbe3ec;background:#fff;color:#334155;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800;cursor:pointer}
+#invoice .invoice-chip:hover{background:#eef5ff;border-color:#b9d1ff}
+#invoice .service-pro{background:#fffbeb!important;border:1px solid #f5df9c!important;border-radius:15px!important}
+#invoice .service-pro input{min-height:43px!important;border-radius:10px!important}
+#invoice .service-pro button{min-height:43px!important;background:#16a34a!important;color:#fff!important}
+#invoice .payment-pro{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#invoice #amountPaid{font-size:18px!important;font-weight:900!important}
+#invoice #amountRemaining{font-size:18px!important;color:#b91c1c!important}
+@media(max-width:900px){
+ #invoice .invoice-body-pro{padding:12px}
+ #invoice .invoice-head-pro{padding:16px}.invoice-head-pro h2{font-size:20px!important}
+ #invoice .summary-grid-pro{grid-template-columns:1fr 1fr}
+ #invoice .invoice-summary-pro{position:static}
+ #invoice .payment-pro{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+ #invoice .summary-grid-pro{grid-template-columns:1fr 1fr}
+ #invoice .invoice-actions-pro button{flex:1;min-width:135px}
+ #invoice .invoice-add{display:grid!important;grid-template-columns:1fr 82px!important}
+ #invoice .invoice-add select{grid-column:1/-1}
+ #invoice .invoice-add button{grid-column:1/-1}
+}
+</style>
+
 </head>
 <body>
 
@@ -1754,7 +1813,79 @@ async function loadProjectSummary(){
 function printProjectSummary(){
   if(!currentProjectSummary)return alert("اختر مشروعًا أولاً");
   const r=currentProjectSummary,p=r.project;
-  const html=`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>ملخص مشروع ${esc(p.name)}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px;color:#333}h1,h2{color:#0f233c}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #cbd5e1;padding:7px;text-align:center}th{background:#0f233c;color:#fff}.box{background:#f8fafc;padding:12px;border:1px solid #ddd;border-radius:8px;margin:10px 0}</style></head><body><h1>${esc(storeSettings.store_name)}</h1><h2>تقرير ملخص المشروع: ${esc(p.name)}</h2><div class="box">المبلغ المستلم من المالك: <b>${money(r.received)} ج.م</b> — إجمالي المبيعات: <b>${money(r.salesTotal)} ج.م</b> — إجمالي المصنعيات: <b>${money(r.workTotal)} ج.م</b> — إجمالي المدفوع: <b>${money(r.totalPaid)} ج.م</b> — الدين: <b>${money(r.salesDebt+r.workDebt)} ج.م</b> — المتبقي/العجز: <b>${money(r.balance)} ج.م</b></div><h3>فواتير البيع</h3><table><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.salesInvoices.map(x=>`<tr><td>${esc(x.invoice_code||x.id.slice(0,8))}</td><td>${esc(x.customer_name)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><h3>فواتير المصنعيات</h3><table><tr><th>الفاتورة</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.work.map(x=>`<tr><td>${esc(x.invoice_code)}</td><td>${esc(x.description)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p><script>window.onload=function(){window.print();window.close()}<\/script></body></html>`;
+  const html=`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>ملخص مشروع ${esc(p.name)}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px;color:#333}h1,h2{color:#0f233c}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #cbd5e1;padding:7px;text-align:center}th{background:#0f233c;color:#fff}.box{background:#f8fafc;padding:12px;border:1px solid #ddd;border-radius:8px;margin:10px 0}</style></head><body><h1>${esc(storeSettings.store_name)}</h1><h2>تقرير ملخص المشروع: ${esc(p.name)}</h2><div class="box">المبلغ المستلم من المالك: <b>${money(r.received)} ج.م</b> — إجمالي المبيعات: <b>${money(r.salesTotal)} ج.م</b> — إجمالي المصنعيات: <b>${money(r.workTotal)} ج.م</b> — إجمالي المدفوع: <b>${money(r.totalPaid)} ج.م</b> — الدين: <b>${money(r.salesDebt+r.workDebt)} ج.م</b> — المتبقي/العجز: <b>${money(r.balance)} ج.م</b></div><h3>فواتير البيع</h3><table><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.salesInvoices.map(x=>`<tr><td>${esc(x.invoice_code||x.id.slice(0,8))}</td><td>${esc(x.customer_name)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><h3>فواتير المصنعيات</h3><table><tr><th>الفاتورة</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.work.map(x=>`<tr><td>${esc(x.invoice_code)}</td><td>${esc(x.description)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p><script>window.onload=function(){window.print();window.close()}<\/script>
+<script id="invoice-pro-v5-js">
+(function(){
+  function enhanceInvoice(){
+    const sec=document.getElementById('invoice');
+    if(!sec || sec.dataset.proV5==='1') return;
+    const card=sec.querySelector(':scope > .card');
+    if(!card) return;
+    const original=card.innerHTML;
+    card.innerHTML=`<div class="invoice-shell">
+      <div class="invoice-head-pro">
+        <div><h2>🧾 فاتورة بيع جديدة</h2><div style="font-size:11px;color:#dbeafe;margin-top:3px">إنشاء فاتورة وحساب المدفوع والمتبقي وطباعة الفاتورة</div></div>
+        <div class="invoice-code-pro">رقم الفاتورة <input id="invoiceCodeInput" type="text" readonly></div>
+      </div>
+      <div class="invoice-body-pro" id="invoiceProBody">${original.replace(/<div class="row between"[\s\S]*?<\/div>\s*<div class="grid two"/,'<div class="invoice-pro-anchor"></div><div class="grid two"')}
+      </div></div>`;
+    sec.dataset.proV5='1';
+    // Restore duplicated heading/code issue safely by using the original body and hiding its old header.
+    const anchor=sec.querySelector('.invoice-pro-anchor');
+    const oldHead=sec.querySelector('.invoice-pro-anchor')?.previousElementSibling;
+    if(oldHead) oldHead.remove();
+    const body=sec.querySelector('#invoiceProBody');
+    if(body){
+      const oldTitle=body.querySelector('#invoiceTitleHeading');
+      if(oldTitle){const rh=oldTitle.closest('.row'); if(rh) rh.remove();}
+      const oldCode=body.querySelector('#invoiceCodeInput'); if(oldCode && oldCode!==sec.querySelector('.invoice-code-pro input')) oldCode.remove();
+    }
+    const firstGrid=body?.querySelector('.grid.two');
+    if(firstGrid){ firstGrid.classList.add('invoice-section-pro'); firstGrid.insertAdjacentHTML('afterbegin','<div class="invoice-section-title"><span>👤 بيانات العميل</span><span style="font-size:10px;color:#94a3b8">يمكن الكتابة أو اختيار عميل سابق</span></div>'); }
+    const project=body?.querySelector('#invoiceProject')?.closest('div[style*="margin-top"]'); if(project) project.classList.add('invoice-section-pro');
+    const notes=body?.querySelector('#invoiceNotes')?.closest('div[style*="margin-top"]'); if(notes) notes.classList.add('invoice-section-pro');
+    const dateGrid=body?.querySelector('#invoiceDateTime')?.closest('.grid.two'); if(dateGrid){dateGrid.classList.add('invoice-section-pro');}
+    const payGrid=body?.querySelector('#amountPaid')?.closest('.grid.two'); if(payGrid){payGrid.classList.add('invoice-section-pro','payment-pro');}
+    const add=body?.querySelector('.invoice-add'); if(add){add.insertAdjacentHTML('beforebegin','<div class="invoice-section-title" style="margin-top:4px"><span>📦 إضافة الأصناف</span><span style="font-size:10px;color:#94a3b8">اختر الصنف ثم الكمية</span></div>');}
+    const service=body?.querySelector('#customServiceName')?.closest('div[style*="margin-top"]'); if(service) service.classList.add('service-pro');
+    const items=body?.querySelector('#invoiceBody')?.closest('.table-wrap'); if(items){items.parentElement?.classList.add('invoice-items-pro');}
+    const total=body?.querySelector('.invoice-total');
+    if(total){
+      const old=total;
+      old.classList.add('invoice-summary-old');
+      const parent=old.parentElement;
+      const summary=document.createElement('div'); summary.className='invoice-summary-pro';
+      summary.innerHTML=`<div class="summary-grid-pro">
+        <div class="summary-box-pro"><span>إجمالي البنود</span><b id="proSubTotal">٠٫٠٠</b> ج.م</div>
+        <div class="summary-box-pro"><span>الخصم</span><b id="proDiscount">٠٫٠٠</b> ج.م</div>
+        <div class="summary-box-pro final"><span>الإجمالي النهائي</span><b id="proTotal">٠٫٠٠</b> ج.م</div>
+        <div class="summary-box-pro remaining"><span>المتبقي</span><b id="proRemaining">٠٫٠٠</b> ج.م</div>
+      </div>`;
+      parent.insertBefore(summary,old); old.style.display='none';
+      const actions=parent.querySelector('.row'); if(actions){actions.classList.add('invoice-actions-pro');}
+    }
+    const code=sec.querySelector('.invoice-code-pro input');
+    const oldCode=sec.querySelector('#invoiceCodeInput:not(.invoice-code-pro input)');
+    if(code && oldCode && oldCode!==code){code.value=oldCode.value;}
+    syncSummary();
+    ['invoiceDiscount','amountPaid','invoiceDateTime'].forEach(id=>document.getElementById(id)?.addEventListener('input',syncSummary));
+    const bodyObs=new MutationObserver(syncSummary); if(document.getElementById('invoiceBody')) bodyObs.observe(document.getElementById('invoiceBody'),{childList:true,subtree:true,characterData:true});
+    // Fast payment presets
+    const paid=document.getElementById('amountPaid');
+    if(paid){paid.insertAdjacentHTML('afterend','div class="invoice-shortcuts" style="margin-top:7px"><button type="button" class="invoice-chip" data-pay="0">صفر</button><button type="button" class="invoice-chip" data-pay="half">نصف الفاتورة</button><button type="button" class="invoice-chip" data-pay="all">دفع كامل</button></div>');
+      paid.parentElement?.querySelectorAll('.invoice-chip').forEach(b=>b.addEventListener('click',()=>{const t=Number((document.getElementById('invoiceTotal')?.textContent||'0').replace(/[^0-9.]/g,''))||0; paid.value=b.dataset.pay==='half'?(t/2).toFixed(2):b.dataset.pay==='all'?t.toFixed(2):'0'; if(typeof renderInvoice==='function')renderInvoice();syncSummary();}));}
+    document.addEventListener('keydown',function(e){if(!sec.classList.contains('hidden')){if(e.ctrlKey&&e.key.toLowerCase()==='s'){e.preventDefault();document.getElementById('saveInvoiceBtn')?.click();} if(e.key==='F2'){e.preventDefault();document.getElementById('invoiceProduct')?.focus();}}});
+  }
+  function syncSummary(){
+    const map=[['invoiceSubTotal','proSubTotal'],['invoiceDiscountText','proDiscount'],['invoiceTotal','proTotal'],['remainingDisplayText','proRemaining']];
+    map.forEach(([a,b])=>{const x=document.getElementById(a),y=document.getElementById(b);if(x&&y)y.textContent=x.textContent||'٠٫٠٠';});
+  }
+  window.addEventListener('load',()=>setTimeout(enhanceInvoice,250));
+  window.addEventListener('alhamd:invoice',enhanceInvoice);
+})();
+</script>
+
+</body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 }
 
