@@ -3952,6 +3952,30 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
 </script>
 
 
+<script id="alhamd-stock-v12-compat-js">
+(function(){
+  // Global fallback: the modal close button must never depend on the V12 IIFE finishing.
+  window.closeStockV11Modal = function(){
+    var m=document.getElementById("stockV11Modal");
+    if(m) m.style.display="none";
+  };
+  window.openStockV11Modal = window.openStockV11Modal || function(title,html){
+    var m=document.getElementById("stockV11Modal");
+    if(!m){
+      m=document.createElement("div");
+      m.id="stockV11Modal";
+      m.className="stock-modal";
+      m.innerHTML='<div class="stock-modal-card"><div class="stock-modal-head"><h3 id="stockV11ModalTitle"></h3><button type="button" class="stock-close" onclick="window.closeStockV11Modal()">×</button></div><div class="stock-modal-body" id="stockV11ModalBody"></div></div>';
+      document.body.appendChild(m);
+    }
+    var t=document.getElementById("stockV11ModalTitle"), b=document.getElementById("stockV11ModalBody");
+    if(t) t.textContent=title || "حركة المخزون";
+    if(b) b.innerHTML=html || "";
+    m.style.display="flex";
+  };
+})();
+</script>
+
 <script id="alhamd-stock-v12-js">
 /* ALHAMD STOCK V12 — Supabase-safe inventory movement layer */
 (function(){
@@ -4038,7 +4062,7 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
     let m=document.getElementById('stockV11Modal');
     if(!m){
       m=document.createElement('div');m.id='stockV11Modal';m.className='stock-modal';
-      m.innerHTML='<div class="stock-modal-card"><div class="stock-modal-head"><h3 id="stockV11ModalTitle"></h3><button class="stock-close" onclick="closeStockV11Modal()">×</button></div><div class="stock-modal-body" id="stockV11ModalBody"></div></div>';
+      m.innerHTML='<div class="stock-modal-card"><div class="stock-modal-head"><h3 id="stockV11ModalTitle"></h3><button class="stock-close" onclick="window.closeStockV11Modal()">×</button></div><div class="stock-modal-body" id="stockV11ModalBody"></div></div>';
       document.body.appendChild(m);
     }
     document.getElementById('stockV11ModalTitle').textContent=title;
