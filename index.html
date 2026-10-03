@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>الحمد ستوك - Alhamd Stock</title>
-     
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3793,6 +3793,12 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   let authMode = 'login';
   let authInitialized = false;
 
+  // رابط الرجوع بعد تأكيد البريد/إعادة تعيين كلمة المرور.
+  // على GitHub Pages نستخدم العنوان الثابت للموقع حتى لا يرجع Supabase إلى رابط خاطئ.
+  const AUTH_REDIRECT_URL = (location.hostname.endsWith('github.io'))
+    ? 'https://mostafaaa32.github.io/alhamd-stock/'
+    : (window.location.origin + window.location.pathname);
+
   function msg(text, type){
     if(!authMsg) return;
     authMsg.textContent = text || '';
@@ -3844,6 +3850,8 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
     }
   };
 
+  console.info('Supabase Auth redirect URL:', AUTH_REDIRECT_URL);
+
   authModeBtn?.addEventListener('click',()=>setMode('register'));
   authBackBtn?.addEventListener('click',()=>setMode('login'));
 
@@ -3852,8 +3860,7 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
     if(!email) return msg('اكتب البريد الإلكتروني أولاً ثم اضغط «نسيت كلمة المرور؟».','error');
     authResetBtn.disabled=true;
     try{
-      const redirectTo=window.location.origin + window.location.pathname;
-      const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
+      const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo: AUTH_REDIRECT_URL});
       if(error) throw error;
       msg('تم إرسال رابط إعادة تعيين كلمة المرور إلى البريد الإلكتروني إذا كان الحساب موجودًا.','success');
     }catch(e){ msg('تعذر إرسال رابط إعادة التعيين: ' + (e?.message || 'خطأ غير معروف'),'error'); }
@@ -3870,7 +3877,13 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
     msg('جاري التحقق...','success');
     try{
       if(authMode==='register'){
-        const {data,error}=await sb.auth.signUp({email,password});
+        const {data,error}=await sb.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: AUTH_REDIRECT_URL
+          }
+        });
         if(error) throw error;
         if(data?.session){
           msg('تم إنشاء الحساب وتسجيل الدخول.','success');
