@@ -987,7 +987,8 @@ html.auth-loading,html.auth-loading body{overflow:hidden!important}
         <li><button class="tab" data-tab="expenses">💸 المصروفات</button></li>
         <li><button class="tab" data-tab="debtors">👥 العملاء والديون</button></li>
         <li><button class="tab" data-tab="auditLogs">📊 التقارير والحركة</button></li>
-        <li><button class="tab" data-tab="settings">⚙️ الإعدادات</button></li>
+        <li><button class="tab admin-only" data-tab="users">👤 المستخدمون</button></li>
+        <li><button class="tab admin-only" data-tab="settings">⚙️ الإعدادات</button></li>
       </ul>
     </aside>
 
@@ -1554,7 +1555,49 @@ html.auth-loading,html.auth-loading body{overflow:hidden!important}
           </div>
         </section>
 
-        <section id="auditLogs" class="tab-page hidden">
+        <section id="users" class="tab-page hidden admin-only-page">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <div>
+        <h2 style="margin:0 0 6px;">👤 إدارة المستخدمين</h2>
+        <p style="margin:0;color:#64748b;">إضافة المستخدمين وتحديد الصلاحيات وإيقاف الحسابات.</p>
+      </div>
+      <button onclick="openUserModal()" style="background:#0f233c;color:#facc15;border:0;padding:10px 18px;border-radius:8px;font-weight:bold;cursor:pointer;">＋ إضافة مستخدم</button>
+    </div>
+    <div id="usersMsg" class="msg"></div>
+    <div class="table-wrap">
+      <table id="usersTable">
+        <thead><tr><th>اسم المستخدم</th><th>البريد</th><th>الصلاحية</th><th>الحالة</th><th>تاريخ الإنشاء</th><th>إجراءات</th></tr></thead>
+        <tbody id="usersBody"><tr><td colspan="6">جاري التحميل...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div id="userModal" class="modal-overlay" style="display:none;z-index:9999;">
+  <div class="modal-card" style="max-width:620px;width:calc(100% - 30px);">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:15px;">
+      <h2 id="userModalTitle" style="margin:0;">إضافة مستخدم</h2>
+      <button type="button" onclick="closeUserModal()" style="border:0;background:#fee2e2;color:#991b1b;border-radius:8px;padding:7px 12px;font-size:18px;cursor:pointer;">×</button>
+    </div>
+    <form id="userForm">
+      <input type="hidden" id="editUserId">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <label>اسم المستخدم<input id="userUsername" required placeholder="مثال: أحمد" style="width:100%;padding:10px;margin-top:5px;border:1px solid #cbd5e1;border-radius:8px;"></label>
+        <label>البريد الإلكتروني<input id="userEmail" type="email" required placeholder="name@example.com" style="width:100%;padding:10px;margin-top:5px;border:1px solid #cbd5e1;border-radius:8px;"></label>
+        <label>كلمة المرور<input id="userPassword" type="password" minlength="6" placeholder="6 أحرف أو أكثر" style="width:100%;padding:10px;margin-top:5px;border:1px solid #cbd5e1;border-radius:8px;"></label>
+        <label>الصلاحية<select id="userRole" required style="width:100%;padding:10px;margin-top:5px;border:1px solid #cbd5e1;border-radius:8px;"><option value="sales">مبيعات</option><option value="admin2">أدمن 2</option><option value="admin1">أدمن 1</option></select></label>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin:15px 0;"><input id="userActive" type="checkbox" checked> الحساب نشط</label>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" onclick="closeUserModal()" style="background:#e5e7eb;border:0;padding:10px 18px;border-radius:8px;cursor:pointer;">إلغاء</button>
+        <button id="userSaveBtn" type="submit" style="background:#0f233c;color:#fff;border:0;padding:10px 20px;border-radius:8px;font-weight:bold;cursor:pointer;">حفظ المستخدم</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<section id="auditLogs" class="tab-page hidden">
           <div class="card">
             <h2>سجل الحركة والفواتير اليومية</h2>
             <div id="dailyInvoicesSummaryCard" style="background: #fdfbf7; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2dbca;">
@@ -1628,6 +1671,8 @@ let workmanshipInvoices = [];
 let editingProjectId = null;
 let editingWorkmanshipId = null;
 let currentProjectSummary = null;
+let currentUserProfile = null;
+let managedUsers = [];
 
 let salesExpensesChartInstance = null;
 let topProductsChartInstance = null;
@@ -1873,7 +1918,7 @@ function updateInvoiceProjectHint(){
   const id=document.getElementById("invoiceProject")?.value;const p=projectById(id);const e=document.getElementById("invoiceProjectHint");if(e)e.innerHTML=p?`المشروع: <b>${esc(p.name)}</b> — المبلغ المستلم: <b>${toArabicDigits(money(p.received_amount))} ج.م</b>`:"الفاتورة ستظل فاتورة عامة إذا لم تختر مشروعًا.";
 }
 
-function showTab(tabId){document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));document.querySelectorAll(".tab-page").forEach(s=>s.classList.add("hidden"));const b=document.querySelector(`[data-tab="${tabId}"]`);if(b)b.classList.add("active");const p=document.getElementById(tabId);if(p)p.classList.remove("hidden");if(tabId==="projects")loadProjects();if(tabId==="workmanship"){loadWorkmanshipInvoices();clearWorkmanshipForm();}if(tabId==="projectSummary")loadProjectSummary();if(tabId==="debtors")loadDebtors();}
+function showTab(tabId){if((tabId==="users"||tabId==="settings"||tabId==="auditLogs") && !isAdminUser()){return alert("هذه الصفحة متاحة للإدارة فقط.");}document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));document.querySelectorAll(".tab-page").forEach(s=>s.classList.add("hidden"));const b=document.querySelector(`[data-tab="${tabId}"]`);if(b)b.classList.add("active");const p=document.getElementById(tabId);if(p)p.classList.remove("hidden");if(tabId==="projects")loadProjects();if(tabId==="workmanship"){loadWorkmanshipInvoices();clearWorkmanshipForm();}if(tabId==="projectSummary")loadProjectSummary();if(tabId==="debtors")loadDebtors();if(tabId==="users")loadUsers();if(tabId==="auditLogs")loadAuditLogs();}
 
 async function openProjectSummary(id){showTab("projectSummary");populateProjectSelects();const s=document.getElementById("summaryProject");if(s)s.value=id;await loadProjectSummary();}
 
@@ -1938,7 +1983,9 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   if (btn.dataset.tab === "invoices") loadInvoices();
   if (btn.dataset.tab === "expenses") loadExpenses();
   if (btn.dataset.tab === "auditLogs") loadAuditLogs();
+  if (btn.dataset.tab === "users") loadUsers();
   if (btn.dataset.tab === "debtors") loadDebtors();
+  if ((btn.dataset.tab === "users" || btn.dataset.tab === "settings" || btn.dataset.tab === "auditLogs") && !isAdminUser()) { alert("هذه الصفحة متاحة للإدارة فقط."); return; }
   if (btn.dataset.tab === "dashboard") {
     refreshDashboard();
     setTimeout(() => { initDashboardCharts(); }, 150);
@@ -3690,6 +3737,83 @@ async function initDashboardCharts() {
   });
 }
 
+function isAdminUser(){ return !!currentUserProfile && ['admin1','admin2'].includes(currentUserProfile.role) && currentUserProfile.is_active === true; }
+function isAdmin1(){ return !!currentUserProfile && currentUserProfile.role === 'admin1' && currentUserProfile.is_active === true; }
+function userRoleLabel(role){ return role==='admin1'?'أدمن 1':role==='admin2'?'أدمن 2':'مبيعات'; }
+function userStatusLabel(active){ return active ? '<span style="color:#15803d;font-weight:bold;">نشط</span>' : '<span style="color:#b91c1c;font-weight:bold;">موقوف</span>'; }
+function userMsg(t,type='error'){const e=document.getElementById('usersMsg');if(e){e.textContent=t||'';e.className='msg'+(t?' show '+type:'');}}
+async function loadCurrentUserProfile(){
+  const {data,error}=await sb.rpc('get_my_profile');
+  if(error) throw error;
+  currentUserProfile=Array.isArray(data)?(data[0]||null):data;
+  applyRoleUI();
+  return currentUserProfile;
+}
+function applyRoleUI(){
+  const admin=isAdminUser();
+  document.querySelectorAll('.admin-only').forEach(el=>el.style.display=admin?'':'none');
+  document.querySelectorAll('.admin-only-page').forEach(el=>{if(!admin)el.classList.add('hidden');});
+  // المبيعات لا ترى المخزن الكامل أو إدارة الفواتير القديمة أو التقارير الإدارية.
+  if(currentUserProfile?.role==='sales'){
+    document.querySelectorAll('[data-tab="products"],[data-tab="invoices"],[data-tab="auditLogs"],[data-tab="users"],[data-tab="settings"]').forEach(el=>el.style.display='none');
+  }
+  const email=document.getElementById('authUserEmail');
+  if(email && currentUserProfile) email.textContent=`${currentUserProfile.username} — ${userRoleLabel(currentUserProfile.role)}`;
+}
+function openUserModal(user=null){
+  if(!isAdminUser()) return alert('غير مسموح.');
+  const m=document.getElementById('userModal'); if(!m)return;
+  document.getElementById('editUserId').value=user?.id||'';
+  document.getElementById('userUsername').value=user?.username||'';
+  document.getElementById('userEmail').value=user?.auth_email||'';
+  document.getElementById('userPassword').value='';
+  document.getElementById('userRole').value=user?.role||'sales';
+  document.getElementById('userActive').checked=user?.is_active!==false;
+  document.getElementById('userPassword').required=!user;
+  document.getElementById('userModalTitle').textContent=user?'تعديل مستخدم':'إضافة مستخدم';
+  document.getElementById('userSaveBtn').textContent=user?'حفظ التعديلات':'حفظ المستخدم';
+  m.style.display='flex';
+}
+function closeUserModal(){const m=document.getElementById('userModal');if(m)m.style.display='none';}
+async function callAdminFunction(name,body){
+  const {data,error}=await sb.functions.invoke(name,{body});
+  if(error) throw error;
+  if(data?.error) throw new Error(data.error);
+  return data;
+}
+async function loadUsers(){
+  if(!isAdminUser()) return;
+  const body=document.getElementById('usersBody'); if(!body)return;
+  body.innerHTML='<tr><td colspan="6">جاري تحميل المستخدمين...</td></tr>';
+  const {data,error}=await sb.from('user_profiles').select('id,username,auth_email,role,is_active,created_at').order('created_at',{ascending:false});
+  if(error){body.innerHTML=`<tr><td colspan="6" style="color:#b91c1c;">تعذر تحميل المستخدمين: ${esc(error.message)}</td></tr>`;return;}
+  managedUsers=data||[];
+  body.innerHTML=managedUsers.map(u=>{
+    const canEdit = isAdmin1() || (u.role!=='admin1');
+    const canDelete = u.role!=='admin1';
+    return `<tr><td><b>${esc(u.username)}</b></td><td>${esc(u.auth_email)}</td><td>${userRoleLabel(u.role)}</td><td>${userStatusLabel(u.is_active)}</td><td>${u.created_at?new Date(u.created_at).toLocaleString('ar-EG'):'—'}</td><td style="white-space:nowrap;">${canEdit?`<button onclick='openUserModal(${JSON.stringify(u).replace(/'/g,"&#39;")})' style="background:#3498db;color:#fff;border:0;padding:6px 10px;border-radius:6px;cursor:pointer;">تعديل</button>`:''} ${canDelete?`<button onclick="deleteManagedUser('${u.id}')" style="background:#e74c3c;color:#fff;border:0;padding:6px 10px;border-radius:6px;cursor:pointer;">حذف</button>`:''}</td></tr>`;
+  }).join('')||'<tr><td colspan="6">لا يوجد مستخدمون.</td></tr>';
+}
+document.getElementById('userForm')?.addEventListener('submit',async ev=>{
+  ev.preventDefault(); if(!isAdminUser())return;
+  const id=document.getElementById('editUserId').value;
+  const payload={username:document.getElementById('userUsername').value.trim(),auth_email:document.getElementById('userEmail').value.trim(),email:document.getElementById('userEmail').value.trim(),password:document.getElementById('userPassword').value,role:document.getElementById('userRole').value,is_active:document.getElementById('userActive').checked};
+  if(!payload.username||!payload.auth_email)return alert('اكتب اسم المستخدم والبريد الإلكتروني.');
+  if(!id&&!payload.password)return alert('اكتب كلمة مرور للمستخدم الجديد.');
+  const btn=document.getElementById('userSaveBtn');btn.disabled=true;
+  try{await callAdminFunction(id?'admin-update-user':'admin-create-user',id?{...payload,user_id:id}:payload);closeUserModal();userMsg(id?'تم تحديث المستخدم بنجاح.':'تم إنشاء المستخدم بنجاح.','success');await loadUsers();}
+  catch(e){userMsg('تعذر حفظ المستخدم: '+(e?.message||'خطأ غير معروف'),'error');}
+  finally{btn.disabled=false;}
+});
+async function deleteManagedUser(id){
+  if(!isAdminUser())return;
+  const u=managedUsers.find(x=>x.id===id); if(!u)return;
+  if(u.role==='admin1')return alert('لا يمكن حذف أدمن 1.');
+  if(!confirm(`هل أنت متأكد من حذف المستخدم «${u.username}»؟`))return;
+  try{await callAdminFunction('admin-delete-user',{user_id:id});userMsg('تم حذف المستخدم.','success');await loadUsers();}
+  catch(e){userMsg('تعذر حذف المستخدم: '+(e?.message||'خطأ غير معروف'),'error');}
+}
+
 async function loadAuditLogs() {
   const { data } = await sb.from("invoices").select("*").order("created_at", { ascending: false }).limit(20);
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -3874,6 +3998,13 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   async function handleSession(session){
     if(session?.user){
       setUser(session.user);
+      try{ await loadCurrentUserProfile(); }catch(profileError){
+        console.error('Profile load failed:',profileError);
+        await sb.auth.signOut();
+        showLogin();
+        msg('تعذر تحميل صلاحيات المستخدم. تأكد من إعداد قاعدة البيانات.','error');
+        return;
+      }
       hideLogin();
       try{ await initializeAlhamdApp(); }catch(e){
         console.error('Alhamd app initialization failed:',e);
@@ -4400,6 +4531,3 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
 </script>
 </body>
 </html>
-
-
-
