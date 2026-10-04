@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>الحمد ستوك - Alhamd Stock</title>
+    <title>الحمد ستوك | نظام إدارة المخزون والمبيعات</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -788,6 +788,213 @@ html[data-theme="dark"] .modal,.html[data-theme="dark"] .modal-overlay{backgroun
 html[data-theme="dark"] .toast-ah{background:#f8fafc;color:#0f172a}
 html[data-theme="dark"] a{color:#93c5fd}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+
+
+<style id="alhamd-client-delivery-v1">
+/* =========================================================
+   ALHAMD STOCK — CLIENT DELIVERY UI
+   Final visual layer: premium, responsive, motion-safe
+   ========================================================= */
+:root{
+  --ah-deep:#0b1730;
+  --ah-navy:#172554;
+  --ah-blue:#2563eb;
+  --ah-gold:#d4a84f;
+  --ah-gold2:#f3d27b;
+  --ah-cream:#fbf8f0;
+  --ah-bg:#f4f7fb;
+  --ah-card:#ffffff;
+  --ah-border:#e6eaf0;
+  --ah-text:#172033;
+  --ah-muted:#64748b;
+  --ah-success:#16a34a;
+  --ah-danger:#dc2626;
+  --ah-shadow:0 16px 45px rgba(15,23,42,.075);
+}
+
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(circle at 95% -10%,rgba(212,168,79,.12),transparent 25%),
+    radial-gradient(circle at 5% 30%,rgba(37,99,235,.055),transparent 25%),
+    var(--ah-bg)!important;
+}
+
+/* ---------- Login ---------- */
+#authScreen{
+  background:
+    radial-gradient(circle at 15% 15%,rgba(243,210,123,.18),transparent 25%),
+    radial-gradient(circle at 85% 85%,rgba(37,99,235,.20),transparent 28%),
+    linear-gradient(135deg,#071329 0%,#10224a 48%,#0b1730 100%)!important;
+  overflow:hidden!important;
+}
+#authScreen:before,#authScreen:after{
+  content:"";position:absolute;border-radius:50%;pointer-events:none;filter:blur(2px);
+  animation:ahFloat 9s ease-in-out infinite alternate;
+}
+#authScreen:before{width:420px;height:420px;top:-180px;right:-120px;background:rgba(212,168,79,.10)}
+#authScreen:after{width:360px;height:360px;bottom:-170px;left:-100px;background:rgba(37,99,235,.10);animation-delay:-3s}
+.auth-shell{
+  position:relative;z-index:2!important;width:min(470px,calc(100% - 28px))!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,250,252,.96))!important;
+  border-radius:30px!important;padding:34px!important;
+  box-shadow:0 35px 100px rgba(0,0,0,.38)!important;
+  animation:ahLoginIn .65s cubic-bezier(.2,.8,.2,1) both;
+}
+.auth-logo{
+  width:82px!important;height:82px!important;border-radius:25px!important;margin:0 auto 16px!important;
+  background:linear-gradient(145deg,#172554,#0b1730)!important;color:#f3d27b!important;
+  border:1px solid rgba(212,168,79,.55);box-shadow:0 16px 32px rgba(23,37,84,.22),inset 0 0 0 1px rgba(255,255,255,.08)!important;
+  position:relative;font-size:35px!important;
+}
+.auth-logo:after{content:"ALHAMD";position:absolute;bottom:-18px;font-size:7px;letter-spacing:3px;color:#c79b3b;font-weight:900}
+.auth-shell h1{font-size:27px!important;color:#0f1f3b!important}
+.auth-sub{font-size:12px!important;color:#64748b!important}
+.auth-primary{background:linear-gradient(135deg,#172554,#1e3a8a)!important;color:#f7d67c!important;box-shadow:0 10px 25px rgba(23,37,84,.18)}
+.auth-primary:hover{transform:translateY(-2px);box-shadow:0 15px 30px rgba(23,37,84,.24)}
+.auth-secondary{background:#fff!important}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  background:
+    radial-gradient(circle at 50% -10%,rgba(212,168,79,.12),transparent 25%),
+    linear-gradient(180deg,#08142c 0%,#12224b 48%,#081329 100%)!important;
+  box-shadow:-18px 0 55px rgba(15,23,42,.15)!important;
+}
+.sidebar-brand{height:138px!important}
+.sidebar-brand img{
+  max-width:82px!important;max-height:65px!important;
+  padding:5px!important;border-radius:20px;
+  filter:drop-shadow(0 12px 20px rgba(0,0,0,.34))!important;
+  transition:transform .35s ease,filter .35s ease;
+}
+.sidebar-brand:hover img{transform:translateY(-3px) scale(1.04);filter:drop-shadow(0 16px 25px rgba(0,0,0,.4))!important}
+.sidebar-brand div{font-weight:800!important;color:#f3d27b!important}
+.sidebar-menu button.tab{overflow:hidden}
+.sidebar-menu button.tab:after{
+  content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent,rgba(255,255,255,.12),transparent);
+  transform:translateX(120%);transition:transform .55s ease;pointer-events:none;
+}
+.sidebar-menu button.tab:hover:after{transform:translateX(-120%)}
+.sidebar-menu button.tab.active{transform:translateX(-2px)!important}
+
+/* ---------- Header ---------- */
+.topbar{
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+  background:rgba(255,255,255,.88)!important;
+  box-shadow:0 8px 30px rgba(15,23,42,.045)!important;
+}
+.brand-top strong{display:block;max-width:360px}
+#authUserBox{margin-right:auto}
+.auth-logout-btn{transition:.2s!important}
+.auth-logout-btn:hover{transform:translateY(-1px);background:#172554!important}
+
+/* ---------- Dashboard hero ---------- */
+#dashboard>.card:first-child{
+  isolation:isolate;
+  min-height:245px!important;
+  padding:42px 44px!important;
+  border:1px solid rgba(255,255,255,.10)!important;
+  background:
+    radial-gradient(circle at 12% 20%,rgba(243,210,123,.30),transparent 20%),
+    radial-gradient(circle at 92% 80%,rgba(59,130,246,.20),transparent 24%),
+    linear-gradient(135deg,#0b1730 0%,#172554 48%,#1e3a8a 100%)!important;
+  box-shadow:0 25px 60px rgba(15,35,84,.20)!important;
+  overflow:hidden!important;
+  animation:ahHeroIn .7s cubic-bezier(.2,.8,.2,1) both;
+}
+#dashboard>.card:first-child:before{
+  content:"";position:absolute;inset:-35%;z-index:-1;
+  background:conic-gradient(from 180deg,transparent 0 55%,rgba(243,210,123,.10),transparent 70%);
+  animation:ahSpin 18s linear infinite;
+}
+#dashboard>.card:first-child:after{
+  content:"ALHAMD STOCK"!important;position:absolute!important;left:34px!important;bottom:-18px!important;
+  font-size:86px!important;font-weight:900!important;letter-spacing:3px;color:rgba(255,255,255,.045)!important;
+  white-space:nowrap;pointer-events:none;
+}
+#dashboard>.card:first-child h2{font-size:32px!important;letter-spacing:-.7px!important}
+#dashboard>.card:first-child p{max-width:700px!important;line-height:2!important}
+
+/* ---------- Dashboard toolbar injected by JS ---------- */
+#ahClientQuickActions{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0 18px;
+  animation:ahFadeUp .55s .12s both;
+}
+.ah-client-action{
+  position:relative;overflow:hidden;min-height:76px;border:1px solid var(--ah-border)!important;
+  background:linear-gradient(180deg,#fff,#f8fafc)!important;color:var(--ah-navy)!important;
+  border-radius:17px!important;padding:14px 16px!important;text-align:right;cursor:pointer;
+  box-shadow:0 8px 24px rgba(15,23,42,.045)!important;
+}
+.ah-client-action:before{content:"";position:absolute;right:0;top:0;bottom:0;width:4px;background:var(--ah-gold);transform:scaleY(.3);transition:.25s}
+.ah-client-action:hover{transform:translateY(-3px)!important;box-shadow:0 16px 30px rgba(15,23,42,.09)!important}
+.ah-client-action:hover:before{transform:scaleY(1)}
+.ah-client-action .ico{font-size:23px;display:block;margin-bottom:3px}
+.ah-client-action b{font-size:13px}.ah-client-action small{display:block;color:var(--ah-muted);font-size:10px;margin-top:2px}
+
+/* ---------- Stat cards ---------- */
+.stat.card{transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease!important}
+.stat.card:hover{transform:translateY(-4px)!important;box-shadow:0 18px 38px rgba(15,23,42,.10)!important;border-color:#d9dee8!important}
+.stat.card b{font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+
+/* ---------- General polish ---------- */
+.card{animation:ahFadeUp .42s ease both}
+button:not(.tab){position:relative;overflow:hidden}
+button:not(.tab):active{transform:scale(.98)!important}
+.table-wrap{box-shadow:0 6px 20px rgba(15,23,42,.035)!important}
+tbody tr{transition:background .18s ease,transform .18s ease!important}
+tbody tr:hover{transform:translateX(-1px)}
+.modal-overlay,.statement-modal{animation:ahOverlay .2s ease both}
+.modal-card,.statement-content{animation:ahModalIn .3s cubic-bezier(.2,.8,.2,1) both}
+
+/* ---------- Mobile ---------- */
+@media(max-width:900px){
+  #dashboard>.card:first-child{min-height:190px!important;padding:28px 23px!important}
+  #dashboard>.card:first-child:after{font-size:54px!important;left:18px!important;bottom:-10px!important}
+  #dashboard>.card:first-child h2{font-size:23px!important}
+  #ahClientQuickActions{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+  .ah-client-action{min-height:70px;padding:11px!important;border-radius:14px!important}
+  .ah-client-action .ico{font-size:20px}
+  .ah-mobile-bottom{height:72px!important;padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}
+  .ah-mobile-bottom button{font-size:9px!important}
+  .ah-mobile-bottom button.active{box-shadow:inset 0 0 0 1px rgba(212,168,79,.25),0 5px 16px rgba(15,23,42,.06)}
+}
+@media(max-width:560px){
+  #dashboard>.card:first-child{min-height:175px!important;padding:23px 18px!important}
+  #dashboard>.card:first-child h2{font-size:20px!important}
+  #dashboard>.card:first-child p{font-size:11px!important}
+  #ahClientQuickActions{grid-template-columns:1fr 1fr}
+  .ah-client-action small{display:none}
+  .brand-top strong{max-width:185px!important}
+}
+
+/* ---------- Dark mode ---------- */
+html[data-theme="dark"] body{
+  background:#07101f!important;color:#e5e7eb!important;
+}
+html[data-theme="dark"] #dashboard>.card:first-child{
+  background:radial-gradient(circle at 10% 15%,rgba(243,210,123,.18),transparent 22%),linear-gradient(135deg,#081329,#12224b 55%,#0b1730)!important;
+}
+html[data-theme="dark"] #ahClientQuickActions .ah-client-action{background:linear-gradient(180deg,#111b2e,#0e1728)!important;border-color:#263244!important;color:#f8d67b!important}
+html[data-theme="dark"] .ah-client-action small{color:#94a3b8}
+html[data-theme="dark"] .stat.card:hover{border-color:#3b4a62!important}
+
+/* ---------- Motion ---------- */
+@keyframes ahLoginIn{from{opacity:0;transform:translateY(22px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes ahHeroIn{from{opacity:0;transform:translateY(15px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes ahFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ahModalIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes ahOverlay{from{opacity:0}to{opacity:1}}
+@keyframes ahFloat{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,22px,0)}}
+@keyframes ahSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){
+  #authScreen:before,#authScreen:after,#dashboard>.card:first-child:before{animation:none!important}
+  .card,#dashboard>.card:first-child,#ahClientQuickActions,.auth-shell{animation:none!important}
+}
 </style>
 
 </head>
@@ -2028,6 +2235,9 @@ function printProjectSummary(){
   if(!currentProjectSummary)return alert("اختر مشروعًا أولاً");
   const r=currentProjectSummary,p=r.project;
   const html=`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>ملخص مشروع ${esc(p.name)}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px;color:#333}h1,h2{color:#0f233c}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #cbd5e1;padding:7px;text-align:center}th{background:#0f233c;color:#fff}.box{background:#f8fafc;padding:12px;border:1px solid #ddd;border-radius:8px;margin:10px 0}</style></head><body><h1>${esc(storeSettings.store_name)}</h1><h2>تقرير ملخص المشروع: ${esc(p.name)}</h2><div class="box">المبلغ المستلم من المالك: <b>${money(r.received)} ج.م</b> — إجمالي المبيعات: <b>${money(r.salesTotal)} ج.م</b> — إجمالي المصنعيات: <b>${money(r.workTotal)} ج.م</b> — إجمالي المدفوع: <b>${money(r.totalPaid)} ج.م</b> — الدين: <b>${money(r.salesDebt+r.workDebt)} ج.م</b> — المتبقي/العجز: <b>${money(r.balance)} ج.م</b></div><h3>فواتير البيع</h3><table><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.salesInvoices.map(x=>`<tr><td>${esc(x.invoice_code||x.id.slice(0,8))}</td><td>${esc(x.customer_name)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><h3>فواتير المصنعيات</h3><table><tr><th>الفاتورة</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.work.map(x=>`<tr><td>${esc(x.invoice_code)}</td><td>${esc(x.description)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p><script>window.onload=function(){window.print();window.close()}<\/script>
+
+
+
 
 
 
@@ -4903,6 +5113,48 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   });
   window.addEventListener('online',()=>toast('✅ عاد الاتصال بالإنترنت'));
   window.addEventListener('offline',()=>toast('⚠️ انقطع الاتصال بالإنترنت — لن يتم حفظ العمليات حتى يعود الاتصال'));
+})();
+</script>
+<script id="alhamd-client-delivery-v1-js">
+(function(){
+  'use strict';
+  const q=s=>document.querySelector(s);
+  function go(tab){const b=q('.sidebar-menu button.tab[data-tab="'+tab+'"]');if(b)b.click();}
+  function install(){
+    const dash=q('#dashboard');
+    if(!dash || q('#ahClientQuickActions')) return;
+    const hero=dash.querySelector('.card');
+    if(!hero) return;
+    const actions=document.createElement('div');
+    actions.id='ahClientQuickActions';
+    actions.innerHTML=`
+      <button class="ah-client-action" type="button" data-go="invoice"><span class="ico">🧾</span><b>فاتورة بيع جديدة</b><small>ابدأ عملية بيع بسرعة</small></button>
+      <button class="ah-client-action" type="button" data-go="products"><span class="ico">📦</span><b>المخزن والأصناف</b><small>متابعة الكميات والأسعار</small></button>
+      <button class="ah-client-action" type="button" data-go="debtors"><span class="ico">👥</span><b>العملاء والديون</b><small>كشف الحساب والتحصيل</small></button>
+      <button class="ah-client-action" type="button" data-go="auditLogs"><span class="ico">📊</span><b>التقارير والحركة</b><small>متابعة أداء المكتب</small></button>`;
+    hero.insertAdjacentElement('afterend',actions);
+    actions.querySelectorAll('[data-go]').forEach(btn=>btn.addEventListener('click',()=>go(btn.dataset.go)));
+  }
+  function addBrandBadge(){
+    const brand=q('.sidebar-brand');
+    if(!brand || q('#ahBrandTag')) return;
+    const tag=document.createElement('small');
+    tag.id='ahBrandTag';
+    tag.textContent='إدارة المخزون • المبيعات • المقاولات';
+    tag.style.cssText='color:#94a3b8;font-size:9px;margin-top:5px;font-weight:700;letter-spacing:.15px';
+    brand.appendChild(tag);
+  }
+  function improveHero(){
+    const h=q('#dashboard>.card:first-child h2');
+    const p=q('#dashboard>.card:first-child p');
+    if(h && !h.dataset.clientPolished){h.textContent='مرحبًا بك في الحمد ستوك';h.dataset.clientPolished='1';}
+    if(p && !p.dataset.clientPolished){p.textContent='من أول التأسيس لحد التشطيب النهائي — إدارة احترافية للمخزون والمبيعات والمشتريات والمقاولات في مكان واحد.';p.dataset.clientPolished='1';}
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(function(){install();addBrandBadge();improveHero();},350);
+    setTimeout(install,1400);
+  });
+  window.addEventListener('load',function(){setTimeout(install,300)});
 })();
 </script>
 </body>
