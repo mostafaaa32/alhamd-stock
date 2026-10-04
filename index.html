@@ -3885,10 +3885,14 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   }
 
   function showLogin(){
-    if(authScreen) authScreen.style.display='flex';
+    const app=document.getElementById('appView');
+    if(app) app.classList.add('auth-locked');
+    if(authScreen) { authScreen.style.display='flex'; authScreen.classList.add('show'); authScreen.setAttribute('aria-hidden','false'); }
   }
   function hideLogin(){
-    if(authScreen) authScreen.style.display='none';
+    const app=document.getElementById('appView');
+    if(app) app.classList.remove('auth-locked');
+    if(authScreen) { authScreen.style.display='none'; authScreen.classList.remove('show'); authScreen.setAttribute('aria-hidden','true'); }
   }
 
   window.addEventListener('DOMContentLoaded', async ()=>{
@@ -4396,3 +4400,6 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
 </script>
 </body>
 </html>
+
+
+
