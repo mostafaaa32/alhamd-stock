@@ -707,23 +707,15 @@ html.auth-loading,html.auth-loading body{overflow:hidden!important}
 @media(max-width:700px){#authUserBox{display:none}.auth-shell{padding:22px;border-radius:20px}.auth-shell h1{font-size:22px}}
 </style>
 
-<style id="alhamd-security-ui">
-.auth-kicker{font-size:10px;letter-spacing:2px;color:#d4af37;font-weight:900;margin-bottom:8px}
-.auth-logo{overflow:hidden}.auth-logo img{width:72px;height:72px;object-fit:contain;display:block;margin:auto}
-.auth-user-role{display:inline-flex;margin-inline:8px;padding:4px 8px;border-radius:999px;background:#facc15;color:#172554;font-size:11px;font-weight:900}
-.admin-only-page{display:block}
-@media(max-width:900px){#users .card>div[style*="grid-template-columns:repeat(4"]{grid-template-columns:1fr!important}}
-</style>
 </head>
 <body>
 
 
   <div id="authScreen" aria-hidden="true">
     <div class="auth-shell">
-      <div class="auth-logo"><img src="logo.png" alt="مكتب الحمد" onerror="this.style.display='none';this.parentElement.textContent='ح';"></div>
-      <div class="auth-kicker">ALHAMD STOCK • SECURE ACCESS</div>
+      <div class="auth-logo">ح</div>
       <h1 id="authTitle">تسجيل الدخول</h1>
-      <p class="auth-sub" id="authSubtitle">أدخل اسم المستخدم وكلمة المرور للدخول إلى نظام مكتب الحمد.</p>
+      <p class="auth-sub" id="authSubtitle">الدخول إلى نظام مكتب الحمد لإدارة المخزون والمبيعات والمشتريات.</p>
       <form id="authForm" autocomplete="on">
         <div class="auth-field">
           <label for="authEmail">اسم المستخدم</label>
@@ -733,13 +725,19 @@ html.auth-loading,html.auth-loading body{overflow:hidden!important}
           <label for="authPassword">كلمة المرور</label>
           <input id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••" minlength="6" required>
         </div>
+        <div class="auth-field" id="authConfirmWrap" style="display:none">
+          <label for="authConfirmPassword">تأكيد كلمة المرور</label>
+          <input id="authConfirmPassword" type="password" autocomplete="new-password" placeholder="••••••••" minlength="6">
+        </div>
         <div class="auth-row">
+          <button type="button" class="auth-link" id="authModeBtn">إنشاء حساب جديد</button>
           <button type="button" class="auth-link" id="authResetBtn">نسيت كلمة المرور؟</button>
         </div>
         <button type="submit" class="auth-primary" id="authSubmit">دخول آمن</button>
+        <button type="button" class="auth-secondary" id="authBackBtn" style="display:none">العودة لتسجيل الدخول</button>
         <div id="authMsg" class="auth-msg" role="alert"></div>
       </form>
-      <div class="auth-security">🔐 الحسابات ينشئها الأدمن فقط — اسم المستخدم هو المعروض داخل النظام، والبريد الإلكتروني محفوظ في الخلفية.</div>
+      <div class="auth-security">🔐 الاتصال يتم عبر Supabase Auth — لا يتم تخزين كلمة المرور داخل الموقع.</div>
     </div>
   </div>
 
@@ -989,7 +987,6 @@ html.auth-loading,html.auth-loading body{overflow:hidden!important}
         <li><button class="tab" data-tab="expenses">💸 المصروفات</button></li>
         <li><button class="tab" data-tab="debtors">👥 العملاء والديون</button></li>
         <li><button class="tab" data-tab="auditLogs">📊 التقارير والحركة</button></li>
-        <li><button class="tab admin-only" data-tab="users">👤 المستخدمون والصلاحيات</button></li>
         <li><button class="tab" data-tab="settings">⚙️ الإعدادات</button></li>
       </ul>
     </aside>
@@ -1006,7 +1003,6 @@ html.auth-loading,html.auth-loading body{overflow:hidden!important}
         </div>
         <div id="authUserBox">
           <span id="authUserEmail" class="auth-user-email"></span>
-          <span id="authUserRole" class="auth-user-role"></span>
           <button class="auth-logout-btn" type="button" onclick="logoutSupabase()">خروج</button>
         </div>
       </header>
@@ -1608,41 +1604,7 @@ html.auth-loading,html.auth-loading body{overflow:hidden!important}
             <p id="settingsMsg" class="msg"></p>
           </div>
         </section>
-      
-
-        <section id="users" class="tab-page hidden admin-only-page">
-          <div class="customer-pro-head">
-            <div>
-              <div class="customer-pro-kicker">SECURITY & ACCESS</div>
-              <h2>المستخدمون والصلاحيات</h2>
-              <p>إدارة الحسابات وتحديد: أدمن 1 — أدمن 2 — مبيعات.</p>
-            </div>
-          </div>
-          <div class="card" style="margin-bottom:15px;">
-            <h3>إضافة مستخدم</h3>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
-              <input id="newUserName" placeholder="اسم المستخدم">
-              <input id="newUserEmail" type="email" placeholder="البريد الإلكتروني">
-              <input id="newUserPassword" type="password" placeholder="كلمة المرور">
-              <select id="newUserRole">
-                <option value="sales">مبيعات</option>
-                <option value="admin2">أدمن 2</option>
-                <option value="admin1">أدمن 1</option>
-              </select>
-            </div>
-            <button class="btn-primary" style="margin-top:10px;" onclick="createAlhamdUser()">➕ إنشاء المستخدم</button>
-            <p id="usersMsg" class="msg"></p>
-          </div>
-          <div class="card">
-            <div style="overflow:auto;">
-              <table style="width:100%;border-collapse:collapse;">
-                <thead><tr><th>اسم المستخدم</th><th>البريد</th><th>الصلاحية</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
-                <tbody id="usersBody"><tr><td colspan="5">جاري التحميل...</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-</main>
+      </main>
     </div>
   </div>
 
@@ -1982,59 +1944,7 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
     setTimeout(() => { initDashboardCharts(); }, 150);
   }
   if (btn.dataset.tab === "settings") loadStoreSettings();
-  if (btn.dataset.tab === "users") loadAlhamdUsers();
 }));
-
-async function loadAlhamdUsers(){
-  if(!window.isAdmin || !window.isAdmin())return;
-  const body=document.getElementById('usersBody'); if(!body)return;
-  const {data,error}=await sb.from('user_profiles').select('id,username,auth_email,role,is_active,created_at').order('created_at',{ascending:false});
-  if(error){body.innerHTML=`<tr><td colspan="5">${esc(error.message)}</td></tr>`;return;}
-  body.innerHTML=(data||[]).map(u=>`<tr>
-    <td>${esc(u.username||'')}</td><td>${esc(u.auth_email||'')}</td>
-    <td>${u.role==='admin1'?'أدمن 1':u.role==='admin2'?'أدمن 2':'مبيعات'}</td>
-    <td>${u.is_active===false?'غير نشط':'نشط'}</td>
-    <td>${u.role==='admin1'&&!window.isAdmin1()?'محمي':'<button class="btn-danger" onclick="deleteAlhamdUser(\''+u.id+'\')">حذف</button>'}</td>
-  </tr>`).join('');
-}
-async function createAlhamdUser(){
-  if(!window.isAdmin())return alert('غير مسموح بإنشاء المستخدمين.');
-  const username=document.getElementById('newUserName')?.value.trim();
-  const email=document.getElementById('newUserEmail')?.value.trim();
-  const password=document.getElementById('newUserPassword')?.value||'';
-  const role=document.getElementById('newUserRole')?.value||'sales';
-  if(role==='admin1'&&!window.isAdmin1())return alert('تعيين أدمن 1 متاح لأدمن 1 الحالي فقط.');
-  if(!username||!email||password.length<6)return alert('أدخل اسم المستخدم والبريد وكلمة مرور لا تقل عن 6 أحرف.');
-  // لا يتم إنشاء Auth من المتصفح باستخدام service_role؛ نرسل الطلب إلى Edge Function الآمنة.
-  const {data:{session}}=await sb.auth.getSession();
-  if(!session)return alert('انتهت جلسة الدخول.');
-  const res=await fetch(SUPABASE_URL+'/functions/v1/admin-create-user',{
-    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
-    body:JSON.stringify({username,email,password,role})
-  });
-  const payload=await res.json().catch(()=>({}));
-  if(!res.ok) return alert(payload.error||'تعذر إنشاء المستخدم.');
-  alert('تم إنشاء المستخدم بنجاح.');
-  ['newUserName','newUserEmail','newUserPassword'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  loadAlhamdUsers();
-}
-async function deleteAlhamdUser(id){
-  if(!window.isAdmin())return alert('غير مسموح.');
-  const {data:target}=await sb.from('user_profiles').select('id,role,username').eq('id',id).maybeSingle();
-  if(target?.role==='admin1')return alert('لا يمكن حذف أدمن 1.');
-  if(!confirm('تأكيد حذف المستخدم '+(target?.username||'')+'؟'))return;
-  const {data:{session}}=await sb.auth.getSession();
-  const res=await fetch(SUPABASE_URL+'/functions/v1/admin-delete-user',{
-    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
-    body:JSON.stringify({user_id:id})
-  });
-  const payload=await res.json().catch(()=>({}));
-  if(!res.ok)return alert(payload.error||'تعذر حذف المستخدم.');
-  loadAlhamdUsers();
-}
-function logAlhamdAction(action,entityType,entityId,details={}){
-  return sb.from('audit_logs').insert([{user_id:window.currentAlhamdUser?.id||null,action,entity_type:entityType,entity_id:entityId,details}]);
-}
 
 let alhamdAppBooted = false;
 async function initializeAlhamdApp() {
@@ -3866,118 +3776,132 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
 
 <script id="alhamd-supabase-auth-js">
 (function(){
-  const authScreen=document.getElementById('authScreen');
-  const authForm=document.getElementById('authForm');
-  const authEmail=document.getElementById('authEmail');
-  const authPassword=document.getElementById('authPassword');
-  const authResetBtn=document.getElementById('authResetBtn');
-  const authMsg=document.getElementById('authMsg');
-  const authUserEmail=document.getElementById('authUserEmail');
-  const authUserRole=document.getElementById('authUserRole');
-  const AUTH_REDIRECT_URL=(location.hostname.endsWith('github.io'))
+  const authScreen = document.getElementById('authScreen');
+  const authForm = document.getElementById('authForm');
+  const authEmail = document.getElementById('authEmail');
+  const authPassword = document.getElementById('authPassword');
+  const authConfirm = document.getElementById('authConfirmPassword');
+  const authConfirmWrap = document.getElementById('authConfirmWrap');
+  const authTitle = document.getElementById('authTitle');
+  const authSubtitle = document.getElementById('authSubtitle');
+  const authSubmit = document.getElementById('authSubmit');
+  const authModeBtn = document.getElementById('authModeBtn');
+  const authResetBtn = document.getElementById('authResetBtn');
+  const authBackBtn = document.getElementById('authBackBtn');
+  const authMsg = document.getElementById('authMsg');
+  const authUserEmail = document.getElementById('authUserEmail');
+  let authMode = 'login';
+  let authInitialized = false;
+
+  const AUTH_REDIRECT_URL = (location.hostname.endsWith('github.io'))
     ? 'https://mostafaaa32.github.io/alhamd-stock/'
-    : (window.location.origin+window.location.pathname);
+    : (window.location.origin + window.location.pathname);
 
-  window.currentAlhamdUser=null;
-  window.currentAlhamdProfile=null;
-
-  function msg(text,type){
-    if(!authMsg)return;
-    authMsg.textContent=text||'';
-    authMsg.className='auth-msg'+(text?' show '+(type||'error'):'');
-  }
-  function showLogin(){authScreen.classList.add('show');authScreen.setAttribute('aria-hidden','false');document.documentElement.classList.add('auth-loading');}
-  function hideLogin(){authScreen.classList.remove('show');authScreen.setAttribute('aria-hidden','true');document.documentElement.classList.remove('auth-loading');const app=document.getElementById('appView');if(app)app.classList.remove('auth-locked');}
-  function lockApp(){const app=document.getElementById('appView');if(app)app.classList.add('auth-locked');showLogin();}
-  function roleLabel(r){return r==='admin1'?'أدمن 1':r==='admin2'?'أدمن 2':'مبيعات';}
-  function setUser(user,profile){
-    window.currentAlhamdUser=user||null; window.currentAlhamdProfile=profile||null;
-    if(authUserEmail)authUserEmail.textContent=profile?.username||'';
-    if(authUserRole)authUserRole.textContent=profile?roleLabel(profile.role):'';
-  }
-  window.isAdmin1=()=>window.currentAlhamdProfile?.role==='admin1';
-  window.isAdmin=()=>['admin1','admin2'].includes(window.currentAlhamdProfile?.role);
-  window.isSales=()=>window.currentAlhamdProfile?.role==='sales';
-
-  async function loadProfile(user){
-    if(!user)return null;
-    const {data,error}=await sb.from('user_profiles').select('id,username,role,is_active,auth_email').eq('id',user.id).maybeSingle();
-    if(error)throw error;
-    if(!data||data.is_active===false)throw new Error('هذا الحساب غير نشط.');
-    return data;
+  function msg(text, type){
+    if(!authMsg) return;
+    authMsg.textContent = text || '';
+    authMsg.className = 'auth-msg' + (text ? ' show ' + (type || 'error') : '');
   }
 
-  async function resolveUsername(username){
-    const {data,error}=await sb.from('user_profiles').select('auth_email,is_active').eq('username',username).maybeSingle();
-    if(error)throw error;
-    if(!data||data.is_active===false)throw new Error('اسم المستخدم غير موجود أو غير نشط.');
-    if(!data.auth_email)throw new Error('الحساب غير مكتمل الإعداد.');
-    return data.auth_email;
+  function setMode(mode){
+    authMode = 'login';
+    if(authTitle) authTitle.textContent = 'تسجيل الدخول';
+    if(authSubtitle) authSubtitle.textContent = 'أدخل اسم المستخدم وكلمة المرور للدخول إلى نظام مكتب الحمد.';
+    if(authConfirmWrap) authConfirmWrap.style.display = 'none';
+    if(authConfirm) authConfirm.required = false;
+    if(authPassword) authPassword.autocomplete = 'current-password';
+    if(authSubmit) authSubmit.textContent = 'دخول آمن';
+    if(authModeBtn) authModeBtn.style.display = 'none';
+    if(authBackBtn) authBackBtn.style.display = 'none';
+    if(authResetBtn) authResetBtn.style.display = 'inline-block';
   }
 
-  window.logoutSupabase=async function(){
-    const {error}=await sb.auth.signOut();
-    if(error)alert('تعذر تسجيل الخروج: '+error.message);
+  function setUser(user){
+    if(authUserEmail) authUserEmail.textContent = user?.email || '';
+  }
+
+  window.logoutSupabase = async function(){
+    try{
+      const {error}=await sb.auth.signOut();
+      if(error) throw error;
+    }catch(e){
+      alert('تعذر تسجيل الخروج: ' + (e?.message || 'خطأ غير معروف'));
+    }
   };
 
-  authResetBtn?.addEventListener('click',async()=>{
+  // لا يوجد تسجيل ذاتي؛ إنشاء المستخدمين يتم من داخل النظام بواسطة الإدارة.
+  setMode('login');
+
+  authResetBtn?.addEventListener('click', async ()=>{
     const username=(authEmail.value||'').trim();
-    if(!username)return msg('اكتب اسم المستخدم أولاً.','error');
+    if(!username) return msg('اكتب اسم المستخدم أولاً ثم اضغط «نسيت كلمة المرور؟».','error');
     authResetBtn.disabled=true;
     try{
-      const email=await resolveUsername(username);
-      const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:AUTH_REDIRECT_URL});
-      if(error)throw error;
-      msg('تم إرسال رابط إعادة تعيين كلمة المرور إلى البريد الإلكتروني المرتبط بالحساب.','success');
-    }catch(e){msg(e?.message||'تعذر تنفيذ العملية.','error');}
-    finally{authResetBtn.disabled=false;}
+      const {data,error}=await sb.rpc('resolve_username',{p_username:username});
+      if(error) throw error;
+      const row=Array.isArray(data) ? data[0] : data;
+      if(!row?.auth_email || row.is_active === false) throw new Error('اسم المستخدم غير موجود أو غير نشط.');
+      const {error:resetError}=await sb.auth.resetPasswordForEmail(row.auth_email,{redirectTo: AUTH_REDIRECT_URL});
+      if(resetError) throw resetError;
+      msg('تم إرسال رابط إعادة تعيين كلمة المرور إلى البريد المرتبط بالحساب.','success');
+    }catch(e){
+      msg('تعذر إرسال رابط إعادة التعيين: ' + (e?.message || 'خطأ غير معروف'),'error');
+    }finally{ authResetBtn.disabled=false; }
   });
 
-  authForm?.addEventListener('submit',async(ev)=>{
+  authForm?.addEventListener('submit', async (ev)=>{
     ev.preventDefault();
     const username=(authEmail.value||'').trim();
     const password=authPassword.value||'';
-    if(!username||!password)return msg('أدخل اسم المستخدم وكلمة المرور.','error');
-    authForm.querySelector('#authSubmit').disabled=true; msg('جاري التحقق...','success');
+    if(!username || !password) return msg('أدخل اسم المستخدم وكلمة المرور.','error');
+    authSubmit.disabled=true;
+    msg('جاري التحقق...','success');
     try{
-      const email=await resolveUsername(username);
-      const {data,error}=await sb.auth.signInWithPassword({email,password});
-      if(error)throw error;
-      const profile=await loadProfile(data.user);
-      setUser(data.user,profile);
-      await handleSession(data.session);
-    }catch(e){msg(e?.message||'تعذر تسجيل الدخول.','error');}
-    finally{authForm.querySelector('#authSubmit').disabled=false;}
+      // البحث عن البريد المرتبط باسم المستخدم يتم عبر RPC آمنة؛ لا نفتح جدول user_profiles للزائر.
+      const {data:profile,error:profileError}=await sb.rpc('resolve_username',{p_username:username});
+      if(profileError) throw profileError;
+      const row=Array.isArray(profile) ? profile[0] : profile;
+      if(!row?.auth_email || row.is_active === false) throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة.');
+
+      const {data,error}=await sb.auth.signInWithPassword({email:row.auth_email,password});
+      if(error) throw error;
+      if(data?.user) setUser(data.user);
+    }catch(e){
+      msg(e?.message || 'تعذر تسجيل الدخول. تحقق من البيانات وحاول مرة أخرى.','error');
+    }finally{ authSubmit.disabled=false; }
   });
 
   async function handleSession(session){
     if(session?.user){
-      try{
-        const profile=await loadProfile(session.user);
-        setUser(session.user,profile);
-        hideLogin();
-        applyAlhamdRoleUI();
-        try{await initializeAlhamdApp();}catch(e){console.error(e);}
-      }catch(e){await sb.auth.signOut();msg(e?.message||'الحساب غير صالح.','error');showLogin();}
-    }else lockApp();
+      setUser(session.user);
+      hideLogin();
+      try{ await initializeAlhamdApp(); }catch(e){
+        console.error('Alhamd app initialization failed:',e);
+        alert('تم تسجيل الدخول، لكن تعذر تحميل بعض بيانات النظام. افتح الصفحة مرة أخرى إذا استمر الخطأ.');
+      }
+    }else{
+      showLogin();
+    }
   }
 
-  window.applyAlhamdRoleUI=function(){
-    const role=window.currentAlhamdProfile?.role;
-    document.querySelectorAll('.admin-only,.admin-only-page').forEach(el=>el.style.display=['admin1','admin2'].includes(role)?'':'none');
-    document.querySelectorAll('[data-tab="products"],[data-tab="suppliers"],[data-tab="expenses"],[data-tab="settings"]').forEach(el=>el.style.display=['admin1','admin2'].includes(role)?'':'none');
-    if(role==='sales'){
-      document.querySelectorAll('[data-tab="projects"],[data-tab="workmanship"],[data-tab="projectSummary"],[data-tab="invoices"],[data-tab="debtors"],[data-tab="auditLogs"]').forEach(el=>el.style.display='none');
-    }
-  };
+  function showLogin(){
+    if(authScreen) authScreen.style.display='flex';
+  }
+  function hideLogin(){
+    if(authScreen) authScreen.style.display='none';
+  }
 
-  document.addEventListener('DOMContentLoaded',async()=>{
-    const {data:{session}}=await sb.auth.getSession();
-    await handleSession(session);
-  });
-  sb.auth.onAuthStateChange((event,session)=>{
-    if(event==='SIGNED_OUT'){window.currentAlhamdProfile=null;lockApp();authPassword.value='';}
-    else if((event==='SIGNED_IN'||event==='INITIAL_SESSION'||event==='TOKEN_REFRESHED')&&session)setTimeout(()=>handleSession(session),0);
+  window.addEventListener('DOMContentLoaded', async ()=>{
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      await handleSession(session);
+      sb.auth.onAuthStateChange((_event,newSession)=>{
+        handleSession(newSession);
+      });
+    }catch(e){
+      console.error('Auth initialization error:',e);
+      showLogin();
+    }
   });
 })();
 </script>
