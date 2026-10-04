@@ -2816,9 +2816,75 @@ async function previewExistingInvoice(invoiceId) {
   document.getElementById("invoicePreviewModal").style.display = "flex";
 }
 
+async function updateProductStockChecked(productId, expectedQty, newQty) {
+  const { data, error } = await sb
+    .from("products")
+    .update({ quantity: newQty })
+    .eq("id", productId)
+    .eq("quantity", expectedQty)
+    .select("id, quantity")
+    .maybeSingle();
+
+  if (error) throw new Error(`تعذر تحديث مخزون الصنف: ${error.message}`);
+  if (!data) throw new Error("تغير مخزون أحد الأصناف أثناء حفظ الفاتورة. تم إلغاء العملية بدون خصم جديد.");
+  return data;
+}
+
+async function rollbackProductStock(changes) {
+  const errors = [];
+  for (let i = changes.length - 1; i >= 0; i--) {
+    const ch = changes[i];
+    try {
+      const { data, error } = await sb
+        .from("products")
+        .update({ quantity: ch.oldQty })
+        .eq("id", ch.productId)
+        .eq("quantity", ch.newQty)
+        .select("id, quantity")
+        .maybeSingle();
+
+      if (error || !data) {
+        errors.push(ch.productId);
+      }
+    } catch (_) {
+      errors.push(ch.productId);
+    }
+  }
+  return errors;
+}
+
+function buildInvoiceStockMap(items) {
+  const map = new Map();
+  for (const item of items) {
+    if (!item.product_id) continue;
+    const qty = Number(item.quantity) || 0;
+    if (qty <= 0) continue;
+    map.set(item.product_id, (map.get(item.product_id) || 0) + qty);
+  }
+  return map;
+}
+
+async function getFreshProducts(productIds) {
+  const ids = [...new Set(productIds)].filter(Boolean);
+  if (!ids.length) return new Map();
+
+  const { data, error } = await sb
+    .from("products")
+    .select("id, name, quantity")
+    .in("id", ids);
+
+  if (error) throw new Error(`تعذر التحقق من المخزون الحالي: ${error.message}`);
+
+  const map = new Map((data || []).map(p => [p.id, p]));
+  for (const id of ids) {
+    if (!map.has(id)) throw new Error("أحد الأصناف الموجودة في الفاتورة لم يعد موجوداً في المخزن.");
+  }
+  return map;
+}
+
 async function saveInvoice() {
   if (invoiceItems.length === 0) return alert("لا توجد أصناف أو بنود في الفاتورة!");
-  
+
   const cNameEl = document.getElementById("customerName");
   const cPhoneEl = document.getElementById("customerPhone");
   const cNotesEl = document.getElementById("invoiceNotes");
@@ -2830,8 +2896,8 @@ async function saveInvoice() {
   const projectId = document.getElementById("invoiceProject")?.value || "";
   const notes = buildInvoiceNotes(notesRaw, projectId);
   const invoiceCode = codeInp && codeInp.value.trim() ? codeInp.value.trim() : `#${Math.floor(10000 + Math.random() * 90000)}`;
-  
-  let subTotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+
+  const subTotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
   const discountEl = document.getElementById("invoiceDiscount");
   const discountRaw = discountEl ? discountEl.value.trim() : "";
   let discountVal = 0;
@@ -2848,61 +2914,187 @@ async function saveInvoice() {
   const paid = paidEl ? Number(paidEl.value) || 0 : 0;
   const remaining = Math.max(0, total - paid);
 
-  if (editingInvoiceId) {
-    const { data: oldItems } = await sb.from("invoice_items").select("*").eq("invoice_id", editingInvoiceId);
-    if (oldItems) {
-      for (const oldItm of oldItems) {
-        if (oldItm.product_id) {
-          const prod = products.find(p => p.id === oldItm.product_id);
-          if (prod) {
-            await sb.from("products").update({ quantity: Number(prod.quantity || 0) + Number(oldItm.quantity || 0) }).eq("id", prod.id);
-          }
-        }
-      }
-    }
-    await sb.from("invoice_items").delete().eq("invoice_id", editingInvoiceId);
-
-    await sb.from("invoices").update({
-      customer_name: customerName,
-      customer_phone: customerPhone,
-      notes: notes,
-      total: total,
-      paid: paid,
-      remaining: remaining
-    }).eq("id", editingInvoiceId);
-
-    const itemsPayload = invoiceItems.map(item => ({
-      invoice_id: editingInvoiceId,
-      product_id: item.product_id,
-      product_name: item.name,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      total: item.quantity * item.unit_price
-    }));
-
-    await sb.from("invoice_items").insert(itemsPayload);
-
-    for (const item of invoiceItems) {
-      if (item.product_id) {
-        const prod = products.find(p => p.id === item.product_id);
-        if (prod) {
-          await sb.from("products").update({ quantity: Math.max(0, Number(prod.quantity || 0) - item.quantity) }).eq("id", prod.id);
-        }
-      }
-    }
-
-    alert("✨ تم تعديل وحفظ الفاتورة بنجاح!");
-    editingInvoiceId = null;
-    clearInvoiceItemsOnly();
-    await loadProducts();
-    await refreshDashboard();
-    
-    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-page").forEach(s => s.classList.add("hidden"));
-    document.querySelector('[data-tab="invoices"]').classList.add("active");
-    document.getElementById("invoices").classList.remove("hidden");
-    loadInvoices();
+  // نعيد التحقق من المخزون من قاعدة البيانات لحظة الحفظ، وليس من البيانات القديمة في الصفحة فقط.
+  const newStockMap = buildInvoiceStockMap(invoiceItems);
+  let freshProducts = new Map();
+  try {
+    freshProducts = await getFreshProducts([...newStockMap.keys()]);
+  } catch (err) {
+    alert("❌ لم يتم حفظ الفاتورة: " + err.message);
     return;
+  }
+
+  const itemsPayload = invoiceItems.map(item => ({
+    product_id: item.product_id,
+    product_name: item.name,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    total: item.quantity * item.unit_price
+  }));
+
+  // =========================
+  // تعديل فاتورة موجودة
+  // =========================
+  if (editingInvoiceId) {
+    const { data: oldInvoice, error: oldInvoiceError } = await sb
+      .from("invoices")
+      .select("*")
+      .eq("id", editingInvoiceId)
+      .maybeSingle();
+
+    if (oldInvoiceError || !oldInvoice) {
+      alert("❌ تعذر قراءة الفاتورة القديمة قبل التعديل.");
+      return;
+    }
+
+    const { data: oldItems, error: oldItemsError } = await sb
+      .from("invoice_items")
+      .select("*")
+      .eq("invoice_id", editingInvoiceId);
+
+    if (oldItemsError) {
+      alert("❌ تعذر قراءة بنود الفاتورة القديمة: " + oldItemsError.message);
+      return;
+    }
+
+    const oldStockMap = buildInvoiceStockMap(oldItems || []);
+    const allProductIds = [...new Set([...oldStockMap.keys(), ...newStockMap.keys()])];
+
+    try {
+      freshProducts = await getFreshProducts(allProductIds);
+    } catch (err) {
+      alert("❌ لم يتم حفظ التعديل: " + err.message);
+      return;
+    }
+
+    // نحسب المخزون النهائي مباشرة: الحالي + كمية الفاتورة القديمة - كمية الفاتورة الجديدة.
+    // بذلك لا يوجد خصم مزدوج أثناء تعديل الفاتورة.
+    const stockChanges = [];
+    for (const productId of allProductIds) {
+      const prod = freshProducts.get(productId);
+      const currentQty = Number(prod.quantity || 0);
+      const oldQty = Number(oldStockMap.get(productId) || 0);
+      const newQty = Number(newStockMap.get(productId) || 0);
+      const finalQty = currentQty + oldQty - newQty;
+
+      if (finalQty < 0) {
+        const availableForNewSale = currentQty + oldQty;
+        alert(`❌ لا يمكن حفظ الفاتورة. الصنف (${prod.name}) لا يملك كمية كافية. المتاح بعد إعادة كمية الفاتورة القديمة: ${availableForNewSale}، والمطلوب: ${newQty}.`);
+        return;
+      }
+
+      if (finalQty !== currentQty) {
+        stockChanges.push({ productId, oldQty: currentQty, newQty: finalQty });
+      }
+    }
+
+    const appliedStockChanges = [];
+    try {
+      // نخصم/نرجع الفرق فقط، مع شرط أن الكمية لم تتغير منذ آخر قراءة.
+      for (const change of stockChanges) {
+        await updateProductStockChecked(change.productId, change.oldQty, change.newQty);
+        appliedStockChanges.push(change);
+      }
+
+      const { error: invoiceUpdateError } = await sb
+        .from("invoices")
+        .update({
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          notes: notes,
+          total: total,
+          paid: paid,
+          remaining: remaining
+        })
+        .eq("id", editingInvoiceId);
+
+      if (invoiceUpdateError) throw new Error("تعذر تحديث بيانات الفاتورة: " + invoiceUpdateError.message);
+
+      const { error: deleteItemsError } = await sb
+        .from("invoice_items")
+        .delete()
+        .eq("invoice_id", editingInvoiceId);
+
+      if (deleteItemsError) throw new Error("تعذر استبدال بنود الفاتورة: " + deleteItemsError.message);
+
+      const editItemsPayload = itemsPayload.map(item => ({
+        ...item,
+        invoice_id: editingInvoiceId
+      }));
+
+      const { error: insertItemsError } = await sb
+        .from("invoice_items")
+        .insert(editItemsPayload);
+
+      if (insertItemsError) throw new Error("تعذر حفظ بنود الفاتورة: " + insertItemsError.message);
+
+      alert("✨ تم تعديل وحفظ الفاتورة بنجاح!");
+      editingInvoiceId = null;
+      clearInvoiceItemsOnly();
+      await loadProducts();
+      await refreshDashboard();
+
+      document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-page").forEach(s => s.classList.add("hidden"));
+      document.querySelector('[data-tab="invoices"]').classList.add("active");
+      document.getElementById("invoices").classList.remove("hidden");
+      loadInvoices();
+      return;
+    } catch (err) {
+      // محاولة إعادة المخزون كما كان إذا فشل أي جزء بعد تحديثه.
+      const rollbackErrors = await rollbackProductStock(appliedStockChanges);
+
+      // إذا تم حذف البنود القديمة ثم فشل إدخال البنود الجديدة، نحاول إعادتها.
+      try {
+        const { data: currentItems } = await sb
+          .from("invoice_items")
+          .select("id")
+          .eq("invoice_id", editingInvoiceId);
+
+        if (!currentItems || currentItems.length === 0) {
+          const restoreItems = (oldItems || []).map(item => ({
+            invoice_id: editingInvoiceId,
+            product_id: item.product_id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total: item.total
+          }));
+          if (restoreItems.length) await sb.from("invoice_items").insert(restoreItems);
+        }
+      } catch (_) {}
+
+      // إعادة بيانات الفاتورة القديمة إذا كان تحديثها قد تم قبل الفشل.
+      try {
+        await sb.from("invoices").update({
+          customer_name: oldInvoice.customer_name,
+          customer_phone: oldInvoice.customer_phone,
+          notes: oldInvoice.notes,
+          total: oldInvoice.total,
+          paid: oldInvoice.paid,
+          remaining: oldInvoice.remaining
+        }).eq("id", editingInvoiceId);
+      } catch (_) {}
+
+      if (rollbackErrors.length) {
+        alert("❌ فشل حفظ التعديل، وحصل خطأ أثناء استرجاع بعض كميات المخزون. راجع المخزون قبل أي عملية بيع جديدة.");
+      } else {
+        alert("❌ لم يتم حفظ التعديل. تم إلغاء التغييرات وإرجاع المخزون للحالة السابقة.\n\nالسبب: " + err.message);
+      }
+      return;
+    }
+  }
+
+  // =========================
+  // إنشاء فاتورة جديدة
+  // =========================
+  for (const [productId, requestedQty] of newStockMap.entries()) {
+    const prod = freshProducts.get(productId);
+    const availableQty = Number(prod.quantity || 0);
+    if (requestedQty > availableQty) {
+      alert(`❌ لا يمكن حفظ الفاتورة. الصنف (${prod.name}) المتاح منه الآن: ${availableQty}، والمطلوب: ${requestedQty}.`);
+      return;
+    }
   }
 
   const { data: invData, error: invError } = await sb.from("invoices").insert([{
@@ -2921,31 +3113,48 @@ async function saveInvoice() {
   }
 
   const invoiceId = invData.id;
-  const itemsPayload = invoiceItems.map(item => ({
-    invoice_id: invoiceId,
-    product_id: item.product_id,
-    product_name: item.name,
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    total: item.quantity * item.unit_price
+  const newItemsPayload = itemsPayload.map(item => ({
+    ...item,
+    invoice_id: invoiceId
   }));
+  const appliedStockChanges = [];
 
-  await sb.from("invoice_items").insert(itemsPayload);
+  try {
+    // خصم المخزون أولاً بشكل مشروط، بحيث لا نخصم إذا تغيرت الكمية في نفس اللحظة.
+    for (const [productId, requestedQty] of newStockMap.entries()) {
+      const prod = freshProducts.get(productId);
+      const oldQty = Number(prod.quantity || 0);
+      const newQty = oldQty - requestedQty;
+      await updateProductStockChecked(productId, oldQty, newQty);
+      appliedStockChanges.push({ productId, oldQty, newQty });
+    }
 
-  for (const item of invoiceItems) {
-    if (item.product_id) {
-      const prod = products.find(p => p.id === item.product_id);
-      if (prod) {
-        await sb.from("products").update({ quantity: Math.max(0, Number(prod.quantity || 0) - item.quantity) }).eq("id", prod.id);
-      }
+    const { error: itemsError } = await sb
+      .from("invoice_items")
+      .insert(newItemsPayload);
+
+    if (itemsError) throw new Error("تعذر حفظ بنود الفاتورة: " + itemsError.message);
+
+    alert("✨ تم تسجيل الفاتورة بنجاح!");
+    clearInvoiceItemsOnly();
+    await generateNewInvoiceCode();
+    await loadProducts();
+    await refreshDashboard();
+  } catch (err) {
+    // لو فشل أي جزء، نحاول إلغاء ما تم عمله حتى لا تظل فاتورة أو خصم ناقص.
+    const rollbackErrors = await rollbackProductStock(appliedStockChanges);
+
+    try {
+      await sb.from("invoice_items").delete().eq("invoice_id", invoiceId);
+      await sb.from("invoices").delete().eq("id", invoiceId);
+    } catch (_) {}
+
+    if (rollbackErrors.length) {
+      alert("❌ فشل حفظ الفاتورة، وحصل خطأ أثناء استرجاع بعض كميات المخزون. راجع المخزون قبل أي عملية بيع جديدة.");
+    } else {
+      alert("❌ لم يتم حفظ الفاتورة. تم إلغاء العملية وإرجاع المخزون للحالة السابقة.\n\nالسبب: " + err.message);
     }
   }
-
-  alert("✨ تم تسجيل الفاتورة بنجاح!");
-  clearInvoiceItemsOnly();
-  await generateNewInvoiceCode();
-  await loadProducts();
-  await refreshDashboard();
 }
 
 function clearInvoiceItemsOnly() {
@@ -4531,3 +4740,4 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
 </script>
 </body>
 </html>
+    
