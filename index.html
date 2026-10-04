@@ -741,6 +741,55 @@ html[data-theme="dark"] #themeToggle{background:#172033!important;color:#f8d67b!
 #themeToggle .theme-icon{font-size:17px;line-height:1}
 @media(max-width:900px){#themeToggle{height:40px;min-width:40px;padding:0 9px}.theme-label{display:none}}
 </style>
+
+<style id="alhamd-stage8-final-polish">
+/* ===== Alhamd Final Polish: mobile + accessibility + dark mode completion ===== */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+button,input,select,textarea{font-family:'Cairo',sans-serif}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(37,99,235,.25);outline-offset:2px}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px}
+.table-wrap table{min-width:680px}
+.toast-ah{position:fixed;left:20px;bottom:20px;z-index:99999;max-width:min(420px,calc(100vw - 40px));padding:12px 16px;border-radius:14px;background:#111827;color:#fff;box-shadow:0 14px 35px rgba(0,0,0,.22);font-size:13px;font-weight:700;opacity:0;transform:translateY(15px);pointer-events:none;transition:.25s}
+.toast-ah.show{opacity:1;transform:none}
+@media(max-width:900px){
+  .topbar{padding:10px 12px!important;gap:8px!important;flex-wrap:wrap}
+  .brand-top{min-width:0;flex:1}
+  .brand-top strong{font-size:14px!important}
+  .topbar-info{display:none!important}
+  .main-content{padding:12px!important;width:100%!important;overflow:hidden}
+  .card{border-radius:15px!important;padding:14px!important}
+  .grid,.grid.two,.grid.stats{grid-template-columns:1fr!important;gap:10px!important}
+  .form-grid,.invoice-grid{grid-template-columns:1fr!important}
+  .section-head,.ah-section-head{gap:8px;align-items:flex-start!important;flex-wrap:wrap}
+  .section-head>*,.ah-section-head>*{max-width:100%}
+  .actions,.toolbar,.customer-toolbar{flex-wrap:wrap!important}
+  .actions button,.toolbar button{flex:1 1 140px;min-height:42px}
+  .btn,.small,button{min-height:40px}
+  input,select,textarea{font-size:16px!important;min-height:42px}
+  .modal-card,.stock-modal-card{width:calc(100vw - 20px)!important;max-height:90vh!important;overflow:auto}
+  .sidebar{width:min(310px,88vw)!important;z-index:10000}
+  .mobile-menu-toggle{z-index:10001}
+  .invoice-shell,.invoice-items-pro{overflow-x:auto}
+}
+@media(max-width:520px){
+  .main-content{padding:8px!important}
+  .card{padding:11px!important}
+  h1{font-size:20px!important} h2{font-size:17px!important} h3{font-size:15px!important}
+  .stat.card b{font-size:19px!important}
+  .toast-ah{left:10px;bottom:10px;max-width:calc(100vw - 20px)}
+}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{background:#0f172a!important;color:#e5e7eb!important;border-color:#334155!important}
+html[data-theme="dark"] table{color:#e5e7eb!important}
+html[data-theme="dark"] th{background:#0b1730!important;border-color:#334155!important}
+html[data-theme="dark"] td{background:#111827!important;border-color:#263244!important}
+html[data-theme="dark"] .table-wrap{background:#111827!important}
+html[data-theme="dark"] .modal,.html[data-theme="dark"] .modal-overlay{background:rgba(2,6,23,.78)!important}
+html[data-theme="dark"] .toast-ah{background:#f8fafc;color:#0f172a}
+html[data-theme="dark"] a{color:#93c5fd}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+
 </head>
 <body>
 
@@ -1984,6 +2033,9 @@ function printProjectSummary(){
 
 
 
+
+
+
 </body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 }
@@ -2058,20 +2110,11 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 async function generateNewInvoiceCode() {
   if (editingInvoiceId) return;
-  let nextNumber = 1;
-  try {
-    const { data } = await sb.from('invoices').select('invoice_code').order('id', { ascending: false }).limit(1);
-    if (data && data.length > 0 && data[0].invoice_code) {
-      const lastCode = data[0].invoice_code;
-      const numPart = parseInt(lastCode.replace(/\D/g, ''));
-      if (!isNaN(numPart)) nextNumber = numPart + 1;
-      else nextNumber = Date.now().toString().slice(-4);
-    }
-  } catch (e) {
-    nextNumber = Math.floor(1000 + Math.random() * 9000);
-  }
-  const formattedNum = String(nextNumber).padStart(5, '0');
-  const newCode = `#${formattedNum}`;
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  const stamp = `${String(now.getFullYear()).slice(-2)}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const rnd = Math.floor(10 + Math.random() * 90);
+  const newCode = `#${stamp}${rnd}`;
   const codeInput = document.getElementById('invoiceCodeInput');
   if (codeInput) codeInput.value = newCode;
   return newCode;
@@ -3241,59 +3284,44 @@ async function loadInvoices() {
 }
 
 async function openReturnModal(invoiceId, invoiceCode) {
-  const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", invoiceId);
+  const { data: items, error: itemsError } = await sb.from("invoice_items").select("*").eq("invoice_id", invoiceId);
+  if (itemsError) return alert("❌ تعذر قراءة بنود الفاتورة: " + itemsError.message);
   if (!items || items.length === 0) return alert("لا توجد بنود مرتبطة بهذه الفاتورة.");
+  const itemsPromptList = items.map((it,i)=>`${i+1}. ${it.product_name} (الكمية: ${it.quantity})`).join("\n");
+  const chosen = prompt(`اختر رقم البند المراد إرجاعه من الفاتورة (${invoiceCode}):\n${itemsPromptList}`);
+  if (chosen === null) return;
+  const idx = parseInt(chosen,10)-1; if (!items[idx]) return alert("رقم البند غير صحيح.");
+  const target = items[idx];
+  const qtyRaw = prompt(`أدخل الكمية المراد إرجاعها لـ (${target.product_name}) - أقصى كمية: ${target.quantity}:`,"1");
+  if (qtyRaw === null) return;
+  const returnQty = Number(qtyRaw);
+  if (!Number.isInteger(returnQty) || returnQty<=0 || returnQty>Number(target.quantity)) return alert("الكمية المدخلة غير صحيحة.");
+  if (!confirm(`هل أنت متأكد من إرجاع عدد (${returnQty}) من (${target.product_name})؟`)) return;
 
-  let itemsPromptList = items.map((it, i) => `${i + 1}. ${it.product_name} (الكمية: ${it.quantity})`).join("\n");
-  const chosenIndexStr = prompt(`اختر رقم البند المراد إرجاعه من الفاتورة (${invoiceCode}):\n${itemsPromptList}`);
-  if (chosenIndexStr === null) return;
-
-  const idx = parseInt(chosenIndexStr) - 1;
-  if (isNaN(idx) || !items[idx]) return alert("رقم البند غير صحيح.");
-
-  const targetItem = items[idx];
-  const returnQtyStr = prompt(`أدخل الكمية المراد إرجاعها لـ (${targetItem.product_name}) - أقصى كمية: ${targetItem.quantity}:`, "1");
-  if (returnQtyStr === null) return;
-  const returnQty = parseInt(returnQtyStr);
-
-  if (isNaN(returnQty) || returnQty <= 0 || returnQty > targetItem.quantity) {
-    return alert("الكمية المدخلة غير صحيحة.");
+  if (target.product_id) {
+    const fresh = await getFreshProducts([target.product_id]);
+    const prod = fresh.get(target.product_id);
+    if (!prod) return alert("❌ الصنف المرتبط بالمرتجع غير موجود في المخزن.");
+    await updateProductStockChecked(target.product_id, Number(prod.quantity||0), Number(prod.quantity||0)+returnQty);
   }
 
-  if (!confirm(`هل أنت متأكد من إرجاع عدد (${returnQty}) من (${targetItem.product_name})؟`)) return;
-
-  if (targetItem.product_id) {
-    const prod = products.find(p => p.id === targetItem.product_id);
-    if (prod) {
-      const restoredQty = Number(prod.quantity || 0) + returnQty;
-      await sb.from("products").update({ quantity: restoredQty }).eq("id", prod.id);
+  try {
+    if (returnQty === Number(target.quantity)) {
+      const {error}=await sb.from("invoice_items").delete().eq("id",target.id); if(error) throw new Error(error.message);
+    } else {
+      const newQty=Number(target.quantity)-returnQty; const {error}=await sb.from("invoice_items").update({quantity:newQty,total:newQty*Number(target.unit_price||0)}).eq("id",target.id); if(error) throw new Error(error.message);
     }
+    const {data: remainingItems,error:riError}=await sb.from("invoice_items").select("total").eq("invoice_id",invoiceId); if(riError) throw new Error(riError.message);
+    const {data: invData,error:invError}=await sb.from("invoices").select("paid").eq("id",invoiceId).single(); if(invError) throw new Error(invError.message);
+    const newFinalTotal=Math.max(0,(remainingItems||[]).reduce((sum,x)=>sum+Number(x.total||0),0));
+    const {error:updateError}=await sb.from("invoices").update({total:newFinalTotal,remaining:Math.max(0,newFinalTotal-Number(invData.paid||0))}).eq("id",invoiceId);
+    if(updateError) throw new Error(updateError.message);
+  } catch(err) {
+    alert("❌ تم إرجاع الكمية للمخزن، لكن تعذر إكمال تحديث الفاتورة. راجع الفاتورة فورًا.\n\nالسبب: "+err.message);
+    return;
   }
-
-  if (returnQty === targetItem.quantity) {
-    await sb.from("invoice_items").delete().eq("id", targetItem.id);
-  } else {
-    const newQty = targetItem.quantity - returnQty;
-    const newTotalLine = newQty * Number(targetItem.unit_price);
-    await sb.from("invoice_items").update({ quantity: newQty, total: newTotalLine }).eq("id", targetItem.id);
-  }
-
-  const { data: remainingItems } = await sb.from("invoice_items").select("*").eq("invoice_id", invoiceId);
-  const newSubTotal = (remainingItems || []).reduce((sum, x) => sum + Number(x.total || 0), 0);
-  
-  const { data: invData } = await sb.from("invoices").select("*").eq("id", invoiceId).single();
-  const newFinalTotal = Math.max(0, newSubTotal);
-  const newRemaining = Math.max(0, newFinalTotal - Number(invData.paid || 0));
-
-  await sb.from("invoices").update({
-    total: newFinalTotal,
-    remaining: newRemaining
-  }).eq("id", invoiceId);
-
-  alert("✨ تم تنفيذ عملية المرتجع بنجاح وتحديث الفاتورة!");
-  loadInvoices();
-  loadProducts();
-  refreshDashboard();
+  alert("✨ تم تنفيذ المرتجع وتحديث الفاتورة والمخزن بنجاح!");
+  await loadInvoices(); await loadProducts(); await refreshDashboard();
 }
 
 async function calculateInvoiceNetProfit(invoiceId) {
@@ -3330,10 +3358,14 @@ async function collectDebt(invoiceId, currentRemaining, customerName) {
   const { data: inv } = await sb.from("invoices").select("*").eq("id", invoiceId).single();
   if (!inv) return;
 
-  const newPaid = Number(inv.paid || 0) + payAmount;
-  const newRemaining = Math.max(0, Number(inv.total || 0) - newPaid);
-
-  await sb.from("invoices").update({ paid: newPaid, remaining: newRemaining }).eq("id", invoiceId);
+  const currentPaid = Number(inv.paid || 0);
+  const invoiceTotal = Number(inv.total || 0);
+  const maxPayable = Math.max(0, invoiceTotal - currentPaid);
+  if (payAmount > maxPayable) return alert(`❌ المبلغ أكبر من المتبقي. أقصى مبلغ للتحصيل: ${money(maxPayable)} ج.م`);
+  const newPaid = currentPaid + payAmount;
+  const newRemaining = Math.max(0, invoiceTotal - newPaid);
+  const {error:updateError}=await sb.from("invoices").update({ paid:newPaid, remaining:newRemaining }).eq("id", invoiceId);
+  if(updateError) return alert("❌ تعذر تسجيل التحصيل: "+updateError.message);
 
   alert("✨ تم تحصيل وسداد المبلغ بنجاح وتحديث حساب العميل!");
   loadInvoices();
@@ -3376,28 +3408,38 @@ async function editInvoice(invoiceId) {
 }
 
 async function deleteInvoice(id) {
-  if (!confirm("هل أنت متأكد من إلغاء وحذف هذه الفاتورة؟ سيتم إرجاع كميات الأصناف المباعة إلى المخزن فوراً!")) return;
-  
-  const { data: items } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
-  if (items) {
-    for (const item of items) {
-      if (item.product_id) {
-        const prod = products.find(p => p.id === item.product_id);
-        if (prod) {
-          const restoredQty = Number(prod.quantity || 0) + Number(item.quantity || 0);
-          await sb.from("products").update({ quantity: restoredQty }).eq("id", prod.id);
-        }
-      }
+  if (!confirm("هل أنت متأكد من إلغاء وحذف هذه الفاتورة؟ سيتم إرجاع كميات الأصناف المباعة إلى المخزن.")) return;
+  const { data: items, error: itemsError } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
+  if (itemsError) return alert("❌ تعذر قراءة بنود الفاتورة: " + itemsError.message);
+
+  const productIds = [...new Set((items || []).filter(x => x.product_id).map(x => x.product_id))];
+  let fresh = new Map();
+  try { fresh = await getFreshProducts(productIds); } catch (e) { return alert("❌ تعذر تحديث المخزون: " + e.message); }
+  const changes = [];
+  try {
+    for (const item of (items || [])) {
+      if (!item.product_id) continue;
+      const prod = fresh.get(item.product_id);
+      if (!prod) throw new Error(`الصنف المرتبط بالفاتورة غير موجود: ${item.product_name || item.product_id}`);
+      const oldQty = Number(prod.quantity || 0);
+      const newQty = oldQty + Number(item.quantity || 0);
+      await updateProductStockChecked(item.product_id, oldQty, newQty);
+      changes.push({ productId: item.product_id, oldQty, newQty });
+      fresh.set(item.product_id, {...prod, quantity:newQty});
     }
+
+    const { error: delItemsError } = await sb.from("invoice_items").delete().eq("invoice_id", id);
+    if (delItemsError) throw new Error("تعذر حذف بنود الفاتورة: " + delItemsError.message);
+    const { error: delInvError } = await sb.from("invoices").delete().eq("id", id);
+    if (delInvError) throw new Error("تعذر حذف الفاتورة: " + delInvError.message);
+
+    alert("✨ تم إلغاء الفاتورة وإرجاع المخزون بنجاح!");
+    await loadInvoices(); await loadProducts(); await refreshDashboard();
+  } catch (err) {
+    const rollbackErrors = await rollbackProductStock(changes);
+    if (rollbackErrors.length) alert("❌ حدث خطأ، وتعذر استرجاع بعض كميات المخزون. راجع الأصناف المتأثرة قبل البيع.");
+    else alert("❌ لم يتم إكمال حذف الفاتورة وتمت محاولة إعادة المخزون.\n\nالسبب: " + err.message);
   }
-
-  await sb.from("invoice_items").delete().eq("invoice_id", id);
-  await sb.from("invoices").delete().eq("id", id);
-
-  alert("✨ تم إلغاء الفاتورة بنجاح وإرجاع الأصناف إلى المخزن!");
-  loadInvoices();
-  loadProducts();
-  refreshDashboard();
 }
 
 async function addExpense() {
@@ -3407,7 +3449,8 @@ async function addExpense() {
   const reason = reasonEl.value.trim();
   const amount = Number(amountEl.value);
   if (!reason || !amount) return alert("أدخل البيان والمبلغ");
-  await sb.from("expenses").insert([{ reason, amount }]);
+  const {error}=await sb.from("expenses").insert([{ reason, amount }]);
+  if(error) return alert("❌ تعذر تسجيل المصروف: "+error.message);
   reasonEl.value = "";
   amountEl.value = "";
   loadExpenses();
@@ -3432,7 +3475,8 @@ async function loadExpenses() {
 
 async function deleteExpense(id) {
   if (!confirm("هل أنت متأكد من حذف هذا المصروف؟")) return;
-  await sb.from("expenses").delete().eq("id", id);
+  const {error}=await sb.from("expenses").delete().eq("id", id);
+  if(error) return alert("❌ تعذر حذف المصروف: "+error.message);
   loadExpenses();
   refreshDashboard();
 }
@@ -3736,42 +3780,62 @@ function openNewPurchaseInvoiceModal() {
 }
 
 async function saveNewPurchaseInvoice(header, items) {
-  const { data: invData, error } = await sb.from("purchase_invoices").insert([header]).select().single();
-  if (error) return alert("خطأ في حفظ فاتورة المشتريات: " + error.message);
-
-  const purId = invData.id;
-  const itemsPayload = items.map(it => ({
-    purchase_invoice_id: purId,
-    product_name: it.name,
-    quantity: it.quantity,
-    buy_price: it.buy_price,
-    total: it.quantity * it.buy_price
-  }));
-
-  await sb.from("purchase_invoice_items").insert(itemsPayload);
-
+  if (!Array.isArray(items) || !items.length) return alert("❌ لا توجد أصناف في فاتورة الشراء.");
   for (const it of items) {
-    const existing = products.find(p => p.name.trim().toLowerCase() === it.name.trim().toLowerCase());
-    if (existing) {
-      const newQty = Number(existing.quantity || 0) + it.quantity;
-      await sb.from("products").update({ quantity: newQty, buy_price: it.buy_price, sell_price: it.sell_price }).eq("id", existing.id);
-    } else {
-      await sb.from("products").insert([{
-        code: "EL-" + Math.floor(1000 + Math.random() * 9000),
-        name: it.name,
-        unit: "قطعة",
-        buy_price: it.buy_price,
-        sell_price: it.sell_price,
-        quantity: it.quantity,
-        min_quantity: 2
-      }]);
+    if (!String(it.name || '').trim() || Number(it.quantity) <= 0 || Number(it.buy_price) < 0 || Number(it.sell_price) < 0) {
+      return alert("❌ راجع بيانات أصناف فاتورة الشراء: الاسم والكمية والأسعار يجب أن تكون صحيحة.");
     }
   }
 
+  const { data: invData, error: invError } = await sb.from("purchase_invoices").insert([header]).select().single();
+  if (invError) return alert("❌ خطأ في حفظ فاتورة المشتريات: " + invError.message);
+
+  const purId = invData.id;
+  const itemsPayload = items.map(it => ({
+    purchase_invoice_id: purId, product_name: it.name.trim(), quantity: Number(it.quantity),
+    buy_price: Number(it.buy_price), total: Number(it.quantity) * Number(it.buy_price)
+  }));
+
+  const { error: itemsError } = await sb.from("purchase_invoice_items").insert(itemsPayload);
+  if (itemsError) {
+    await sb.from("purchase_invoices").delete().eq("id", purId);
+    return alert("❌ لم يتم حفظ بنود فاتورة الشراء: " + itemsError.message);
+  }
+
+  const applied = [];
+  try {
+    for (const it of items) {
+      const name = it.name.trim().toLowerCase();
+      const existing = products.find(p => String(p.name || '').trim().toLowerCase() === name);
+      if (existing) {
+        const freshMap = await getFreshProducts([existing.id]);
+        const prod = freshMap.get(existing.id);
+        if (!prod) throw new Error(`الصنف غير موجود: ${it.name}`);
+        const oldQty = Number(prod.quantity || 0);
+        const newQty = oldQty + Number(it.quantity);
+        await updateProductStockChecked(existing.id, oldQty, newQty);
+        applied.push({productId:existing.id, oldQty, newQty});
+        const { error: priceError } = await sb.from("products").update({ buy_price:Number(it.buy_price), sell_price:Number(it.sell_price) }).eq("id", existing.id);
+        if (priceError) throw new Error("تعذر تحديث أسعار الصنف: " + priceError.message);
+      } else {
+        const { data: created, error: createError } = await sb.from("products").insert([{
+          code: "EL-" + Date.now().toString().slice(-8), name: it.name.trim(), unit: "قطعة",
+          buy_price:Number(it.buy_price), sell_price:Number(it.sell_price), quantity:Number(it.quantity), min_quantity:2
+        }]).select("id, quantity").single();
+        if (createError) throw new Error("تعذر إضافة الصنف الجديد: " + createError.message);
+        applied.push({productId:created.id, oldQty:0, newQty:Number(it.quantity), created:true});
+      }
+    }
+  } catch (err) {
+    await rollbackProductStock(applied.filter(x => !x.created));
+    for (const x of applied.filter(x => x.created)) await sb.from("products").delete().eq("id", x.productId);
+    await sb.from("purchase_invoice_items").delete().eq("purchase_invoice_id", purId);
+    await sb.from("purchase_invoices").delete().eq("id", purId);
+    return alert("❌ لم يتم إكمال فاتورة الشراء وتم التراجع عن العملية.\n\nالسبب: " + err.message);
+  }
+
   alert("✨ تم تسجيل فاتورة الشراء وتحديث المخزن والأسعار بنجاح!");
-  loadPurchaseInvoices();
-  loadProducts();
-  refreshDashboard();
+  await loadPurchaseInvoices(); await loadProducts(); await refreshDashboard();
 }
 
 async function refreshDashboard() {
@@ -4804,6 +4868,41 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   }
   applyTheme(getSavedTheme());
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',installThemeButton,{once:true}); else installThemeButton();
+})();
+</script>
+<script id="alhamd-stage8-final-js">
+(function(){
+  'use strict';
+  function toast(msg){
+    let el=document.getElementById('alhamdToast');
+    if(!el){el=document.createElement('div');el.id='alhamdToast';el.className='toast-ah';document.body.appendChild(el)}
+    el.textContent=msg;el.classList.add('show');clearTimeout(window.__ahToastTimer);window.__ahToastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+  }
+  window.alhamdToast=toast;
+  function enhance(){
+    document.querySelectorAll('table').forEach(t=>{if(t.parentElement && !t.parentElement.classList.contains('table-wrap')){const w=document.createElement('div');w.className='table-wrap';t.parentNode.insertBefore(w,t);w.appendChild(t)}});
+    const sidebar=document.getElementById('appSidebar');
+    document.querySelectorAll('.mobile-menu-toggle').forEach(b=>b.setAttribute('aria-label','فتح قائمة النظام'));
+    if(sidebar){sidebar.addEventListener('click',e=>{if(e.target.closest('.tab'))sidebar.classList.remove('mobile-open')})}
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(enhance,250));
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){
+      document.querySelectorAll('.modal,.modal-overlay,[role="dialog"]').forEach(x=>{if(x.style.display==='flex'||x.style.display==='block')x.style.display='none'});
+    }
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
+      const s=document.querySelector('#productSearch,#stockSearch,#invoiceSearch,input[placeholder*="بحث"]');
+      if(s){e.preventDefault();s.focus()}
+    }
+  });
+  // Defensive helpers for numeric inputs: never allow NaN/negative quantities to reach save handlers.
+  document.addEventListener('input',e=>{
+    const el=e.target;if(!el.matches('input[type="number"]'))return;
+    if(el.value!=='' && !Number.isFinite(Number(el.value))) el.value='0';
+    if(['invoiceQty','customServiceQty'].includes(el.id) && Number(el.value)<0) el.value='0';
+  });
+  window.addEventListener('online',()=>toast('✅ عاد الاتصال بالإنترنت'));
+  window.addEventListener('offline',()=>toast('⚠️ انقطع الاتصال بالإنترنت — لن يتم حفظ العمليات حتى يعود الاتصال'));
 })();
 </script>
 </body>
