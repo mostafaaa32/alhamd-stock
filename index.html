@@ -5268,137 +5268,405 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
   document.addEventListener('DOMContentLoaded',function(){setTimeout(nav,600)});window.addEventListener('load',function(){setTimeout(nav,900)});
 })();
 </script>
+
 <script id="alhamd-offline-first-v1">
 (function(){
-  'use strict';
-  const DB_NAME='alhamd-stock-offline-v1', DB_VER=1;
-  const STORES={data:'data', queue:'queue', meta:'meta'};
-  const UUID_TABLES=new Set(['products','construction_projects','workmanship_invoices','store_settings','user_profiles']);
-  const state={db:null, syncing:false, pending:0, ready:false};
-  const nativeFrom=sb.from.bind(sb);
+  "use strict";
 
-  function openDB(){return new Promise((resolve,reject)=>{
-    const req=indexedDB.open(DB_NAME,DB_VER);
-    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(STORES.data))db.createObjectStore(STORES.data,{keyPath:'key'});if(!db.objectStoreNames.contains(STORES.queue))db.createObjectStore(STORES.queue,{keyPath:'id',autoIncrement:true});if(!db.objectStoreNames.contains(STORES.meta))db.createObjectStore(STORES.meta,{keyPath:'key'});};
-    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
-  });}
-  function tx(store,mode,fn){return new Promise((resolve,reject)=>{const t=state.db.transaction(store,mode),s=t.objectStore(store);let out;try{out=fn(s)}catch(e){reject(e);return}t.oncomplete=()=>resolve(out);t.onerror=()=>reject(t.error);});}
-  function get(store,key){return tx(store,'readonly',s=>new Promise((res,rej)=>{const r=s.get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));}
-  function put(store,val){return tx(store,'readwrite',s=>s.put(val));}
-  function del(store,key){return tx(store,'readwrite',s=>s.delete(key));}
-  function allStore(store){return tx(store,'readonly',s=>new Promise((res,rej)=>{const r=s.getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)}));}
-  function uid(){return crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16)});}
-  async function nextTempId(table){
-    if(UUID_TABLES.has(table)) return uid();
-    const m=await get(STORES.meta,'temp:'+table);let n=m&&Number(m.value)||0;n--;await put(STORES.meta,{key:'temp:'+table,value:n});return n;
-  }
-  function status(text,kind){
-    let el=document.getElementById('ahOfflineStatus');if(!el){el=document.createElement('div');el.id='ahOfflineStatus';document.body.appendChild(el)}
-    el.dataset.kind=kind||'online';el.innerHTML='<span class="ah-os-dot"></span><span>'+text+'</span>';
-  }
-  function pendingCount(){return allStore(STORES.queue).then(q=>{state.pending=q.length;return q.length}).catch(()=>0)}
-  async function setStatus(){if(!navigator.onLine){status('أوفلاين — الحفظ محلي', 'offline');return}const n=await pendingCount();if(state.syncing)status('جاري المزامنة…','sync');else if(n)status('متصل — '+n+' عملية معلقة','pending');else status('تمت المزامنة','done')}
-  function serializeError(e){return {message:e&&e.message||String(e||'خطأ'),code:e&&e.code||null};}
+  const DB_NAME = "alhamd_offline_first_v1";
+  const DB_VERSION = 1;
+  const TABLES = "tables";
+  const QUEUE = "queue";
+  const META = "meta";
+  const WRITE_METHODS = new Set(["insert","update","upsert","delete"]);
+  const originalFrom = sb.from.bind(sb);
+  let syncTimer = null;
+  let syncRunning = false;
+  let onlineState = navigator.onLine !== false;
 
-  async function getTable(table){const rec=await get(STORES.data,'table:'+table);return rec&&Array.isArray(rec.rows)?rec.rows:[]}
-  async function saveTable(table,rows){await put(STORES.data,{key:'table:'+table,rows});}
-  function clone(x){return x==null?x:JSON.parse(JSON.stringify(x));}
-  function localFilter(rows,ops){let out=rows.slice();for(const op of ops){const [name,args]=op;if(name==='eq')out=out.filter(r=>String(r[args[0]])===String(args[1]));else if(name==='neq')out=out.filter(r=>String(r[args[0]])!==String(args[1]));else if(name==='gt')out=out.filter(r=>r[args[0]]>args[1]);else if(name==='gte')out=out.filter(r=>r[args[0]]>=args[1]);else if(name==='lt')out=out.filter(r=>r[args[0]]<args[1]);else if(name==='lte')out=out.filter(r=>r[args[0]]<=args[1]);else if(name==='in')out=out.filter(r=>args[1].map(String).includes(String(r[args[0]])));else if(name==='ilike'){const q=String(args[1]).replace(/%/g,'').toLowerCase();out=out.filter(r=>String(r[args[0]]??'').toLowerCase().includes(q));}else if(name==='not'){if(args[1]==='is'&&args[2]===null)out=out.filter(r=>r[args[0]]!=null);} }return out;}
-  function project(row,sel){if(!sel||sel==='*')return clone(row);const keys=sel.split(',').map(x=>x.trim()).filter(Boolean);const o={};for(const k of keys){const key=k.split(' ')[0];if(key in row)o[key]=row[key]}return o;}
-  async function localExecute(table,ops,mode,payload){
-    let rows=await getTable(table);let filters=[];let order=null,limit=null,selection='*',single=false,maybe=false;
-    for(const [name,args] of ops){if(name==='select')selection=args[0]||'*';else if(['eq','neq','gt','gte','lt','lte','in','ilike','not'].includes(name))filters.push([name,args]);else if(name==='order')order=args;else if(name==='limit')limit=args[0];else if(name==='single')single=true;else if(name==='maybeSingle')maybe=true;}
-    if(mode==='read'){let out=localFilter(rows,filters);if(order){const [k,opt]=order;out.sort((a,b)=>{const av=a[k],bv=b[k];if(av===bv)return 0;const z=av>bv?1:-1;return opt&&opt.ascending===false?-z:z})}if(limit!=null)out=out.slice(0,limit);out=out.map(r=>project(r,selection));if(single&&!out.length)return {data:null,error:{message:'JSON object requested, multiple (or no) rows returned'}};return {data:single?(out[0]||null):(maybe?(out[0]||null):out),error:null};}
-    if(mode==='insert'||mode==='upsert'){
-      const arr=Array.isArray(payload)?payload:[payload];const made=arr.map(x=>{const r=clone(x)||{};if(r.id==null)r.id=null;return r});
-      for(const r of made){if(r.id==null)r.id=await nextTempId(table);if(!r.created_at)r.created_at=new Date().toISOString();}
-      if(mode==='upsert'){for(const r of made){const i=rows.findIndex(x=>x.id!=null&&String(x.id)===String(r.id));if(i>=0)rows[i]={...rows[i],...r};else rows.push(r)}}else rows.push(...made);
-      await saveTable(table,rows);return {data:made.length===1?made[0]:made,error:null};
+  function uid(){
+    if (crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "tmp-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+  }
+  function tempId(table){
+    if (["invoices","invoice_items","purchase_invoices","purchase_invoice_items","purchase_items",
+         "expenses","cash_transactions","customer_payments","supplier_payments","stock_returns",
+         "stock_counts","workmanship_invoices"].includes(table)) return -Date.now() - Math.floor(Math.random()*1000);
+    return uid();
+  }
+  function clone(v){ return v == null ? v : JSON.parse(JSON.stringify(v)); }
+
+  function openDB(){
+    return new Promise((resolve,reject)=>{
+      const r=indexedDB.open(DB_NAME,DB_VERSION);
+      r.onupgradeneeded=()=>{
+        const db=r.result;
+        if(!db.objectStoreNames.contains(TABLES)) db.createObjectStore(TABLES,{keyPath:"table"});
+        if(!db.objectStoreNames.contains(QUEUE)) {
+          const st=db.createObjectStore(QUEUE,{keyPath:"qid",autoIncrement:true});
+          st.createIndex("status","status",{unique:false});
+        }
+        if(!db.objectStoreNames.contains(META)) db.createObjectStore(META,{keyPath:"key"});
+      };
+      r.onsuccess=()=>resolve(r.result);
+      r.onerror=()=>reject(r.error);
+    });
+  }
+  async function idb(store, mode, fn){
+    const db=await openDB();
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction(store,mode), st=tx.objectStore(store);
+      let out;
+      try { out=fn(st,tx); } catch(e){ reject(e); return; }
+      tx.oncomplete=()=>resolve(out);
+      tx.onerror=()=>reject(tx.error);
+      tx.onabort=()=>reject(tx.error);
+    });
+  }
+  async function getTable(table){
+    const x=await idb(TABLES,"readonly",st=>st.get(table));
+    return x && Array.isArray(x.rows) ? x.rows : [];
+  }
+  async function saveTable(table, rows){
+    await idb(TABLES,"readwrite",st=>st.put({table,rows:clone(rows),updated_at:new Date().toISOString()}));
+  }
+  async function getMeta(key){
+    const x=await idb(META,"readonly",st=>st.get(key));
+    return x ? x.value : null;
+  }
+  async function setMeta(key,value){
+    await idb(META,"readwrite",st=>st.put({key,value}));
+  }
+  async function addQueue(op){
+    await idb(QUEUE,"readwrite",st=>st.add({...clone(op),status:"pending",created_at:new Date().toISOString(),tries:0}));
+  }
+  async function allQueue(){
+    const db=await openDB();
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction(QUEUE,"readonly"), st=tx.objectStore(QUEUE), out=[];
+      const req=st.openCursor();
+      req.onsuccess=()=>{const c=req.result;if(c){out.push(c.value);c.continue()}else resolve(out)};
+      req.onerror=()=>reject(req.error);
+    });
+  }
+  async function updateQueue(item){
+    await idb(QUEUE,"readwrite",st=>st.put(item));
+  }
+  async function removeQueue(qid){
+    await idb(QUEUE,"readwrite",st=>st.delete(qid));
+  }
+
+  function setStatus(state, text){
+    onlineState = state !== "offline";
+    let el=document.getElementById("ahOfflineStatus");
+    if(!el){
+      const host=document.querySelector(".topbar") || document.querySelector(".topbar-info");
+      if(!host)return;
+      el=document.createElement("span");
+      el.id="ahOfflineStatus";
+      el.className="ah-offline-status";
+      host.appendChild(el);
     }
-    if(mode==='update'){const matched=localFilter(rows,filters);for(const r of matched){Object.assign(r,clone(payload));}await saveTable(table,rows);return {data:matched,error:null};}
-    if(mode==='delete'){const ids=new Set(localFilter(rows,filters).map(r=>String(r.id)));rows=rows.filter(r=>!ids.has(String(r.id)));await saveTable(table,rows);return {data:null,error:null};}
-  }
-  async function cacheResult(table,data){if(!Array.isArray(data))return;const rows=await getTable(table);const map=new Map(rows.map(r=>[String(r.id),r]));for(const r of data){if(r&&r.id!=null)map.set(String(r.id),clone(r));}await saveTable(table,[...map.values()]);}
-  async function applyLocalWrite(table,mode,payload,ops){return localExecute(table,ops,mode,payload)}
-  async function enqueue(table,mode,payload,ops){await put(STORES.queue,{table,mode,payload:clone(payload),ops:clone(ops),created_at:new Date().toISOString(),attempts:0,last_error:null});await pendingCount();await setStatus();}
-
-  function wrapBuilder(table,base,ops){
-    const terminal=async()=>{
-      const write=ops.find(x=>['insert','update','upsert','delete'].includes(x[0]));
-      if(!write){
-        if(!navigator.onLine){return localExecute(table,ops,'read',null)}
-        try{const result=await base; if(result&&result.data)await cacheResult(table,result.data); return result}catch(e){if(!navigator.onLine)return localExecute(table,ops,'read',null);throw e}
-      }
-      const mode=write[0], payload=mode==='delete'?null:write[1];
-      if(!navigator.onLine){return enqueueAndLocal(table,mode,payload,ops)}
-      try{const result=await base; if(result&&result.error)throw result.error; if(result&&result.data)await cacheResult(table,result.data);return result}catch(e){
-        if(!navigator.onLine || /fetch|network|failed to fetch|load failed/i.test(String(e&&e.message))){return enqueueAndLocal(table,mode,payload,ops)}throw e;
-      }
+    el.dataset.state=state;
+    const labels={
+      online:"🟢 متصل",
+      offline:"🔴 أوفلاين",
+      syncing:"🔄 جاري المزامنة",
+      synced:"✅ تمت المزامنة",
+      pending:"🟡 محفوظ محليًا"
     };
-    const proxy=new Proxy(base,{get(target,prop){
-      if(prop==='then')return (resolve,reject)=>terminal().then(resolve,reject);
-      if(prop==='catch')return (reject)=>terminal().catch(reject);
-      if(prop==='finally')return (fn)=>terminal().finally(fn);
-      if(['insert','update','upsert','delete'].includes(prop))return (...args)=>{const next=target[prop](...args);return wrapBuilder(table,next,ops.concat([[prop,args[0],args[1]]]))};
-      if(typeof target[prop]==='function')return (...args)=>{const next=target[prop](...args);return wrapBuilder(table,next,ops.concat([[prop,args]]))};
-      return target[prop];
-    }});return proxy;
+    el.textContent=labels[state] || text || state;
+    if(text) el.title=text;
   }
-  async function enqueueAndLocal(table,mode,payload,ops){
-    let p=clone(payload);
-    if((mode==='insert'||mode==='upsert')){const arr=Array.isArray(p)?p:[p];for(const r of arr){if(r.id==null)r.id=await nextTempId(table);if(!r.created_at)r.created_at=new Date().toISOString();}p=Array.isArray(p)?arr:arr[0]}
-    const local=await applyLocalWrite(table,mode,p,ops);
-    await put(STORES.queue,{table,mode,payload:p,ops:clone(ops),created_at:new Date().toISOString(),attempts:0,last_error:null});
-    await pendingCount();setStatus();
-    return local;
+  async function refreshStatus(){
+    const q=await allQueue();
+    if(!navigator.onLine){setStatus("offline");return}
+    if(q.some(x=>x.status==="pending"||x.status==="error")) {setStatus("pending");return}
+    const last=await getMeta("lastSync");
+    setStatus(last ? "synced" : "online");
   }
 
-  async function syncQueue(){if(state.syncing||!navigator.onLine||!state.db)return;state.syncing=true;await setStatus();
-    try{let q=await allStore(STORES.queue);for(const item of q.sort((a,b)=>a.id-b.id)){
-      if(!navigator.onLine)break;let result;
-      try{
-        const payload=item.mode==='delete'?undefined:item.payload;
-        let b=nativeFrom(item.table);
-        if(item.mode==='insert')b=b.insert(payload).select();
-        else if(item.mode==='upsert'){const w=(item.ops||[]).find(x=>x[0]==='upsert');b=b.upsert(payload,w&&w[2]||undefined).select();}
-        else if(item.mode==='update'){
-          b=b.update(payload);for(const op of item.ops||[])if(['eq','neq','gt','gte','lt','lte','in','ilike','not'].includes(op[0]))b=b[op[0]](...op[1]);b=b.select();
-        } else if(item.mode==='delete'){
-          b=b.delete();for(const op of item.ops||[])if(['eq','neq','gt','gte','lt','lte','in','ilike','not'].includes(op[0]))b=b[op[0]](...op[1]);
-        }
-        result=await b;if(result.error)throw result.error;
-        const returned=Array.isArray(result.data)?result.data:(result.data?[result.data]:[]);
-        if(item.mode==='insert'||item.mode==='upsert'){
-          const sent=Array.isArray(payload)?payload:[payload];
-          for(let i=0;i<Math.min(sent.length,returned.length);i++){const old=sent[i].id,newId=returned[i].id;if(old!=null&&newId!=null&&String(old)!==String(newId))await remapId(item.table,old,newId);}
-        }
-        if(returned.length)await cacheResult(item.table,returned);
-        await del(STORES.queue,item.id);
-      }catch(e){item.attempts=(item.attempts||0)+1;item.last_error=serializeError(e);await put(STORES.queue,item);break;}
-    }}finally{state.syncing=false;await pendingCount();await setStatus();}
+  function keyOf(row){
+    return row && row.id != null ? String(row.id) : null;
   }
-  async function remapId(table,oldId,newId){
-    const tables=await allStore(STORES.data);for(const rec of tables){let changed=false;const rows=(rec.rows||[]).map(r=>{const n={...r};for(const k of Object.keys(n)){if(String(n[k])===String(oldId)&&(['id',table.slice(0,-1)+'_id','invoice_id','project_id','product_id'].some(x=>k===x))) {n[k]=newId;changed=true}}return n});if(changed)await saveTable(rec.key.replace(/^table:/,''),rows)}
-    const q=await allStore(STORES.queue);for(const it of q){let j=JSON.stringify(it);if(j.includes(String(oldId))){j=j.split(String(oldId)).join(String(newId));await put(STORES.queue,JSON.parse(j))}}
+  function mergeRows(base, incoming){
+    const map=new Map(base.map(x=>[keyOf(x),x]).filter(x=>x[0]!=null));
+    incoming.forEach(x=>{
+      const k=keyOf(x);
+      if(k!=null) map.set(k,x); else base.push(x);
+    });
+    return Array.from(map.values());
+  }
+  async function cacheResult(table, data){
+    if(!Array.isArray(data)) return;
+    const existing=await getTable(table);
+    await saveTable(table, mergeRows(existing,data));
   }
 
-  sb.from=function(table){const base=nativeFrom(table);return wrapBuilder(table,base,[])};
-  async function init(){try{state.db=await openDB();state.ready=true;await setStatus();if(navigator.onLine)syncQueue();}catch(e){console.warn('Offline First init failed',e)}
-    window.addEventListener('online',()=>{setStatus();setTimeout(syncQueue,250)});
-    window.addEventListener('offline',()=>setStatus());
-    setInterval(()=>{if(navigator.onLine)syncQueue()},15000);
-    window.addEventListener('beforeunload',()=>{});
-    if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
+  function extractFilters(calls){
+    return calls.filter(c=>["eq","neq","in","is","gt","gte","lt","lte"].includes(c.name));
   }
-  init();
+  function matchRow(row, filters){
+    return filters.every(f=>{
+      const a=row[f.args[0]], b=f.args[1];
+      switch(f.name){
+        case "eq": return String(a)==String(b);
+        case "neq": return String(a)!=String(b);
+        case "in": return Array.isArray(b) && b.map(String).includes(String(a));
+        case "is": return b===null ? a===null : String(a)==String(b);
+        case "gt": return a>b;
+        case "gte": return a>=b;
+        case "lt": return a<b;
+        case "lte": return a<=b;
+        default:return true;
+      }
+    });
+  }
+  function applyReadOps(rows,calls){
+    let out=rows.filter(r=>matchRow(r,extractFilters(calls)));
+    const ord=calls.find(c=>c.name==="order");
+    if(ord){
+      const col=ord.args[0], asc=!(ord.args[1]&&ord.args[1].ascending===false);
+      out.sort((a,b)=>{
+        if(a[col]==b[col])return 0;
+        return (a[col]>b[col]?1:-1)*(asc?1:-1);
+      });
+    }
+    const lim=calls.find(c=>c.name==="limit");
+    if(lim) out=out.slice(0,Number(lim.args[0])||0);
+    return out;
+  }
+
+  function normalizePayload(payload){
+    if(Array.isArray(payload)) return payload.map(clone);
+    return payload ? [clone(payload)] : [];
+  }
+  async function applyLocalMutation(table, method, payload, calls, options){
+    let rows=await getTable(table);
+    const filters=extractFilters(calls);
+    const matches=r=>matchRow(r,filters);
+    if(method==="insert"){
+      const arr=normalizePayload(payload).map(r=>{
+        if(r.id==null) r.id=tempId(table);
+        if(r.created_at==null) r.created_at=new Date().toISOString();
+        return r;
+      });
+      rows=rows.concat(arr);
+      await saveTable(table,rows);
+      return arr;
+    }
+    if(method==="upsert"){
+      const arr=normalizePayload(payload).map(r=>{
+        if(r.id==null) r.id=tempId(table);
+        if(r.created_at==null) r.created_at=new Date().toISOString();
+        return r;
+      });
+      const conflict=(options&&options.onConflict)||"id";
+      for(const r of arr){
+        const idx=rows.findIndex(x=>String(x[conflict])===String(r[conflict]));
+        if(idx>=0) rows[idx]={...rows[idx],...r}; else rows.push(r);
+      }
+      await saveTable(table,rows); return arr;
+    }
+    if(method==="update"){
+      const changes=payload||{};
+      let changed=[];
+      rows=rows.map(r=>{if(matches(r)){const n={...r,...clone(changes)};changed.push(n);return n}return r});
+      await saveTable(table,rows); return changed;
+    }
+    if(method==="delete"){
+      const deleted=rows.filter(matches);
+      rows=rows.filter(r=>!matches(r));
+      await saveTable(table,rows); return deleted;
+    }
+  }
+
+  function rewriteIds(value,map){
+    if(value==null)return value;
+    if(typeof value==="string"||typeof value==="number"){
+      const k=String(value); return Object.prototype.hasOwnProperty.call(map,k)?map[k]:value;
+    }
+    if(Array.isArray(value)) return value.map(v=>rewriteIds(v,map));
+    if(typeof value==="object"){
+      const o={}; for(const k in value)o[k]=rewriteIds(value[k],map); return o;
+    }
+    return value;
+  }
+
+  async function executeQueueItem(item){
+    const map=await getMeta("idMap")||{};
+    const op=rewriteIds(item,map);
+    let builder=originalFrom(op.table);
+    if(op.method==="insert") builder=builder.insert(op.payload);
+    else if(op.method==="upsert") builder=builder.upsert(op.payload,op.options||{});
+    else if(op.method==="update") builder=builder.update(op.payload);
+    else if(op.method==="delete") builder=builder.delete();
+    for(const c of (op.calls||[])){
+      if(typeof builder[c.name]==="function") builder=builder[c.name](...c.args);
+    }
+    const result=await builder;
+    if(result && result.error) throw new Error(result.error.message||"فشل المزامنة");
+    if(op.method==="insert" || op.method==="upsert"){
+      const sent=normalizePayload(op.payload), got=Array.isArray(result.data)?result.data:(result.data?[result.data]:[]);
+      for(let i=0;i<sent.length;i++){
+        const old=sent[i]&&sent[i].id, fresh=got[i]&&got[i].id;
+        if(old!=null && fresh!=null && String(old)!==String(fresh)) map[String(old)]=fresh;
+      }
+      await setMeta("idMap",map);
+    }
+    return result;
+  }
+
+  async function syncNow(){
+    if(syncRunning || !navigator.onLine)return;
+    const queue=await allQueue();
+    if(!queue.length){await setMeta("lastSync",new Date().toISOString());await refreshStatus();return}
+    syncRunning=true; setStatus("syncing");
+    try{
+      const ordered=queue.filter(x=>x.status!=="done").sort((a,b)=>(a.qid||0)-(b.qid||0));
+      for(const item of ordered){
+        item.status="syncing"; item.tries=(item.tries||0)+1; await updateQueue(item);
+        try{
+          await executeQueueItem(item);
+          await removeQueue(item.qid);
+        }catch(e){
+          item.status="error"; item.last_error=e.message||String(e); await updateQueue(item);
+          break;
+        }
+      }
+      const left=await allQueue();
+      if(!left.length){await setMeta("lastSync",new Date().toISOString());setStatus("synced")}
+      else setStatus("pending");
+    }finally{syncRunning=false}
+  }
+
+  function scheduleSync(){
+    clearTimeout(syncTimer);
+    syncTimer=setTimeout(()=>syncNow().catch(()=>refreshStatus()),250);
+  }
+
+  function wrapBuilder(table, builder, calls){
+    const state={base:builder,calls:calls||[],write:null};
+    const proxy=new Proxy({},{
+      get(_target,prop){
+        if(prop==="then"){
+          return (resolve,reject)=>{
+            (async()=>{
+              if(state.write && !navigator.onLine){
+                const local=await applyLocalMutation(table,state.write.method,state.write.payload,state.calls,state.write.options);
+                await addQueue({table,method:state.write.method,payload:state.write.payload,calls:state.calls,options:state.write.options});
+                setStatus("pending");
+                const wantsSingle=state.calls.some(c=>c.name==="single"||c.name==="maybeSingle");
+                return {data:wantsSingle?(local[0]||null):local,error:null};
+              }
+              try{
+                const result=await state.base;
+                if(result && !result.error && result.data!=null){
+                  if(Array.isArray(result.data)) await cacheResult(table,result.data);
+                  else if(result.data) await cacheResult(table,[result.data]);
+                }
+                return result;
+              }catch(e){
+                if(state.write){
+                  const local=await applyLocalMutation(table,state.write.method,state.write.payload,state.calls,state.write.options);
+                  await addQueue({table,method:state.write.method,payload:state.write.payload,calls:state.calls,options:state.write.options});
+                  setStatus("pending");
+                  const wantsSingle=state.calls.some(c=>c.name==="single"||c.name==="maybeSingle");
+                  return {data:wantsSingle?(local[0]||null):local,error:null};
+                }
+                const cached=applyReadOps(await getTable(table),state.calls);
+                if(cached.length || !navigator.onLine) return {data:cached,error:null};
+                throw e;
+              }
+            })().then(resolve,reject);
+          };
+        }
+        if(prop==="catch") return fn=>Promise.resolve(proxy).catch(fn);
+        if(prop==="finally") return fn=>Promise.resolve(proxy).finally(fn);
+
+        if(WRITE_METHODS.has(prop)){
+          return (...args)=>{
+            state.write={method:prop,payload:args[0],options:args[1]};
+            state.base=state.base[prop](...args);
+            return proxy;
+          };
+        }
+        if(typeof state.base[prop]==="function"){
+          return (...args)=>{
+            const next=state.base[prop](...args);
+            state.calls.push({name:prop,args:clone(args)});
+            state.base=next;
+            return proxy;
+          };
+        }
+        return state.base[prop];
+      }
+    });
+    return proxy;
+  }
+
+  sb.from=function(table){
+    return wrapBuilder(table,originalFrom(table),[]);
+  };
+
+  window.AlhamdOffline={
+    sync:syncNow,
+    pending:async()=> (await allQueue()).length,
+    clearCache:async()=>{await idb(TABLES,"readwrite",st=>{const r=st.clear();return r})},
+    status:refreshStatus
+  };
+
+  // Offline reads: if no connection, return a local Supabase-like result.
+  const originalWrappedFrom=sb.from;
+  sb.from=function(table){
+    if(navigator.onLine) return originalWrappedFrom(table);
+    const state={calls:[]};
+    const p=new Proxy({},{
+      get(_t,prop){
+        if(prop==="then"){
+          return (resolve,reject)=>{
+            (async()=>{
+              const rows=applyReadOps(await getTable(table),state.calls);
+              return {data:rows,error:null};
+            })().then(resolve,reject);
+          };
+        }
+        if(WRITE_METHODS.has(prop)) return (...args)=>{
+          const fake=wrapBuilder(table,originalFrom(table),state.calls);
+          return fake[prop](...args);
+        };
+        if(typeof originalFrom(table)[prop]==="function") return (...args)=>{state.calls.push({name:prop,args:clone(args)});return p};
+        return undefined;
+      }
+    });
+    return p;
+  };
+
+  // Connection/status UI
+  window.addEventListener("online",()=>{onlineState=true;setStatus("online");scheduleSync()});
+  window.addEventListener("offline",()=>{onlineState=false;setStatus("offline")});
+  document.addEventListener("DOMContentLoaded",()=>{
+    setTimeout(async()=>{
+      await refreshStatus();
+      if(navigator.onLine) scheduleSync();
+      // Register the service worker that keeps the app shell available offline.
+      if("serviceWorker" in navigator){
+        navigator.serviceWorker.register("./sw.js").catch(()=>{});
+      }
+    },300);
+  });
+  setInterval(()=>{if(navigator.onLine) syncNow().catch(()=>{})},15000);
 })();
 </script>
-<style id="alhamd-offline-first-style">
-#ahOfflineStatus{position:fixed;top:10px;left:14px;z-index:10001;display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 4px 14px rgba(15,23,42,.12);font:800 11px Cairo,sans-serif;color:#334155;direction:rtl}
-#ahOfflineStatus .ah-os-dot{width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block}
-#ahOfflineStatus[data-kind="offline"] .ah-os-dot{background:#dc2626}#ahOfflineStatus[data-kind="sync"] .ah-os-dot{background:#d4a84f;animation:ahPulse 1s infinite}#ahOfflineStatus[data-kind="pending"] .ah-os-dot{background:#d4a84f}#ahOfflineStatus[data-kind="done"] .ah-os-dot{background:#16a34a}
-@keyframes ahPulse{50%{opacity:.3;transform:scale(.7)}}
-@media(max-width:600px){#ahOfflineStatus{top:auto;bottom:10px;left:10px;font-size:10px}}
+
+<style id="alhamd-offline-status-css">
+.ah-offline-status{display:inline-flex!important;align-items:center!important;gap:5px!important;padding:7px 11px!important;border-radius:999px!important;border:1px solid #e5e7eb!important;background:#fff!important;color:#334155!important;font-size:11px!important;font-weight:800!important;white-space:nowrap!important}
+.ah-offline-status[data-state="offline"]{background:#fef2f2!important;color:#b91c1c!important;border-color:#fecaca!important}
+.ah-offline-status[data-state="pending"]{background:#fffbeb!important;color:#a16207!important;border-color:#fde68a!important}
+.ah-offline-status[data-state="syncing"]{background:#eff6ff!important;color:#1d4ed8!important;border-color:#bfdbfe!important}
+.ah-offline-status[data-state="synced"]{background:#f0fdf4!important;color:#15803d!important;border-color:#bbf7d0!important}
+@media(max-width:900px){.ah-offline-status{font-size:10px!important;padding:6px 8px!important}}
+@media(max-width:560px){.ah-offline-status{font-size:9px!important;padding:5px 7px!important}}
 </style>
 </body>
 </html>
