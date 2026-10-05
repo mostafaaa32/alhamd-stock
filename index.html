@@ -5269,7 +5269,7 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
 })();
 </script>
 
-<script id="alhamd-offline-first-v1">
+<script id="alhamd-offline-first-v2">
 (function(){
   "use strict";
 
@@ -5616,31 +5616,10 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
     status:refreshStatus
   };
 
-  // Offline reads: if no connection, return a local Supabase-like result.
-  const originalWrappedFrom=sb.from;
-  sb.from=function(table){
-    if(navigator.onLine) return originalWrappedFrom(table);
-    const state={calls:[]};
-    const p=new Proxy({},{
-      get(_t,prop){
-        if(prop==="then"){
-          return (resolve,reject)=>{
-            (async()=>{
-              const rows=applyReadOps(await getTable(table),state.calls);
-              return {data:rows,error:null};
-            })().then(resolve,reject);
-          };
-        }
-        if(WRITE_METHODS.has(prop)) return (...args)=>{
-          const fake=wrapBuilder(table,originalFrom(table),state.calls);
-          return fake[prop](...args);
-        };
-        if(typeof originalFrom(table)[prop]==="function") return (...args)=>{state.calls.push({name:prop,args:clone(args)});return p};
-        return undefined;
-      }
-    });
-    return p;
-  };
+  // IMPORTANT: Do not create a second offline-only proxy here.
+  // The main wrapBuilder already supports both online and offline reads/writes,
+  // and keeping one proxy preserves chained Supabase methods such as:
+  // .select().eq().in().order().single()
 
   // Connection/status UI
   window.addEventListener("online",()=>{onlineState=true;setStatus("online");scheduleSync()});
