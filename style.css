@@ -1968,3 +1968,25 @@ main > *:nth-child(4) { animation-delay: .12s; }
     scroll-behavior: auto !important;
   }
 }
+
+
+/* ===== Offline First status ===== */
+.ah-offline-status{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  padding:7px 11px!important;
+  border-radius:999px!important;
+  border:1px solid #e5e7eb!important;
+  background:#fff!important;
+  color:#334155!important;
+  font-size:11px!important;
+  font-weight:800!important;
+  white-space:nowrap!important;
+}
+.ah-offline-status[data-state="offline"]{background:#fef2f2!important;color:#b91c1c!important;border-color:#fecaca!important}
+.ah-offline-status[data-state="pending"]{background:#fffbeb!important;color:#a16207!important;border-color:#fde68a!important}
+.ah-offline-status[data-state="syncing"]{background:#eff6ff!important;color:#1d4ed8!important;border-color:#bfdbfe!important}
+.ah-offline-status[data-state="synced"]{background:#f0fdf4!important;color:#15803d!important;border-color:#bbf7d0!important}
+@media(max-width:900px){.ah-offline-status{font-size:10px!important;padding:6px 8px!important}}
+@media(max-width:560px){.ah-offline-status{font-size:9px!important;padding:5px 7px!important}}
