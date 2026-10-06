@@ -5799,26 +5799,46 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
 
       if(op.table === "invoice_items" && op.method === "insert" && isConflict){
         const rows = normalizePayload(op.payload);
-        let verified = false;
+        let verifiedCount = 0;
 
         for(const row of rows){
-          if(row && row.invoice_id != null && row.product_id != null){
+          if(!row) continue;
+
+          // 1) Strongest check: the exact item id already exists.
+          if(row.id != null){
             try{
-              const check = await originalFrom("invoice_items")
+              const byId = await originalFrom("invoice_items")
+                .select("id")
+                .eq("id", row.id)
+                .limit(1);
+
+              if(!byId.error && Array.isArray(byId.data) && byId.data.length){
+                verifiedCount++;
+                continue;
+              }
+            }catch(_){}
+          }
+
+          // 2) Fallback: invoice + product pair already exists.
+          if(row.invoice_id != null && row.product_id != null){
+            try{
+              const byPair = await originalFrom("invoice_items")
                 .select("id,invoice_id,product_id")
                 .eq("invoice_id", row.invoice_id)
                 .eq("product_id", row.product_id)
                 .limit(1);
 
-              if(!check.error && Array.isArray(check.data) && check.data.length){
-                verified = true;
+              if(!byPair.error && Array.isArray(byPair.data) && byPair.data.length){
+                verifiedCount++;
                 continue;
               }
             }catch(_){}
           }
         }
 
-        if(verified){
+        // If every row that was rejected with 409 is already present,
+        // the original POST succeeded and only its response was lost.
+        if(rows.length && verifiedCount === rows.length){
           return {data:[], error:null, alreadySynced:true};
         }
       }
@@ -5850,7 +5870,7 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
           const syncResult = await executeQueueItem(item);
           await removeQueue(item.qid);
           if(syncResult && syncResult.alreadySynced){
-            console.info("تم تأكيد وجود بند الفاتورة على الخادم، وتم حذف المحاولة المكررة من قائمة المزامنة.");
+            console.info("✅ تم تأكيد أن بند الفاتورة موجود بالفعل على Supabase. تم حذف المحاولة المكررة من قائمة المزامنة.");
           }
         }catch(e){
           item.status="error"; item.last_error=e.message||String(e); await updateQueue(item);
