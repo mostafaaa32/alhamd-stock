@@ -3296,7 +3296,59 @@ async function getFreshProducts(productIds) {
   const ids = [...new Set(productIds)].filter(Boolean);
   if (!ids.length) return new Map();
 
-  // 1) لو الإنترنت موجود: نتحقق من Supabase أولاً.
+  // أولاً: لو المتصفح Offline فعلاً، لا نلمس Supabase نهائياً.
+  // نستخدم نسخة المنتجات الموجودة في الذاكرة أو LocalStorage أو IndexedDB.
+  const readLocalProducts = async () => {
+    let rows = [];
+
+    try {
+      if (typeof products !== "undefined" && Array.isArray(products) && products.length) {
+        rows = products;
+      }
+    } catch (_) {}
+
+    if (!rows.length) {
+      try {
+        const raw = localStorage.getItem("alhamd_products_cache_v1");
+        const parsed = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(parsed)) rows = parsed;
+      } catch (_) {}
+    }
+
+    if (!rows.length) {
+      try {
+        if (window.AlhamdOffline && window.AlhamdOffline.getTable) {
+          const cached = await window.AlhamdOffline.getTable("products");
+          if (Array.isArray(cached)) rows = cached;
+        }
+      } catch (_) {}
+    }
+
+    const map = new Map(
+      (rows || [])
+        .filter(p => ids.some(id => String(id) === String(p.id)))
+        .map(p => [String(p.id), p])
+    );
+
+    if (ids.every(id => map.has(String(id)))) {
+      return new Map(ids.map(id => [id, map.get(String(id))]));
+    }
+
+    return null;
+  };
+
+  // DevTools Offline / browser Offline: local only.
+  if (!navigator.onLine) {
+    const local = await readLocalProducts();
+    if (local) return local;
+
+    throw new Error(
+      "لم أجد بيانات المخزون المحلية لهذا الصنف. " +
+      "اتصل بالإنترنت مرة واحدة وافتح المخزن والأصناف ثم أعد المحاولة Offline."
+    );
+  }
+
+  // Online: server is authoritative.
   try {
     const { data, error } = await sb
       .from("products")
@@ -3318,53 +3370,15 @@ async function getFreshProducts(productIds) {
     console.warn("تعذر الوصول لمخزون Supabase، سيتم استخدام المخزون المحلي:", e);
   }
 
-  // 2) Offline: استخدم مصفوفة products الفعلية الموجودة في التطبيق.
-  // مهم: المتغير الرئيسي في النظام اسمه products وليس productsList.
-  let localProducts = [];
-  try {
-    if (typeof products !== "undefined" && Array.isArray(products)) {
-      localProducts = products;
-    }
-  } catch (e) {}
+  // Network may have dropped without navigator.onLine changing yet.
+  const local = await readLocalProducts();
+  if (local) return local;
 
-  const localMap = new Map(
-    localProducts
-      .filter(p => ids.some(id => String(id) === String(p.id)))
-      .map(p => [String(p.id), p])
-  );
-
-  if (ids.every(id => localMap.has(String(id)))) {
-    return new Map(ids.map(id => [id, localMap.get(String(id))]));
-  }
-
-  // 3) Offline fallback: IndexedDB.
-  try {
-    const cached = await (window.AlhamdOffline && window.AlhamdOffline.getTable
-      ? window.AlhamdOffline.getTable("products")
-      : Promise.resolve([]));
-
-    const cachedMap = new Map(
-      (cached || [])
-        .filter(p => ids.some(id => String(id) === String(p.id)))
-        .map(p => [String(p.id), p])
-    );
-
-    if (ids.every(id => cachedMap.has(String(id)))) {
-      return new Map(ids.map(id => [id, cachedMap.get(String(id))]));
-    }
-  } catch (e) {
-    console.warn("تعذر قراءة مخزون IndexedDB:", e);
-  }
-
-  // 4) لا نسمح بحفظ فاتورة بدون معرفة المخزون المحلي،
-  // حتى لا يتم خصم كمية غير صحيحة.
   throw new Error(
     "لا يوجد مخزون محفوظ محلياً لهذا الصنف. " +
-    "اتصل بالإنترنت وافتح صفحة الأصناف مرة واحدة حتى يتم حفظ المخزون على الجهاز، " +
-    "وبعدها يمكنك إنشاء الفواتير بدون إنترنت."
+    "اتصل بالإنترنت وافتح صفحة الأصناف مرة واحدة حتى يتم حفظ المخزون على الجهاز."
   );
 }
-
 async function warmOfflineProductCache() {
   try {
     if (!navigator.onLine) return;
@@ -4468,11 +4482,62 @@ function userRoleLabel(role){ return role==='admin1'?'أدمن 1':role==='admin2
 function userStatusLabel(active){ return active ? '<span style="color:#15803d;font-weight:bold;">نشط</span>' : '<span style="color:#b91c1c;font-weight:bold;">موقوف</span>'; }
 function userMsg(t,type='error'){const e=document.getElementById('usersMsg');if(e){e.textContent=t||'';e.className='msg'+(t?' show '+type:'');}}
 async function loadCurrentUserProfile(){
-  const {data,error}=await sb.rpc('get_my_profile');
-  if(error) throw error;
-  currentUserProfile=Array.isArray(data)?(data[0]||null):data;
-  applyRoleUI();
-  return currentUserProfile;
+  // Offline: never call the profile RPC. Use the last profile saved locally.
+  if(!navigator.onLine){
+    try{
+      const raw=localStorage.getItem("alhamd_current_user_profile_v1");
+      const cached=raw?JSON.parse(raw):null;
+      if(cached){
+        currentUserProfile=cached;
+        applyRoleUI();
+        return currentUserProfile;
+      }
+    }catch(e){
+      console.warn("تعذر قراءة صلاحيات المستخدم المحلية:",e);
+    }
+
+    // We still allow the current authenticated session to open the app.
+    // If there is no cached profile, keep the UI in its safe/default state.
+    currentUserProfile=currentUserProfile||null;
+    applyRoleUI();
+    return currentUserProfile;
+  }
+
+  try{
+    const {data,error}=await sb.rpc('get_my_profile');
+    if(error) throw error;
+
+    currentUserProfile=Array.isArray(data)?(data[0]||null):data;
+    try{
+      localStorage.setItem(
+        "alhamd_current_user_profile_v1",
+        JSON.stringify(currentUserProfile||null)
+      );
+    }catch(e){}
+
+    applyRoleUI();
+    return currentUserProfile;
+  }catch(error){
+    // If connectivity disappeared during the RPC, fall back to the last
+    // known profile instead of signing the user out.
+    const offlineLike =
+      !navigator.onLine ||
+      /failed to fetch|network|offline|disconnected|fetch/i.test(String(error?.message||""));
+
+    if(offlineLike){
+      try{
+        const raw=localStorage.getItem("alhamd_current_user_profile_v1");
+        const cached=raw?JSON.parse(raw):null;
+        if(cached){
+          currentUserProfile=cached;
+          applyRoleUI();
+          return currentUserProfile;
+        }
+      }catch(e){}
+    }
+
+    throw error;
+  }
 }
 function applyRoleUI(){
   const admin=isAdminUser();
@@ -4723,8 +4788,18 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
   async function handleSession(session){
     if(session?.user){
       setUser(session.user);
-      try{ await loadCurrentUserProfile(); }catch(profileError){
+      try{
+        await loadCurrentUserProfile();
+      }catch(profileError){
         console.error('Profile load failed:',profileError);
+
+        // لا تعمل signOut أثناء انقطاع الإنترنت.
+        // نحتفظ بالجلسة ونفتح النظام بالبيانات المحلية.
+        if(!navigator.onLine || /failed to fetch|network|offline|disconnected|fetch/i.test(String(profileError?.message||""))){
+          hideLogin();
+          return;
+        }
+
         await sb.auth.signOut();
         showLogin();
         msg('تعذر تحميل صلاحيات المستخدم. تأكد من إعداد قاعدة البيانات.','error');
