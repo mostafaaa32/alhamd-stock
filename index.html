@@ -3160,7 +3160,7 @@ async function getFreshProducts(productIds) {
   const ids = [...new Set(productIds)].filter(Boolean);
   if (!ids.length) return new Map();
 
-  // Online: try the server first.
+  // 1) لو الإنترنت موجود: نتحقق من Supabase أولاً.
   try {
     const { data, error } = await sb
       .from("products")
@@ -3168,46 +3168,77 @@ async function getFreshProducts(productIds) {
       .in("id", ids);
 
     if (!error) {
-      const map = new Map((data || []).map(p => [p.id, p]));
+      const map = new Map((data || []).map(p => [String(p.id), p]));
       for (const id of ids) {
-        if (!map.has(id)) {
+        if (!map.has(String(id))) {
           throw new Error("أحد الأصناف الموجودة في الفاتورة لم يعد موجوداً في المخزن.");
         }
       }
-      return map;
+      return new Map(ids.map(id => [id, map.get(String(id))]));
     }
 
-    // If Supabase reports an offline/network error, fall through to local data.
     console.warn("Supabase products unavailable, using local stock:", error.message);
   } catch (e) {
     console.warn("تعذر الوصول لمخزون Supabase، سيتم استخدام المخزون المحلي:", e);
   }
 
-  // Offline fallback #1: the products already loaded in the page.
-  const localProducts = (typeof productsList === "function" ? productsList() : [])
-    .filter(p => ids.some(id => String(id) === String(p.id)));
+  // 2) Offline: استخدم مصفوفة products الفعلية الموجودة في التطبيق.
+  // مهم: المتغير الرئيسي في النظام اسمه products وليس productsList.
+  let localProducts = [];
+  try {
+    if (typeof products !== "undefined" && Array.isArray(products)) {
+      localProducts = products;
+    }
+  } catch (e) {}
 
-  if (localProducts.length === ids.length) {
-    return new Map(localProducts.map(p => [p.id, p]));
+  const localMap = new Map(
+    localProducts
+      .filter(p => ids.some(id => String(id) === String(p.id)))
+      .map(p => [String(p.id), p])
+  );
+
+  if (ids.every(id => localMap.has(String(id)))) {
+    return new Map(ids.map(id => [id, localMap.get(String(id))]));
   }
 
-  // Offline fallback #2: IndexedDB cache maintained by Offline First.
+  // 3) Offline fallback: IndexedDB.
   try {
     const cached = await (window.AlhamdOffline && window.AlhamdOffline.getTable
       ? window.AlhamdOffline.getTable("products")
       : Promise.resolve([]));
 
-    const cachedProducts = (cached || [])
-      .filter(p => ids.some(id => String(id) === String(p.id)));
+    const cachedMap = new Map(
+      (cached || [])
+        .filter(p => ids.some(id => String(id) === String(p.id)))
+        .map(p => [String(p.id), p])
+    );
 
-    if (cachedProducts.length === ids.length) {
-      return new Map(cachedProducts.map(p => [p.id, p]));
+    if (ids.every(id => cachedMap.has(String(id)))) {
+      return new Map(ids.map(id => [id, cachedMap.get(String(id))]));
     }
   } catch (e) {
     console.warn("تعذر قراءة مخزون IndexedDB:", e);
   }
 
-  throw new Error("لا يوجد مخزون محفوظ محلياً لهذا الصنف. افتح النظام مرة واحدة والإنترنت متصل لتحميل بيانات المخزون، ثم يمكنك العمل بدون إنترنت.");
+  // 4) لا نسمح بحفظ فاتورة بدون معرفة المخزون المحلي،
+  // حتى لا يتم خصم كمية غير صحيحة.
+  throw new Error(
+    "لا يوجد مخزون محفوظ محلياً لهذا الصنف. " +
+    "اتصل بالإنترنت وافتح صفحة الأصناف مرة واحدة حتى يتم حفظ المخزون على الجهاز، " +
+    "وبعدها يمكنك إنشاء الفواتير بدون إنترنت."
+  );
+}
+
+async function warmOfflineProductCache() {
+  try {
+    if (!navigator.onLine) return;
+    if (typeof products === "undefined" || !Array.isArray(products) || !products.length) return;
+    if (window.AlhamdOffline && typeof window.AlhamdOffline.cacheTable === "function") {
+      await window.AlhamdOffline.cacheTable("products", products);
+    }
+  } catch (e) {
+    console.warn("تعذر تجهيز مخزون Offline:", e);
+  }
 }
 
 async function saveInvoice() {
@@ -5677,7 +5708,8 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
     pending:async()=> (await allQueue()).length,
     clearCache:async()=>{await idb(TABLES,"readwrite",st=>{const r=st.clear();return r})},
     status:refreshStatus,
-    getTable:getTable
+    getTable:getTable,
+    cacheTable:cacheResult
   };
 
   // IMPORTANT: Do not create a second offline-only proxy here.
