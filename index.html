@@ -3160,18 +3160,54 @@ async function getFreshProducts(productIds) {
   const ids = [...new Set(productIds)].filter(Boolean);
   if (!ids.length) return new Map();
 
-  const { data, error } = await sb
-    .from("products")
-    .select("id, name, quantity")
-    .in("id", ids);
+  // Online: try the server first.
+  try {
+    const { data, error } = await sb
+      .from("products")
+      .select("id, name, quantity")
+      .in("id", ids);
 
-  if (error) throw new Error(`تعذر التحقق من المخزون الحالي: ${error.message}`);
+    if (!error) {
+      const map = new Map((data || []).map(p => [p.id, p]));
+      for (const id of ids) {
+        if (!map.has(id)) {
+          throw new Error("أحد الأصناف الموجودة في الفاتورة لم يعد موجوداً في المخزن.");
+        }
+      }
+      return map;
+    }
 
-  const map = new Map((data || []).map(p => [p.id, p]));
-  for (const id of ids) {
-    if (!map.has(id)) throw new Error("أحد الأصناف الموجودة في الفاتورة لم يعد موجوداً في المخزن.");
+    // If Supabase reports an offline/network error, fall through to local data.
+    console.warn("Supabase products unavailable, using local stock:", error.message);
+  } catch (e) {
+    console.warn("تعذر الوصول لمخزون Supabase، سيتم استخدام المخزون المحلي:", e);
   }
-  return map;
+
+  // Offline fallback #1: the products already loaded in the page.
+  const localProducts = (typeof productsList === "function" ? productsList() : [])
+    .filter(p => ids.some(id => String(id) === String(p.id)));
+
+  if (localProducts.length === ids.length) {
+    return new Map(localProducts.map(p => [p.id, p]));
+  }
+
+  // Offline fallback #2: IndexedDB cache maintained by Offline First.
+  try {
+    const cached = await (window.AlhamdOffline && window.AlhamdOffline.getTable
+      ? window.AlhamdOffline.getTable("products")
+      : Promise.resolve([]));
+
+    const cachedProducts = (cached || [])
+      .filter(p => ids.some(id => String(id) === String(p.id)));
+
+    if (cachedProducts.length === ids.length) {
+      return new Map(cachedProducts.map(p => [p.id, p]));
+    }
+  } catch (e) {
+    console.warn("تعذر قراءة مخزون IndexedDB:", e);
+  }
+
+  throw new Error("لا يوجد مخزون محفوظ محلياً لهذا الصنف. افتح النظام مرة واحدة والإنترنت متصل لتحميل بيانات المخزون، ثم يمكنك العمل بدون إنترنت.");
 }
 
 async function saveInvoice() {
@@ -5640,7 +5676,8 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
     sync:syncNow,
     pending:async()=> (await allQueue()).length,
     clearCache:async()=>{await idb(TABLES,"readwrite",st=>{const r=st.clear();return r})},
-    status:refreshStatus
+    status:refreshStatus,
+    getTable:getTable
   };
 
   // IMPORTANT: Do not create a second offline-only proxy here.
@@ -5676,5 +5713,4 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
 </style>
 </body>
 </html>
-
     
