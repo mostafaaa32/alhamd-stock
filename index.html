@@ -2385,71 +2385,165 @@ async function saveStoreSettings() {
 }
 
 async function loadProducts() {
-  // Offline mode: load products directly from IndexedDB.
+  // Offline: use the local IndexedDB copy and do not contact Supabase.
   if (!navigator.onLine) {
     try {
       const cached = window.AlhamdOffline && window.AlhamdOffline.getTable
         ? await window.AlhamdOffline.getTable("products")
         : [];
+
       products = Array.isArray(cached) ? cached : [];
       fillInvoiceProducts();
-      try { renderProducts(); } catch (e) { console.warn("renderProducts:", e); }
+      try { renderProducts(); } catch (e) {}
       return products;
     } catch (e) {
-      console.warn("تعذر تحميل الأصناف من التخزين المحلي:", e);
+      console.warn("تعذر تحميل الأصناف محلياً:", e);
       products = [];
       fillInvoiceProducts();
       return [];
     }
   }
 
-  // Online mode: server first. If the network is actually unavailable,
-  // fall back to the IndexedDB copy instead of clearing the product list.
+  // Online: load from Supabase, then cache the complete product list locally.
   try {
     const { data, error } = await sb.from("products").select("*");
 
     if (!error && Array.isArray(data)) {
       products = data;
       fillInvoiceProducts();
-      try { renderProducts(); } catch (e) { console.warn("renderProducts:", e); }
+      try { renderProducts(); } catch (e) {}
 
-      // Explicitly warm the local cache with the complete product list.
       try {
         if (window.AlhamdOffline && window.AlhamdOffline.cacheTable) {
           await window.AlhamdOffline.cacheTable("products", products);
         }
-      } catch (cacheError) {
-        console.warn("تعذر حفظ الأصناف محلياً:", cacheError);
+      } catch (e) {
+        console.warn("تعذر تحديث كاش الأصناف:", e);
       }
 
       return products;
     }
 
-    console.warn("تعذر تحميل الأصناف من Supabase:", error?.message || "unknown error");
+    throw error || new Error("تعذر تحميل الأصناف");
   } catch (e) {
-    console.warn("تعذر الاتصال ببيانات الأصناف:", e);
-  }
+    // If the network drops unexpectedly, keep using the last local copy.
+    try {
+      const cached = window.AlhamdOffline && window.AlhamdOffline.getTable
+        ? await window.AlhamdOffline.getTable("products")
+        : [];
 
-  // Network failure fallback.
-  try {
-    const cached = window.AlhamdOffline && window.AlhamdOffline.getTable
-      ? await window.AlhamdOffline.getTable("products")
-      : [];
-
-    if (Array.isArray(cached) && cached.length) {
-      products = cached;
-      fillInvoiceProducts();
-      try { renderProducts(); } catch (e) { console.warn("renderProducts:", e); }
-      return products;
+      if (Array.isArray(cached) && cached.length) {
+        products = cached;
+        fillInvoiceProducts();
+        try { renderProducts(); } catch (e) {}
+        return products;
+      }
+    } catch (localError) {
+      console.warn("تعذر قراءة كاش الأصناف:", localError);
     }
-  } catch (e) {
-    console.warn("تعذر قراءة نسخة الأصناف المحلية:", e);
+
+    console.warn("تعذر تحميل الأصناف:", e);
+    products = [];
+    fillInvoiceProducts();
+    return [];
+  }
+}
+async function loadUniqueCustomers() {
+  const { data, error } = await sb.from("invoices").select("customer_name, customer_phone").not("customer_name", "is", null);
+  if (!error && data) {
+    const map = {};
+    data.forEach(x => {
+      if (x.customer_name && x.customer_name.trim() !== "") {
+        map[x.customer_name.trim()] = x.customer_phone || "";
+      }
+    });
+    allCustomers = Object.keys(map).map(name => ({ name, phone: map[name] }));
+    const datalist = document.getElementById("customersList");
+    if (datalist) {
+      datalist.innerHTML = allCustomers.map(c => `<option value="${esc(c.name)}" data-phone="${esc(c.phone)}">`).join("");
+    }
+  }
+}
+
+async function loadSuppliersList() {
+  const { data, error } = await sb.from("purchase_invoices").select("supplier_name, supplier_phone").not("supplier_name", "is", null);
+  if (!error && data) {
+    const map = {};
+    data.forEach(x => {
+      if (x.supplier_name && x.supplier_name.trim() !== "") {
+        map[x.supplier_name.trim()] = x.supplier_phone || "";
+      }
+    });
+    allSuppliers = Object.keys(map).map(name => ({ name, phone: map[name] }));
+    const datalist = document.getElementById("suppliersList");
+    if (datalist) {
+      datalist.innerHTML = allSuppliers.map(s => `<option value="${esc(s.name)}" data-phone="${esc(s.phone)}">`).join("");
+    }
+  }
+}
+
+function onCustomerNameInput() {
+  const nameInput = document.getElementById("customerName");
+  const phoneInput = document.getElementById("customerPhone");
+  if (!nameInput || !phoneInput) return;
+  const nameVal = nameInput.value.trim();
+  const found = allCustomers.find(c => c.name === nameVal);
+  if (found && found.phone) {
+    phoneInput.value = found.phone;
+  }
+}
+
+function onSupplierNameInput() {
+  const nameInput = document.getElementById("purSupplierName");
+  const phoneInput = document.getElementById("purSupplierPhone");
+  if (!nameInput || !phoneInput) return;
+  const nameVal = nameInput.value.trim();
+  const found = allSuppliers.find(s => s.name === nameVal);
+  if (found && found.phone) {
+    phoneInput.value = found.phone;
+  }
+}
+
+function changeSortFromSelect(val) {
+  const parts = val.split("_");
+  const keyMap = { code: "code", name: "name", price: "sell_price", qty: "quantity", buy: "buy_price", sell: "sell_price" };
+  currentSortKey = keyMap[parts[0]] || "name";
+  currentSortAsc = (parts[1] === "asc");
+  renderProducts();
+}
+
+function setSorting(key) {
+  if (currentSortKey === key) {
+    currentSortAsc = !currentSortAsc;
+  } else {
+    currentSortKey = key;
+    currentSortAsc = true;
+  }
+  const select = document.getElementById("sortSelect");
+  if (select) {
+    select.value = `${key}_${currentSortAsc ? 'asc' : 'desc'}`;
+  }
+  renderProducts();
+}
+
+function toggleSelectAllProducts(master) {
+  const checkboxes = document.querySelectorAll(".product-checkbox");
+  checkboxes.forEach(cb => cb.checked = master.checked);
+}
+
+async function deleteSelectedProducts() {
+  const checkboxes = document.querySelectorAll(".product-checkbox:checked");
+  if (checkboxes.length === 0) return alert("يرجى تحديد صنف واحد على الأقل للحذف!");
+  if (!confirm(`هل أنت متأكد من حذف (${checkboxes.length}) صنفاً محدداً نهائياً؟`)) return;
+
+  const idsToDelete = Array.from(checkboxes).map(cb => cb.value);
+  for (const id of idsToDelete) {
+    await sb.from("products").delete().eq("id", id);
   }
 
-  products = [];
-  fillInvoiceProducts();
-  try { renderProducts(); } catch (e) {}
-  return [];
+  alert("✨ تم حذف الأصناف المحددة بنجاح!");
+  await loadProducts();
+  await refreshDashboard();
 }
 
 function renderProducts() {
