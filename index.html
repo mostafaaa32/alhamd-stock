@@ -3617,7 +3617,14 @@ async function saveInvoice() {
   }]).select().single();
 
   if (invError) {
+    // Offline First should normally convert this into a local success.
+    // If a real error still reaches here, do not silently lose the invoice.
     alert("خطأ في حفظ الفاتورة: " + invError.message);
+    return;
+  }
+
+  if (!invData || invData.id == null) {
+    alert("❌ تعذر إنشاء رقم محلي للفاتورة. لم يتم حفظ الفاتورة.");
     return;
   }
 
@@ -5662,7 +5669,8 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
   async function refreshStatus(){
     const q=await allQueue();
     if(!navigator.onLine){setStatus("offline");return}
-    if(q.some(x=>x.status==="pending"||x.status==="error")) {setStatus("pending");return}
+    const pending=q.filter(x=>x.status!=="done");
+    if(pending.length>0){setStatus("pending");return}
     const last=await getMeta("lastSync");
     setStatus(last ? "synced" : "online");
   }
@@ -5898,6 +5906,12 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
     syncRunning=true; setStatus("syncing");
     try{
       const ordered=queue.filter(x=>x.status!=="done").sort((a,b)=>(a.qid||0)-(b.qid||0));
+      // Always move invoice headers ahead of their invoice_items. This is
+      // essential because invoice_items has a foreign key to invoices.
+      ordered.sort((a,b)=>{
+        const rank=x=>x.table==="invoices" ? 0 : (x.table==="invoice_items" ? 2 : 1);
+        return rank(a)-rank(b) || ((a.qid||0)-(b.qid||0));
+      });
       for(const item of ordered){
         item.status="syncing"; item.tries=(item.tries||0)+1; await updateQueue(item);
         try{
@@ -5916,6 +5930,8 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
       else setStatus("pending");
     }finally{syncRunning=false}
   }
+
+  setTimeout(()=>refreshStatus(),0);
 
   function scheduleSync(){
     clearTimeout(syncTimer);
@@ -6046,6 +6062,12 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
     }
   };
 
+  window.addEventListener("online",()=>{
+    refreshStatus();
+    scheduleSync();
+  });
+  window.addEventListener("offline",()=>refreshStatus());
+
   // IMPORTANT: Do not create a second offline-only proxy here.
   // The main wrapBuilder already supports both online and offline reads/writes,
   // and keeping one proxy preserves chained Supabase methods such as:
@@ -6080,4 +6102,5 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
 </style>
 </body>
 </html>
-    
+
+                                                                                                                                                                                                                                  
