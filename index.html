@@ -5564,7 +5564,28 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
               }
               try{
                 const result=await state.base;
-                if(result && !result.error && result.data!=null){
+                // Supabase can return a network error as a resolved result (for example
+                // 503 Offline), rather than throwing. Treat those failures exactly like
+                // fetch/network exceptions so Offline First can use cache/queue.
+                if(result && result.error){
+                  if(state.write){
+                    const local=await applyLocalMutation(table,state.write.method,state.write.payload,state.calls,state.write.options);
+                    await addQueue({table,method:state.write.method,payload:state.write.payload,calls:state.calls,options:state.write.options});
+                    setStatus("pending", result.error.message||"تعذر الاتصال بالخادم — تم الحفظ محليًا");
+                    const wantsSingle=state.calls.some(c=>c.name==="single"||c.name==="maybeSingle");
+                    return {data:wantsSingle?(local[0]||null):local,error:null};
+                  }
+                  const cached=applyReadOps(await getTable(table),state.calls);
+                  if(cached.length){
+                    setStatus("pending", "الخادم غير متاح — تم استخدام البيانات المحفوظة محليًا");
+                    return {data:cached,error:null};
+                  }
+                  // If this is a filtered read and the local table is empty, keep the
+                  // original error so business validation can explain that no cached
+                  // copy exists yet.
+                  return result;
+                }
+                if(result && result.data!=null){
                   if(Array.isArray(result.data)) await cacheResult(table,result.data);
                   else if(result.data) await cacheResult(table,[result.data]);
                 }
@@ -5578,7 +5599,10 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
                   return {data:wantsSingle?(local[0]||null):local,error:null};
                 }
                 const cached=applyReadOps(await getTable(table),state.calls);
-                if(cached.length || !navigator.onLine) return {data:cached,error:null};
+                if(cached.length || !navigator.onLine){
+                  setStatus(navigator.onLine ? "pending" : "offline", "تعذر الوصول للخادم — تم استخدام البيانات المحلية");
+                  return {data:cached,error:null};
+                }
                 throw e;
               }
             })().then(resolve,reject);
@@ -5652,4 +5676,5 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
 </style>
 </body>
 </html>
+
     
