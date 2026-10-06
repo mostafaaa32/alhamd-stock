@@ -3024,72 +3024,63 @@ function printInvoiceDocument(elementId, mode = "a4") {
   const source = document.getElementById(elementId);
   if (!source) return alert("تعذر تجهيز الفاتورة للطباعة");
 
-  // ننسخ الفاتورة فقط إلى نافذة طباعة مستقلة، بدل طباعة صفحة النظام كلها.
-  const printWindow = window.open("", "_blank", "width=900,height=1000,noopener,noreferrer");
-  if (!printWindow) {
-    alert("المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع ثم حاول مرة أخرى.");
-    return;
-  }
+  // طباعة داخل نفس الصفحة حتى لا يعتمد النظام على نافذة منبثقة قد يمنعها Chrome.
+  const oldLayer = document.getElementById("ahDirectPrintLayer");
+  if (oldLayer) oldLayer.remove();
+  const oldStyle = document.getElementById("ahDirectPrintStyle");
+  if (oldStyle) oldStyle.remove();
 
   const isThermal = mode === "thermal";
-  const pageCss = isThermal
-    ? `@page { size: 80mm auto; margin: 0; }`
-    : `@page { size: A4 portrait; margin: 0; }`;
-
   const contentWidth = isThermal ? "80mm" : "190mm";
   const contentPadding = isThermal ? "4mm" : "10mm";
 
-  printWindow.document.open();
-  printWindow.document.write(`<!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>فاتورة ${esc(document.getElementById("prevInvCode")?.textContent || "")}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-${pageCss}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#fff!important;color:#111;font-family:'Cairo',Tahoma,Arial,sans-serif!important}
-body{width:100%;}
-.print-page{width:${contentWidth};margin:0 auto;padding:${contentPadding};background:#fff;}
-.print-page *{font-family:'Cairo',Tahoma,Arial,sans-serif!important;}
-.no-print{display:none!important}
-img{max-width:100%;}
-@media print{html,body{width:100%;margin:0!important;padding:0!important;} .print-page{margin:0 auto!important;box-shadow:none!important;} }
-${isThermal ? `
-.invoice-header-flex{display:block!important;text-align:center!important;background:#fff!important;color:#111!important;border-bottom:1px dashed #111!important;border-radius:0!important;padding:0 0 8px!important;margin-bottom:8px!important}
-.invoice-header-flex h2{color:#111!important;font-size:15px!important}
-.invoice-header-flex p{color:#333!important;font-size:10px!important}
-.invoice-header-flex img{max-height:45px!important;margin:5px auto!important;display:block!important}
-.invoice-meta-grid{display:block!important;background:#fff!important;border:0!important;padding:0!important;font-size:10px!important}
-.invoice-meta-grid>div{padding:2px 0!important}
-.invoice-print-container table{font-size:9px!important}
-.invoice-print-container th,.invoice-print-container td{padding:3px 2px!important}
-.invoice-print-container h3{font-size:12px!important}
-` : `
-.invoice-header-flex{border-radius:10px!important;margin-bottom:12px!important}
-.invoice-meta-grid{font-size:12px!important}
-.invoice-print-container table{font-size:11px!important}
-`}
-</style>
-</head>
-<body>
-<div class="print-page">${source.outerHTML}</div>
-<script>
-window.addEventListener('load', function(){
-  setTimeout(function(){ window.print(); }, 250);
-});
-window.addEventListener('afterprint', function(){ setTimeout(function(){ window.close(); }, 150); });
-<\/script>
+  const style = document.createElement("style");
+  style.id = "ahDirectPrintStyle";
+  style.textContent = `
+    @page { size: ${isThermal ? "80mm auto" : "A4 portrait"}; margin: 0; }
+    @media print {
+      html, body { margin:0!important; padding:0!important; background:#fff!important; }
+      body > *:not(#ahDirectPrintLayer) { display:none!important; }
+      #ahDirectPrintLayer { display:block!important; position:static!important; width:${contentWidth}; margin:0 auto!important; padding:${contentPadding}; background:#fff!important; color:#111!important; }
+      #ahDirectPrintLayer * { font-family:'Cairo',Tahoma,Arial,sans-serif!important; box-sizing:border-box; }
+      #ahDirectPrintLayer .no-print { display:none!important; }
+      #ahDirectPrintLayer img { max-width:100%; }
+      ${isThermal ? `
+      #ahDirectPrintLayer .invoice-header-flex{display:block!important;text-align:center!important;background:#fff!important;color:#111!important;border-bottom:1px dashed #111!important;border-radius:0!important;padding:0 0 8px!important;margin-bottom:8px!important}
+      #ahDirectPrintLayer .invoice-header-flex h2{color:#111!important;font-size:15px!important}
+      #ahDirectPrintLayer .invoice-header-flex p{color:#333!important;font-size:10px!important}
+      #ahDirectPrintLayer .invoice-header-flex img{max-height:45px!important;margin:5px auto!important;display:block!important}
+      #ahDirectPrintLayer .invoice-meta-grid{display:block!important;background:#fff!important;border:0!important;padding:0!important;font-size:10px!important}
+      #ahDirectPrintLayer .invoice-meta-grid>div{padding:2px 0!important}
+      #ahDirectPrintLayer table{font-size:9px!important}
+      #ahDirectPrintLayer th,#ahDirectPrintLayer td{padding:3px 2px!important}
+      ` : `
+      #ahDirectPrintLayer .invoice-print-container table{font-size:11px!important}
+      `}
+    }
+  `;
+  document.head.appendChild(style);
 
+  const layer = document.createElement("div");
+  layer.id = "ahDirectPrintLayer";
+  layer.style.display = "none";
+  layer.innerHTML = source.outerHTML;
+  document.body.appendChild(layer);
 
+  const cleanup = () => {
+    setTimeout(() => {
+      const l = document.getElementById("ahDirectPrintLayer"); if (l) l.remove();
+      const st = document.getElementById("ahDirectPrintStyle"); if (st) st.remove();
+      window.removeEventListener("afterprint", cleanup);
+    }, 250);
+  };
+  window.addEventListener("afterprint", cleanup);
 
-</body>
-</html>`);
-  printWindow.document.close();
+  layer.style.display = "block";
+  setTimeout(() => {
+    try { window.print(); }
+    catch (e) { cleanup(); alert("تعذر فتح الطباعة: " + e.message); }
+  }, 50);
 }
 
 
@@ -3128,12 +3119,22 @@ async function previewExistingInvoice(invoiceId) {
 
   let subTotal = 0;
   const itemsHtml = (items || []).map((it, idx) => {
-    const lineTot = Number(it.quantity) * Number(it.unit_price);
+    const lineTot = Number(it.quantity || 0) * Number(it.unit_price || 0);
     subTotal += lineTot;
+    // بعض الفواتير القديمة قد يكون فيها اسم الصنف محفوظًا في name بدل product_name.
+    // لو الاسمين غير موجودين، نرجع إلى نسخة الأصناف المحلية باستخدام product_id.
+    let itemName = it.product_name || it.name || "";
+    if (!itemName && it.product_id) {
+      try {
+        const cachedProduct = Array.isArray(products) ? products.find(p => String(p.id) === String(it.product_id)) : null;
+        if (cachedProduct) itemName = cachedProduct.name || "";
+      } catch (_) {}
+    }
+    if (!itemName) itemName = "صنف غير مسمى";
     return `
       <tr>
         <td style="padding: 6px; text-align: center;">${toArabicDigits(idx + 1)}</td>
-        <td style="padding: 6px;">${esc(it.product_name)}</td>
+        <td style="padding: 6px;">${esc(itemName)}</td>
         <td style="padding: 6px; text-align: center;">${toArabicDigits(it.quantity)}</td>
         <td style="padding: 6px; text-align: center;">${toArabicDigits(money(it.unit_price))} ج.م</td>
         <td style="padding: 6px; text-align: center; font-weight: bold;">${toArabicDigits(money(lineTot))} ج.م</td>
@@ -3172,13 +3173,23 @@ async function previewExistingInvoice(invoiceId) {
   document.getElementById("thRemaining").textContent = money(remaining) + " ج.م";
   document.getElementById("thFooter").textContent = storeSettings.invoice_footer;
 
-  document.getElementById("thItemsBody").innerHTML = (items || []).map(it => `
-    <tr>
-      <td style="padding: 2px 0;">${esc(it.product_name)}</td>
-      <td style="text-align: center; padding: 2px 0;">${it.quantity}</td>
-      <td style="text-align: left; padding: 2px 0;">${money(it.quantity * it.unit_price)}</td>
-    </tr>
-  `).join("");
+  document.getElementById("thItemsBody").innerHTML = (items || []).map(it => {
+    let itemName = it.product_name || it.name || "";
+    if (!itemName && it.product_id) {
+      try {
+        const cachedProduct = Array.isArray(products) ? products.find(p => String(p.id) === String(it.product_id)) : null;
+        if (cachedProduct) itemName = cachedProduct.name || "";
+      } catch (_) {}
+    }
+    if (!itemName) itemName = "صنف غير مسمى";
+    return `
+      <tr>
+        <td style="padding: 2px 0;">${esc(itemName)}</td>
+        <td style="text-align: center; padding: 2px 0;">${it.quantity}</td>
+        <td style="text-align: left; padding: 2px 0;">${money(Number(it.quantity || 0) * Number(it.unit_price || 0))}</td>
+      </tr>
+    `;
+  }).join("");
 
   document.getElementById("invoicePreviewModal").style.display = "flex";
 }
@@ -5669,7 +5680,7 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
   async function refreshStatus(){
     const q=await allQueue();
     if(!navigator.onLine){setStatus("offline");return}
-    const pending=q.filter(x=>x.status!=="done");
+    const pending=q.filter(x=>x.status==="pending" || x.status==="error" || x.status==="syncing");
     if(pending.length>0){setStatus("pending");return}
     const last=await getMeta("lastSync");
     setStatus(last ? "synced" : "online");
@@ -5809,6 +5820,24 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
         if(parent){
           await executeQueueItem(parent,[...stack,tempId]);
           await removeQueue(parent.qid);
+        } else {
+          // لو بنود الفاتورة أقدم من نسخة Offline الحالية ولم يعد سجل الأب موجودًا في queue،
+          // نحاول ربط الـ ID المؤقت بفاتورة موجودة بالفعل على Supabase عن طريق invoice_code.
+          try {
+            const localInvoices = await getTable("invoices");
+            const localParent = localInvoices.find(x => String(x.id) === tempId && x.invoice_code);
+            if (localParent && localParent.invoice_code) {
+              const remoteParent = await originalFrom("invoices")
+                .select("id,invoice_code")
+                .eq("invoice_code", localParent.invoice_code)
+                .limit(1);
+              if (!remoteParent.error && Array.isArray(remoteParent.data) && remoteParent.data[0]?.id != null) {
+                const mapNow = await getMeta("idMap") || {};
+                mapNow[tempId] = remoteParent.data[0].id;
+                await setMeta("idMap", mapNow);
+              }
+            }
+          } catch (_) {}
         }
 
         const refreshed=await getMeta("idMap")||{};
@@ -6102,5 +6131,4 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
 </style>
 </body>
 </html>
-
-                                                                                                                                                                                                                                  
+    
