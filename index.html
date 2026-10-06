@@ -3184,6 +3184,67 @@ async function previewExistingInvoice(invoiceId) {
 }
 
 async function updateProductStockChecked(productId, expectedQty, newQty) {
+  // Offline: verify against the local copy first, then let the Offline
+  // wrapper apply the change locally and queue the same update for sync.
+  if (!navigator.onLine) {
+    let localProduct = null;
+
+    try {
+      if (typeof products !== "undefined" && Array.isArray(products)) {
+        localProduct = products.find(p => String(p.id) === String(productId)) || null;
+      }
+    } catch (_) {}
+
+    if (!localProduct) {
+      try {
+        const cached = window.AlhamdOffline && window.AlhamdOffline.getTable
+          ? await window.AlhamdOffline.getTable("products")
+          : [];
+        localProduct = (cached || []).find(p => String(p.id) === String(productId)) || null;
+      } catch (_) {}
+    }
+
+    if (!localProduct) {
+      throw new Error("لم يتم العثور على الصنف في المخزون المحلي.");
+    }
+
+    const localQty = Number(localProduct.quantity || 0);
+    const expected = Number(expectedQty || 0);
+
+    if (localQty !== expected) {
+      throw new Error(
+        `تغير مخزون أحد الأصناف أثناء حفظ الفاتورة. المتاح محلياً: ${localQty}، والمتوقع: ${expected}.`
+      );
+    }
+
+    const result = await sb
+      .from("products")
+      .update({ quantity: newQty })
+      .eq("id", productId)
+      .eq("quantity", expectedQty)
+      .select("id, quantity")
+      .maybeSingle();
+
+    if (result && result.error) {
+      throw new Error(`تعذر تحديث مخزون الصنف: ${result.error.message}`);
+    }
+
+    const data = result && result.data ? result.data : {
+      id: productId,
+      quantity: newQty
+    };
+
+    // Keep the in-memory product list in sync immediately.
+    try {
+      if (typeof products !== "undefined" && Array.isArray(products)) {
+        const p = products.find(x => String(x.id) === String(productId));
+        if (p) p.quantity = newQty;
+      }
+    } catch (_) {}
+
+    return data;
+  }
+
   const { data, error } = await sb
     .from("products")
     .update({ quantity: newQty })
@@ -5840,5 +5901,4 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
 </style>
 </body>
 </html>
-
     
