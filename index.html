@@ -5774,9 +5774,43 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
     return value;
   }
 
-  async function executeQueueItem(item){
+  async function executeQueueItem(item, dependencyStack){
     const map=await getMeta("idMap")||{};
-    const op=rewriteIds(item,map);
+    let op=rewriteIds(item,map);
+
+    // invoice_items depends on invoices through a foreign key. If the child
+    // still contains a temporary invoice ID, synchronize the parent first.
+    if(op.table==="invoice_items" && op.method==="insert"){
+      const stack=dependencyStack||[];
+      const rows=normalizePayload(op.payload);
+      const tempInvoiceIds=[...new Set(rows
+        .map(r=>r&&r.invoice_id)
+        .filter(v=>typeof v==="number" && v<0)
+        .map(String))];
+
+      for(const tempId of tempInvoiceIds){
+        if(stack.includes(tempId)) throw new Error("دورة في تبعية الفاتورة.");
+        const currentMap=await getMeta("idMap")||{};
+        if(Object.prototype.hasOwnProperty.call(currentMap,tempId)) continue;
+
+        const q=await allQueue();
+        const parent=q
+          .filter(x=>x.table==="invoices" && (x.method==="insert"||x.method==="upsert"))
+          .find(x=>normalizePayload(x.payload).some(r=>r && String(r.id)===tempId));
+
+        if(parent){
+          await executeQueueItem(parent,[...stack,tempId]);
+          await removeQueue(parent.qid);
+        }
+
+        const refreshed=await getMeta("idMap")||{};
+        if(!Object.prototype.hasOwnProperty.call(refreshed,tempId)){
+          throw new Error("تعذر مزامنة الفاتورة الأساسية قبل بنود الفاتورة.");
+        }
+        op=rewriteIds(item,refreshed);
+      }
+    }
+
     let builder=originalFrom(op.table);
     if(op.method==="insert") builder=builder.insert(op.payload);
     else if(op.method==="upsert") builder=builder.upsert(op.payload,op.options||{});
@@ -5901,7 +5935,11 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
               if(!navigator.onLine){
                 if(state.write){
                   const local=await applyLocalMutation(table,state.write.method,state.write.payload,state.calls,state.write.options);
-                  await addQueue({table,method:state.write.method,payload:state.write.payload,calls:state.calls,options:state.write.options});
+                  const queuePayload =
+                    (state.write.method==="insert" || state.write.method==="upsert")
+                      ? clone(local)
+                      : clone(state.write.payload);
+                  await addQueue({table,method:state.write.method,payload:queuePayload,calls:state.calls,options:state.write.options});
                   setStatus("pending");
                   const wantsSingle=state.calls.some(c=>c.name==="single"||c.name==="maybeSingle");
                   return {data:wantsSingle?(local[0]||null):local,error:null};
@@ -5947,7 +5985,11 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
               }catch(e){
                 if(state.write){
                   const local=await applyLocalMutation(table,state.write.method,state.write.payload,state.calls,state.write.options);
-                  await addQueue({table,method:state.write.method,payload:state.write.payload,calls:state.calls,options:state.write.options});
+                  const queuePayload =
+                    (state.write.method==="insert" || state.write.method==="upsert")
+                      ? clone(local)
+                      : clone(state.write.payload);
+                  await addQueue({table,method:state.write.method,payload:queuePayload,calls:state.calls,options:state.write.options});
                   setStatus("pending");
                   const wantsSingle=state.calls.some(c=>c.name==="single"||c.name==="maybeSingle");
                   return {data:wantsSingle?(local[0]||null):local,error:null};
