@@ -2384,49 +2384,32 @@ async function saveStoreSettings() {
   }
 }
 
-async function loadProducts() {
-  // Offline: use the local IndexedDB copy and do not contact Supabase.
-  if (!navigator.onLine) {
-    try {
-      const cached = window.AlhamdOffline && window.AlhamdOffline.getTable
-        ? await window.AlhamdOffline.getTable("products")
-        : [];
-
-      products = Array.isArray(cached) ? cached : [];
-      fillInvoiceProducts();
-      try { renderProducts(); } catch (e) {}
-      return products;
-    } catch (e) {
-      console.warn("تعذر تحميل الأصناف محلياً:", e);
-      products = [];
-      fillInvoiceProducts();
-      return [];
-    }
-  }
-
-  // Online: load from Supabase, then cache the complete product list locally.
+function saveProductsLocalCache(rows) {
   try {
-    const { data, error } = await sb.from("products").select("*");
-
-    if (!error && Array.isArray(data)) {
-      products = data;
-      fillInvoiceProducts();
-      try { renderProducts(); } catch (e) {}
-
-      try {
-        if (window.AlhamdOffline && window.AlhamdOffline.cacheTable) {
-          await window.AlhamdOffline.cacheTable("products", products);
-        }
-      } catch (e) {
-        console.warn("تعذر تحديث كاش الأصناف:", e);
-      }
-
-      return products;
+    if (Array.isArray(rows) && rows.length) {
+      localStorage.setItem("alhamd_products_cache_v1", JSON.stringify(rows));
+      localStorage.setItem("alhamd_products_cache_time_v1", new Date().toISOString());
     }
-
-    throw error || new Error("تعذر تحميل الأصناف");
   } catch (e) {
-    // If the network drops unexpectedly, keep using the last local copy.
+    console.warn("تعذر حفظ نسخة الأصناف في LocalStorage:", e);
+  }
+}
+
+function getProductsLocalCache() {
+  try {
+    const raw = localStorage.getItem("alhamd_products_cache_v1");
+    if (!raw) return [];
+    const rows = JSON.parse(raw);
+    return Array.isArray(rows) ? rows : [];
+  } catch (e) {
+    console.warn("تعذر قراءة نسخة الأصناف من LocalStorage:", e);
+    return [];
+  }
+}
+
+async function loadProducts() {
+  // OFFLINE: IndexedDB first, then LocalStorage.
+  if (!navigator.onLine) {
     try {
       const cached = window.AlhamdOffline && window.AlhamdOffline.getTable
         ? await window.AlhamdOffline.getTable("products")
@@ -2434,18 +2417,68 @@ async function loadProducts() {
 
       if (Array.isArray(cached) && cached.length) {
         products = cached;
-        fillInvoiceProducts();
-        try { renderProducts(); } catch (e) {}
-        return products;
+      } else {
+        products = getProductsLocalCache();
       }
-    } catch (localError) {
-      console.warn("تعذر قراءة كاش الأصناف:", localError);
+
+      fillInvoiceProducts();
+      try { renderProducts(); } catch (e) {}
+      return products;
+    } catch (e) {
+      products = getProductsLocalCache();
+      fillInvoiceProducts();
+      try { renderProducts(); } catch (x) {}
+      return products;
+    }
+  }
+
+  // ONLINE: get the authoritative list from Supabase.
+  try {
+    const { data, error } = await sb.from("products").select("*");
+
+    if (!error && Array.isArray(data)) {
+      products = data;
+
+      // Keep BOTH local stores so the app remains usable even if
+      // IndexedDB is unavailable/cleared.
+      saveProductsLocalCache(products);
+
+      try {
+        if (window.AlhamdOffline && window.AlhamdOffline.cacheTable) {
+          await window.AlhamdOffline.cacheTable("products", products);
+        }
+      } catch (e) {
+        console.warn("تعذر تحديث IndexedDB للأصناف:", e);
+      }
+
+      fillInvoiceProducts();
+      try { renderProducts(); } catch (e) {}
+      return products;
     }
 
-    console.warn("تعذر تحميل الأصناف:", e);
-    products = [];
-    fillInvoiceProducts();
-    return [];
+    throw error || new Error("تعذر تحميل الأصناف");
+  } catch (e) {
+    // Network dropped unexpectedly: use the last local copy.
+    try {
+      const cached = window.AlhamdOffline && window.AlhamdOffline.getTable
+        ? await window.AlhamdOffline.getTable("products")
+        : [];
+
+      if (Array.isArray(cached) && cached.length) {
+        products = cached;
+      } else {
+        products = getProductsLocalCache();
+      }
+
+      fillInvoiceProducts();
+      try { renderProducts(); } catch (x) {}
+      return products;
+    } catch (localError) {
+      products = getProductsLocalCache();
+      fillInvoiceProducts();
+      try { renderProducts(); } catch (x) {}
+      return products;
+    }
   }
 }
 async function loadUniqueCustomers() {
@@ -5765,7 +5798,12 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
     clearCache:async()=>{await idb(TABLES,"readwrite",st=>{const r=st.clear();return r})},
     status:refreshStatus,
     getTable:getTable,
-    cacheTable:cacheResult
+    cacheTable:async(table, rows)=>{
+      await cacheResult(table, rows);
+      if(table === "products") {
+        try { localStorage.setItem("alhamd_products_cache_v1", JSON.stringify(rows || [])); } catch(e) {}
+      }
+    }
   };
 
   // IMPORTANT: Do not create a second offline-only proxy here.
@@ -5802,4 +5840,5 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
 </style>
 </body>
 </html>
+
     
