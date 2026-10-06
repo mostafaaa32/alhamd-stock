@@ -5622,13 +5622,27 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
         if(prop==="then"){
           return (resolve,reject)=>{
             (async()=>{
-              if(state.write && !navigator.onLine){
-                const local=await applyLocalMutation(table,state.write.method,state.write.payload,state.calls,state.write.options);
-                await addQueue({table,method:state.write.method,payload:state.write.payload,calls:state.calls,options:state.write.options});
-                setStatus("pending");
+              // When the browser is explicitly offline, NEVER start a Supabase
+              // request. Reads come directly from IndexedDB and writes go to the queue.
+              // This prevents the console from filling with ERR_INTERNET_DISCONNECTED.
+              if(!navigator.onLine){
+                if(state.write){
+                  const local=await applyLocalMutation(table,state.write.method,state.write.payload,state.calls,state.write.options);
+                  await addQueue({table,method:state.write.method,payload:state.write.payload,calls:state.calls,options:state.write.options});
+                  setStatus("pending");
+                  const wantsSingle=state.calls.some(c=>c.name==="single"||c.name==="maybeSingle");
+                  return {data:wantsSingle?(local[0]||null):local,error:null};
+                }
+
+                const cached=applyReadOps(await getTable(table),state.calls);
+                setStatus("offline");
                 const wantsSingle=state.calls.some(c=>c.name==="single"||c.name==="maybeSingle");
-                return {data:wantsSingle?(local[0]||null):local,error:null};
+                return {
+                  data:wantsSingle?(cached[0]||null):cached,
+                  error:null
+                };
               }
+
               try{
                 const result=await state.base;
                 // Supabase can return a network error as a resolved result (for example
@@ -5723,6 +5737,7 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
   document.addEventListener("DOMContentLoaded",()=>{
     setTimeout(async()=>{
       await refreshStatus();
+      if(!navigator.onLine) setStatus("offline");
       if(navigator.onLine) scheduleSync();
       // Register the service worker that keeps the app shell available offline.
       if("serviceWorker" in navigator){
