@@ -1,9 +1,10 @@
-const CACHE_NAME = "alhamd-stock-v1";
+const CACHE_NAME = "alhamd-stock-shell-v2";
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css",
+  "./favicon.svg",
+  "./favicon.ico",
   "./sw.js"
 ];
 
@@ -33,13 +34,68 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   const request = event.request;
+  const url = new URL(request.url);
 
-  if (request.method !== "GET") return;
+  // نهتم بطلبات GET فقط
+  if (request.method !== "GET") {
+    return;
+  }
 
+  /*
+   * مهم جدًا:
+   * لا تجعل Service Worker يتدخل في Supabase.
+   *
+   * نظام Offline First الموجود داخل index.html
+   * هو المسؤول عن IndexedDB والـ Queue والمزامنة.
+   */
+  if (
+    url.hostname.includes("supabase.co") ||
+    url.pathname.includes("/rest/v1/") ||
+    url.pathname.includes("/auth/v1/")
+  ) {
+    return;
+  }
+
+  /*
+   * فتح الموقع:
+   * حاول الاتصال بالإنترنت أولًا،
+   * ولو الإنترنت غير موجود استخدم index.html المحفوظ.
+   */
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response && response.ok) {
+            const copy = response.clone();
+
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(request, copy);
+            });
+          }
+
+          return response;
+        })
+        .catch(() => {
+          return caches.match("./index.html");
+        })
+    );
+
+    return;
+  }
+
+  /*
+   * ملفات الموقع مثل:
+   * CSS
+   * JavaScript
+   * الصور
+   * favicon
+   *
+   * Network First ثم Cache عند انقطاع الإنترنت.
+   */
   event.respondWith(
     fetch(request)
       .then(response => {
-        if (response && response.status === 200) {
+        if (response && response.ok) {
           const copy = response.clone();
 
           caches.open(CACHE_NAME).then(cache => {
@@ -50,18 +106,7 @@ self.addEventListener("fetch", event => {
         return response;
       })
       .catch(() => {
-        return caches.match(request).then(cached => {
-          if (cached) return cached;
-
-          if (request.mode === "navigate") {
-            return caches.match("./index.html");
-          }
-
-          return new Response("", {
-            status: 503,
-            statusText: "Offline"
-          });
-        });
+        return caches.match(request);
       })
   );
 });
