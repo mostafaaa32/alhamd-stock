@@ -5786,7 +5786,46 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
       if(typeof builder[c.name]==="function") builder=builder[c.name](...c.args);
     }
     const result=await builder;
-    if(result && result.error) throw new Error(result.error.message||"فشل المزامنة");
+
+    // A 409 on invoice_items can happen when the first upload actually
+    // reached Supabase but the browser did not receive the response.
+    // Retrying the same item then looks like a duplicate insert.
+    // Verify that the item already exists before treating the queue item
+    // as failed.
+    if(result && result.error){
+      const msg = result.error.message || "";
+      const isConflict = String(result.error.code || "") === "23505" ||
+                         /409|duplicate|unique/i.test(msg);
+
+      if(op.table === "invoice_items" && op.method === "insert" && isConflict){
+        const rows = normalizePayload(op.payload);
+        let verified = false;
+
+        for(const row of rows){
+          if(row && row.invoice_id != null && row.product_id != null){
+            try{
+              const check = await originalFrom("invoice_items")
+                .select("id,invoice_id,product_id")
+                .eq("invoice_id", row.invoice_id)
+                .eq("product_id", row.product_id)
+                .limit(1);
+
+              if(!check.error && Array.isArray(check.data) && check.data.length){
+                verified = true;
+                continue;
+              }
+            }catch(_){}
+          }
+        }
+
+        if(verified){
+          return {data:[], error:null, alreadySynced:true};
+        }
+      }
+
+      throw new Error(msg || "فشل المزامنة");
+    }
+
     if(op.method==="insert" || op.method==="upsert"){
       const sent=normalizePayload(op.payload), got=Array.isArray(result.data)?result.data:(result.data?[result.data]:[]);
       for(let i=0;i<sent.length;i++){
@@ -5808,8 +5847,11 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
       for(const item of ordered){
         item.status="syncing"; item.tries=(item.tries||0)+1; await updateQueue(item);
         try{
-          await executeQueueItem(item);
+          const syncResult = await executeQueueItem(item);
           await removeQueue(item.qid);
+          if(syncResult && syncResult.alreadySynced){
+            console.info("تم تأكيد وجود بند الفاتورة على الخادم، وتم حذف المحاولة المكررة من قائمة المزامنة.");
+          }
         }catch(e){
           item.status="error"; item.last_error=e.message||String(e); await updateQueue(item);
           break;
