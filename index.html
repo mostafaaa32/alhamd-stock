@@ -1273,6 +1273,7 @@ html[data-theme="dark"] .stat.card:hover{border-color:#3b4a62!important}
         <li><button class="tab" data-tab="invoice">📄 فاتورة بيع جديدة</button></li>
         <li><button class="tab" data-tab="projects">🏗️ المقاولات</button></li>
         <li><button class="tab" data-tab="workmanship">👷 المصنعيات</button></li>
+        <li><button class="tab" data-tab="workerWages">👷‍♂️ أجور العمال</button></li>
         <li><button class="tab" data-tab="projectSummary">📋 ملخص المشروع</button></li>
         <li><button class="tab" data-tab="suppliers">🏭 الموردين والمشتريات</button></li>
         <li><button class="tab" data-tab="products">📦 المخزن والأصناف</button></li>
@@ -2250,6 +2251,423 @@ function printProjectSummary(){
 
 
 
+
+
+<!-- =========================================================
+     ALHAMD STOCK — وحدة أجور العمال
+     الحقول:
+     اسم الصنايعي | عدد الأيام | أجر اليوم | إجمالي الأجر | مكان الصنايعي في اليوم
+     ========================================================= -->
+<style id="alhamd-worker-wages-css">
+  #workerWages{max-width:1500px;margin:auto}
+  .ww-hero{
+    background:linear-gradient(135deg,#111d3d,#1e3a8a 60%,#0b1224);
+    color:#fff;border-radius:22px;padding:24px;margin-bottom:16px;
+    box-shadow:0 16px 40px rgba(15,23,42,.14)
+  }
+  .ww-hero h2{margin:0 0 6px;color:#fff!important;font-size:24px}
+  .ww-hero p{margin:0;color:#dbeafe;font-size:12px;line-height:1.8}
+  .ww-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .ww-kpi{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px;box-shadow:0 7px 22px rgba(15,23,42,.05)}
+  .ww-kpi span{display:block;color:#64748b;font-size:11px;font-weight:800}
+  .ww-kpi b{display:block;color:#172554;font-size:22px;margin-top:7px}
+  .ww-kpi.gold{border-right:4px solid #d4a84f}
+  .ww-kpi.green{border-right:4px solid #16a34a}
+  .ww-kpi.blue{border-right:4px solid #2563eb}
+  .ww-kpi.orange{border-right:4px solid #f59e0b}
+  .ww-form-card{background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,.06);margin-bottom:16px}
+  .ww-section-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .ww-section-title h3{margin:0;color:#172554;font-size:17px}
+  .ww-section-title small{color:#64748b}
+  .ww-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .ww-field label{display:block;margin-bottom:6px;font-size:12px;font-weight:800;color:#334155}
+  .ww-field input,.ww-field select{
+    width:100%;min-height:45px!important;border:1px solid #dbe2ea;
+    border-radius:11px;padding:8px 12px;background:#fff;font-family:inherit
+  }
+  .ww-total-box{
+    min-height:45px;display:flex;align-items:center;justify-content:space-between;
+    padding:8px 13px;border-radius:11px;background:#f8fafc;border:1px solid #dbe2ea
+  }
+  .ww-total-box strong{font-size:18px;color:#172554}
+  .ww-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .ww-btn{border:0;border-radius:10px;padding:10px 15px;font-family:inherit;font-weight:800;cursor:pointer}
+  .ww-btn.primary{background:linear-gradient(135deg,#172554,#1e3a8a);color:#fff}
+  .ww-btn.gold{background:linear-gradient(135deg,#c79b3b,#e5bf66);color:#172033}
+  .ww-btn.gray{background:#eef2f7;color:#334155}
+  .ww-btn.red{background:#fee2e2;color:#b91c1c}
+  .ww-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+  .ww-search{flex:1;min-width:240px}
+  .ww-search input{width:100%;min-height:43px!important;border:1px solid #dbe2ea;border-radius:11px;padding:8px 12px;font-family:inherit}
+  .ww-table-wrap{overflow:auto;border:1px solid #e5e7eb;border-radius:15px;background:#fff}
+  .ww-table{width:100%;min-width:1050px;border-collapse:collapse}
+  .ww-table th{background:#f8fafc!important;color:#334155!important;padding:12px 10px!important;text-align:right!important}
+  .ww-table td{padding:11px 10px!important;border-bottom:1px solid #eef2f7!important;text-align:right!important}
+  .ww-table tr:hover{background:#f8fbff}
+  .ww-action{border:0;border-radius:8px;padding:6px 9px;font-family:inherit;font-weight:800;font-size:11px;cursor:pointer;margin:2px}
+  .ww-action.edit{background:#fff1d6;color:#9a5a00}
+  .ww-action.delete{background:#fee2e2;color:#b91c1c}
+  .ww-empty{text-align:center;padding:30px;color:#64748b}
+  .ww-msg{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;display:none}
+  .ww-msg.show{display:block}.ww-msg.ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+  .ww-msg.err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+  html[data-theme="dark"] #workerWages .ww-kpi,
+  html[data-theme="dark"] #workerWages .ww-form-card,
+  html[data-theme="dark"] #workerWages .ww-table-wrap{background:#111827!important;border-color:#263244!important;color:#e5e7eb}
+  html[data-theme="dark"] #workerWages .ww-section-title h3,
+  html[data-theme="dark"] #workerWages .ww-kpi b{color:#f8d67b!important}
+  html[data-theme="dark"] #workerWages .ww-field label{color:#cbd5e1}
+  html[data-theme="dark"] #workerWages .ww-field input,
+  html[data-theme="dark"] #workerWages .ww-search input,
+  html[data-theme="dark"] #workerWages .ww-total-box{background:#0f172a;color:#e5e7eb;border-color:#334155}
+  html[data-theme="dark"] #workerWages .ww-table th{background:#172033!important;color:#f8fafc!important}
+  html[data-theme="dark"] #workerWages .ww-table td{color:#dbe4f0;border-bottom-color:#243042!important}
+  @media(max-width:900px){
+    .ww-kpis{grid-template-columns:1fr 1fr}
+    .ww-grid{grid-template-columns:1fr}
+    .ww-form-card{padding:15px}
+  }
+  @media(max-width:560px){
+    .ww-kpis{grid-template-columns:1fr 1fr;gap:8px}
+    .ww-kpi{padding:12px}.ww-kpi b{font-size:18px}
+    .ww-search{min-width:100%}
+    .ww-actions .ww-btn{flex:1;min-width:130px}
+  }
+</style>
+
+<section id="workerWages" class="tab-page hidden">
+  <div class="ww-hero">
+    <h2>👷‍♂️ أجور العمال والصنايعية</h2>
+    <p>تسجيل حضور الصنايعي اليومية وحساب أجره تلقائيًا حسب عدد الأيام × أجر اليوم، مع تحديد مكان عمله في اليوم.</p>
+  </div>
+
+  <div class="ww-kpis">
+    <div class="ww-kpi gold"><span>👷 عدد السجلات</span><b id="wwKpiRecords">٠</b></div>
+    <div class="ww-kpi blue"><span>📅 إجمالي الأيام</span><b id="wwKpiDays">٠</b></div>
+    <div class="ww-kpi green"><span>💰 إجمالي الأجور</span><b id="wwKpiTotal">٠٫٠٠ ج.م</b></div>
+    <div class="ww-kpi orange"><span>📍 آخر مكان مسجل</span><b id="wwKpiPlace" style="font-size:16px">—</b></div>
+  </div>
+
+  <div class="ww-form-card">
+    <div class="ww-section-title">
+      <div>
+        <h3 id="wwFormTitle">➕ إضافة أجر عامل</h3>
+        <small>املأ البيانات ثم اضغط حفظ.</small>
+      </div>
+      <button class="ww-btn gray" type="button" onclick="resetWorkerWageForm()">مسح النموذج</button>
+    </div>
+
+    <div class="ww-grid">
+      <div class="ww-field">
+        <label>اسم الصنايعي *</label>
+        <input id="wwWorkerName" type="text" placeholder="مثال: أحمد محمد">
+      </div>
+      <div class="ww-field">
+        <label>التاريخ *</label>
+        <input id="wwDate" type="date">
+      </div>
+      <div class="ww-field">
+        <label>عدد الأيام *</label>
+        <input id="wwDays" type="number" min="0.5" step="0.5" value="1" placeholder="مثال: 3">
+      </div>
+      <div class="ww-field">
+        <label>أجر العامل لليوم الواحد (ج.م) *</label>
+        <input id="wwDailyWage" type="number" min="0" step="0.01" placeholder="مثال: 500">
+      </div>
+      <div class="ww-field">
+        <label>مكان الصنايعي في اليوم *</label>
+        <input id="wwPlace" type="text" placeholder="مثال: مشروع شارع البحر / موقع الحواتم">
+      </div>
+      <div class="ww-field">
+        <label>إجمالي الأجر</label>
+        <div class="ww-total-box">
+          <span>عدد الأيام × أجر اليوم</span>
+          <strong id="wwTotalPreview">٠٫٠٠ ج.م</strong>
+        </div>
+      </div>
+      <div class="ww-field">
+        <label>ملاحظات</label>
+        <input id="wwNotes" type="text" placeholder="اختياري">
+      </div>
+    </div>
+
+    <div class="ww-actions">
+      <button id="wwSaveBtn" class="ww-btn primary" type="button" onclick="saveWorkerWage()">💾 حفظ أجر العامل</button>
+      <button class="ww-btn gold" type="button" onclick="printWorkerWagesReport()">🖨️ طباعة التقرير</button>
+    </div>
+    <div id="wwMsg" class="ww-msg"></div>
+  </div>
+
+  <div class="ww-form-card">
+    <div class="ww-section-title">
+      <div>
+        <h3>📋 سجل أجور العمال</h3>
+        <small>يمكنك البحث والتعديل والحذف.</small>
+      </div>
+    </div>
+    <div class="ww-toolbar">
+      <div class="ww-search">
+        <input id="wwSearch" type="search" placeholder="ابحث باسم الصنايعي أو مكان العمل..." oninput="renderWorkerWages()">
+      </div>
+      <button class="ww-btn gray" type="button" onclick="loadWorkerWages()">↻ تحديث</button>
+    </div>
+    <div class="ww-table-wrap">
+      <table class="ww-table" id="workerWagesTable">
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>اسم الصنايعي</th>
+            <th>مكان الصنايعي</th>
+            <th>عدد الأيام</th>
+            <th>أجر اليوم</th>
+            <th>إجمالي الأجر</th>
+            <th>ملاحظات</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="wwBody">
+          <tr><td colspan="8" class="ww-empty">جاري التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<script id="alhamd-worker-wages-js">
+(function(){
+  let workerWages = [];
+  let editingWorkerWageId = null;
+
+  const ww$ = id => document.getElementById(id);
+  const wwMoney = n => {
+    const v = Number(n || 0);
+    if(typeof money === "function") return money(v);
+    return v.toFixed(2);
+  };
+  const wwArabic = n => {
+    try{
+      if(typeof toArabicDigits === "function") return toArabicDigits(n);
+      return String(n);
+    }catch(e){ return String(n); }
+  };
+  const wwEsc = v => {
+    if(typeof esc === "function") return esc(v == null ? "" : String(v));
+    return String(v == null ? "" : v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+  };
+  const wwToday = () => new Date().toISOString().slice(0,10);
+
+  function wwMessage(text, ok=true){
+    const el=ww$("wwMsg"); if(!el)return;
+    el.textContent=text; el.className="ww-msg show "+(ok?"ok":"err");
+    setTimeout(()=>{el.classList.remove("show")},3500);
+  }
+
+  function wwCalc(){
+    const days=Number(ww$("wwDays")?.value||0);
+    const daily=Number(ww$("wwDailyWage")?.value||0);
+    const total=Math.max(0,days*daily);
+    if(ww$("wwTotalPreview")) ww$("wwTotalPreview").textContent=wwArabic(wwMoney(total))+" ج.م";
+    return total;
+  }
+
+  function resetWorkerWageForm(){
+    editingWorkerWageId=null;
+    if(ww$("wwWorkerName")) ww$("wwWorkerName").value="";
+    if(ww$("wwDate")) ww$("wwDate").value=wwToday();
+    if(ww$("wwDays")) ww$("wwDays").value="1";
+    if(ww$("wwDailyWage")) ww$("wwDailyWage").value="";
+    if(ww$("wwPlace")) ww$("wwPlace").value="";
+    if(ww$("wwNotes")) ww$("wwNotes").value="";
+    if(ww$("wwFormTitle")) ww$("wwFormTitle").textContent="➕ إضافة أجر عامل";
+    if(ww$("wwSaveBtn")) ww$("wwSaveBtn").textContent="💾 حفظ أجر العامل";
+    wwCalc();
+  }
+  window.resetWorkerWageForm=resetWorkerWageForm;
+
+  async function loadWorkerWages(){
+    try{
+      const result=await sb.from("worker_wages").select("*").order("work_date",{ascending:false}).order("created_at",{ascending:false});
+      if(result.error) throw result.error;
+      workerWages=Array.isArray(result.data)?result.data:[];
+    }catch(error){
+      console.error("worker_wages load:",error);
+      workerWages=[];
+      wwMessage("تعذر تحميل أجور العمال: "+(error?.message||error),false);
+    }
+    renderWorkerWages();
+  }
+  window.loadWorkerWages=loadWorkerWages;
+
+  function renderWorkerWages(){
+    const body=ww$("wwBody"); if(!body)return;
+    const q=(ww$("wwSearch")?.value||"").trim().toLowerCase();
+    const rows=workerWages.filter(w=>{
+      if(!q)return true;
+      return String(w.worker_name||"").toLowerCase().includes(q) ||
+             String(w.work_place||"").toLowerCase().includes(q) ||
+             String(w.notes||"").toLowerCase().includes(q);
+    });
+
+    if(!rows.length){
+      body.innerHTML='<tr><td colspan="8" class="ww-empty">لا توجد سجلات أجور حتى الآن.</td></tr>';
+    }else{
+      body.innerHTML=rows.map(w=>`
+        <tr>
+          <td>${wwEsc(w.work_date||"")}</td>
+          <td><b>${wwEsc(w.worker_name)}</b></td>
+          <td>📍 ${wwEsc(w.work_place)}</td>
+          <td>${wwArabic(w.days)}</td>
+          <td>${wwArabic(wwMoney(w.daily_wage))} ج.م</td>
+          <td><b>${wwArabic(wwMoney(w.total_wage))} ج.م</b></td>
+          <td>${wwEsc(w.notes||"—")}</td>
+          <td>
+            <button class="ww-action edit" onclick="editWorkerWage('${wwEsc(w.id)}')">تعديل</button>
+            <button class="ww-action delete" onclick="deleteWorkerWage('${wwEsc(w.id)}')">حذف</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    const totalDays=rows.reduce((a,w)=>a+Number(w.days||0),0);
+    const totalWages=rows.reduce((a,w)=>a+Number(w.total_wage||0),0);
+    if(ww$("wwKpiRecords")) ww$("wwKpiRecords").textContent=wwArabic(rows.length);
+    if(ww$("wwKpiDays")) ww$("wwKpiDays").textContent=wwArabic(totalDays);
+    if(ww$("wwKpiTotal")) ww$("wwKpiTotal").textContent=wwArabic(wwMoney(totalWages))+" ج.م";
+    if(ww$("wwKpiPlace")) ww$("wwKpiPlace").textContent=rows[0]?.work_place||"—";
+  }
+  window.renderWorkerWages=renderWorkerWages;
+
+  async function saveWorkerWage(){
+    const workerName=(ww$("wwWorkerName")?.value||"").trim();
+    const workDate=ww$("wwDate")?.value||wwToday();
+    const days=Number(ww$("wwDays")?.value||0);
+    const dailyWage=Number(ww$("wwDailyWage")?.value||0);
+    const workPlace=(ww$("wwPlace")?.value||"").trim();
+    const notes=(ww$("wwNotes")?.value||"").trim()||null;
+    const totalWage=Number((days*dailyWage).toFixed(2));
+
+    if(!workerName)return wwMessage("اكتب اسم الصنايعي.",false);
+    if(!workDate)return wwMessage("اختر التاريخ.",false);
+    if(!isFinite(days)||days<=0)return wwMessage("أدخل عدد أيام صحيح.",false);
+    if(!isFinite(dailyWage)||dailyWage<0)return wwMessage("أدخل أجر اليوم بشكل صحيح.",false);
+    if(!workPlace)return wwMessage("اكتب مكان الصنايعي في اليوم.",false);
+
+    const payload={
+      worker_name:workerName,
+      work_date:workDate,
+      days,
+      daily_wage:dailyWage,
+      work_place:workPlace,
+      notes
+    };
+
+    try{
+      let result;
+      if(editingWorkerWageId){
+        result=await sb.from("worker_wages").update(payload).eq("id",editingWorkerWageId);
+      }else{
+        result=await sb.from("worker_wages").insert([payload]);
+      }
+      if(result.error)throw result.error;
+
+      wwMessage(editingWorkerWageId?"تم تعديل أجر العامل بنجاح.":"تم حفظ أجر العامل بنجاح.",true);
+      resetWorkerWageForm();
+      await loadWorkerWages();
+    }catch(error){
+      console.error("worker_wages save:",error);
+      wwMessage("تعذر حفظ أجر العامل: "+(error?.message||error),false);
+    }
+  }
+  window.saveWorkerWage=saveWorkerWage;
+
+  function editWorkerWage(id){
+    const w=workerWages.find(x=>String(x.id)===String(id)); if(!w)return;
+    editingWorkerWageId=id;
+    ww$("wwWorkerName").value=w.worker_name||"";
+    ww$("wwDate").value=w.work_date||wwToday();
+    ww$("wwDays").value=w.days||1;
+    ww$("wwDailyWage").value=w.daily_wage||0;
+    ww$("wwPlace").value=w.work_place||"";
+    ww$("wwNotes").value=w.notes||"";
+    ww$("wwFormTitle").textContent="✏️ تعديل أجر العامل";
+    ww$("wwSaveBtn").textContent="💾 حفظ التعديل";
+    wwCalc();
+    const page=ww$("workerWages");
+    if(page && page.classList.contains("hidden")) showTab("workerWages");
+    page?.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  window.editWorkerWage=editWorkerWage;
+
+  async function deleteWorkerWage(id){
+    const w=workerWages.find(x=>String(x.id)===String(id));
+    if(!w)return;
+    if(!confirm("هل أنت متأكد من حذف سجل أجر "+(w.worker_name||"العامل")+"؟"))return;
+    try{
+      const result=await sb.from("worker_wages").delete().eq("id",id);
+      if(result.error)throw result.error;
+      wwMessage("تم حذف سجل الأجر.",true);
+      await loadWorkerWages();
+    }catch(error){
+      wwMessage("تعذر حذف السجل: "+(error?.message||error),false);
+    }
+  }
+  window.deleteWorkerWage=deleteWorkerWage;
+
+  function printWorkerWagesReport(){
+    const q=(ww$("wwSearch")?.value||"").trim().toLowerCase();
+    const rows=workerWages.filter(w=>!q ||
+      String(w.worker_name||"").toLowerCase().includes(q) ||
+      String(w.work_place||"").toLowerCase().includes(q));
+    const totalDays=rows.reduce((a,w)=>a+Number(w.days||0),0);
+    const totalWages=rows.reduce((a,w)=>a+Number(w.total_wage||0),0);
+    const trs=rows.map(w=>`
+      <tr>
+        <td>${wwEsc(w.work_date||"")}</td><td>${wwEsc(w.worker_name)}</td>
+        <td>${wwEsc(w.work_place)}</td><td>${wwEsc(w.days)}</td>
+        <td>${wwEsc(wwMoney(w.daily_wage))}</td><td>${wwEsc(wwMoney(w.total_wage))}</td>
+        <td>${wwEsc(w.notes||"")}</td>
+      </tr>`).join("") || '<tr><td colspan="7">لا توجد سجلات</td></tr>';
+    const win=window.open("","_blank");
+    if(!win)return alert("اسمح بالنوافذ المنبثقة لطباعة التقرير.");
+    win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+      <title>تقرير أجور العمال</title>
+      <style>
+      body{font-family:Cairo,Tahoma,sans-serif;padding:25px;color:#172033}
+      h1{text-align:center;color:#172554}p{text-align:center;color:#64748b}
+      table{width:100%;border-collapse:collapse;margin-top:20px}
+      th,td{border:1px solid #cbd5e1;padding:8px;text-align:center}
+      th{background:#172554;color:#fff}.total{margin-top:18px;padding:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;font-weight:800}
+      @media print{button{display:none}}
+      </style></head><body>
+      <h1>تقرير أجور العمال والصنايعية</h1>
+      <p>تاريخ التقرير: ${wwEsc(new Date().toLocaleString("ar-EG"))}</p>
+      <table><thead><tr><th>التاريخ</th><th>الصنايعي</th><th>المكان</th><th>الأيام</th><th>أجر اليوم</th><th>الإجمالي</th><th>ملاحظات</th></tr></thead>
+      <tbody>${trs}</tbody></table>
+      <div class="total">إجمالي الأيام: ${wwEsc(wwArabic(totalDays))} — إجمالي الأجور: ${wwEsc(wwArabic(wwMoney(totalWages)))} ج.م</div>
+      <script>window.onload=function(){window.print();}</script>
+      </body></html>`);
+    win.document.close();
+  }
+  window.printWorkerWagesReport=printWorkerWagesReport;
+
+  document.addEventListener("DOMContentLoaded",function(){
+    ["wwDays","wwDailyWage"].forEach(id=>ww$(id)?.addEventListener("input",wwCalc));
+    if(ww$("wwDate")) ww$("wwDate").value=wwToday();
+    wwCalc();
+  });
+
+  // نربط التبويب الجديد مع showTab الموجود في النظام.
+  const oldShowTab=window.showTab;
+  window.showTab=function(tabId){
+    const result=oldShowTab ? oldShowTab.apply(this,arguments) : undefined;
+    if(tabId==="workerWages"){
+      loadWorkerWages();
+      if(!editingWorkerWageId) resetWorkerWageForm();
+    }
+    return result;
+  };
+})();
+</script>
 
 </body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
