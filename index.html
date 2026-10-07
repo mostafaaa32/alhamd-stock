@@ -2253,187 +2253,17 @@ function printProjectSummary(){
 
 
 
-<!-- =========================================================
-     ALHAMD STOCK — وحدة أجور العمال
-     الحقول:
-     اسم الصنايعي | عدد الأيام | أجر اليوم | إجمالي الأجر | مكان الصنايعي في اليوم
-     ========================================================= -->
-<style id="alhamd-worker-wages-css">
-  #workerWages{max-width:1500px;margin:auto}
-  .ww-hero{
-    background:linear-gradient(135deg,#111d3d,#1e3a8a 60%,#0b1224);
-    color:#fff;border-radius:22px;padding:24px;margin-bottom:16px;
-    box-shadow:0 16px 40px rgba(15,23,42,.14)
-  }
-  .ww-hero h2{margin:0 0 6px;color:#fff!important;font-size:24px}
-  .ww-hero p{margin:0;color:#dbeafe;font-size:12px;line-height:1.8}
-  .ww-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-  .ww-kpi{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px;box-shadow:0 7px 22px rgba(15,23,42,.05)}
-  .ww-kpi span{display:block;color:#64748b;font-size:11px;font-weight:800}
-  .ww-kpi b{display:block;color:#172554;font-size:22px;margin-top:7px}
-  .ww-kpi.gold{border-right:4px solid #d4a84f}
-  .ww-kpi.green{border-right:4px solid #16a34a}
-  .ww-kpi.blue{border-right:4px solid #2563eb}
-  .ww-kpi.orange{border-right:4px solid #f59e0b}
-  .ww-form-card{background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,.06);margin-bottom:16px}
-  .ww-section-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-  .ww-section-title h3{margin:0;color:#172554;font-size:17px}
-  .ww-section-title small{color:#64748b}
-  .ww-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .ww-field label{display:block;margin-bottom:6px;font-size:12px;font-weight:800;color:#334155}
-  .ww-field input,.ww-field select{
-    width:100%;min-height:45px!important;border:1px solid #dbe2ea;
-    border-radius:11px;padding:8px 12px;background:#fff;font-family:inherit
-  }
-  .ww-total-box{
-    min-height:45px;display:flex;align-items:center;justify-content:space-between;
-    padding:8px 13px;border-radius:11px;background:#f8fafc;border:1px solid #dbe2ea
-  }
-  .ww-total-box strong{font-size:18px;color:#172554}
-  .ww-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-  .ww-btn{border:0;border-radius:10px;padding:10px 15px;font-family:inherit;font-weight:800;cursor:pointer}
-  .ww-btn.primary{background:linear-gradient(135deg,#172554,#1e3a8a);color:#fff}
-  .ww-btn.gold{background:linear-gradient(135deg,#c79b3b,#e5bf66);color:#172033}
-  .ww-btn.gray{background:#eef2f7;color:#334155}
-  .ww-btn.red{background:#fee2e2;color:#b91c1c}
-  .ww-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
-  .ww-search{flex:1;min-width:240px}
-  .ww-search input{width:100%;min-height:43px!important;border:1px solid #dbe2ea;border-radius:11px;padding:8px 12px;font-family:inherit}
-  .ww-table-wrap{overflow:auto;border:1px solid #e5e7eb;border-radius:15px;background:#fff}
-  .ww-table{width:100%;min-width:1050px;border-collapse:collapse}
-  .ww-table th{background:#f8fafc!important;color:#334155!important;padding:12px 10px!important;text-align:right!important}
-  .ww-table td{padding:11px 10px!important;border-bottom:1px solid #eef2f7!important;text-align:right!important}
-  .ww-table tr:hover{background:#f8fbff}
-  .ww-action{border:0;border-radius:8px;padding:6px 9px;font-family:inherit;font-weight:800;font-size:11px;cursor:pointer;margin:2px}
-  .ww-action.edit{background:#fff1d6;color:#9a5a00}
-  .ww-action.delete{background:#fee2e2;color:#b91c1c}
-  .ww-empty{text-align:center;padding:30px;color:#64748b}
-  .ww-msg{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;display:none}
-  .ww-msg.show{display:block}.ww-msg.ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
-  .ww-msg.err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
-  html[data-theme="dark"] #workerWages .ww-kpi,
-  html[data-theme="dark"] #workerWages .ww-form-card,
-  html[data-theme="dark"] #workerWages .ww-table-wrap{background:#111827!important;border-color:#263244!important;color:#e5e7eb}
-  html[data-theme="dark"] #workerWages .ww-section-title h3,
-  html[data-theme="dark"] #workerWages .ww-kpi b{color:#f8d67b!important}
-  html[data-theme="dark"] #workerWages .ww-field label{color:#cbd5e1}
-  html[data-theme="dark"] #workerWages .ww-field input,
-  html[data-theme="dark"] #workerWages .ww-search input,
-  html[data-theme="dark"] #workerWages .ww-total-box{background:#0f172a;color:#e5e7eb;border-color:#334155}
-  html[data-theme="dark"] #workerWages .ww-table th{background:#172033!important;color:#f8fafc!important}
-  html[data-theme="dark"] #workerWages .ww-table td{color:#dbe4f0;border-bottom-color:#243042!important}
-  @media(max-width:900px){
-    .ww-kpis{grid-template-columns:1fr 1fr}
-    .ww-grid{grid-template-columns:1fr}
-    .ww-form-card{padding:15px}
-  }
-  @media(max-width:560px){
-    .ww-kpis{grid-template-columns:1fr 1fr;gap:8px}
-    .ww-kpi{padding:12px}.ww-kpi b{font-size:18px}
-    .ww-search{min-width:100%}
-    .ww-actions .ww-btn{flex:1;min-width:130px}
-  }
-</style>
 
-<section id="workerWages" class="tab-page hidden">
-  <div class="ww-hero">
-    <h2>👷‍♂️ أجور العمال والصنايعية</h2>
-    <p>تسجيل حضور الصنايعي اليومية وحساب أجره تلقائيًا حسب عدد الأيام × أجر اليوم، مع تحديد مكان عمله في اليوم.</p>
-  </div>
 
-  <div class="ww-kpis">
-    <div class="ww-kpi gold"><span>👷 عدد السجلات</span><b id="wwKpiRecords">٠</b></div>
-    <div class="ww-kpi blue"><span>📅 إجمالي الأيام</span><b id="wwKpiDays">٠</b></div>
-    <div class="ww-kpi green"><span>💰 إجمالي الأجور</span><b id="wwKpiTotal">٠٫٠٠ ج.م</b></div>
-    <div class="ww-kpi orange"><span>📍 آخر مكان مسجل</span><b id="wwKpiPlace" style="font-size:16px">—</b></div>
-  </div>
 
-  <div class="ww-form-card">
-    <div class="ww-section-title">
-      <div>
-        <h3 id="wwFormTitle">➕ إضافة أجر عامل</h3>
-        <small>املأ البيانات ثم اضغط حفظ.</small>
-      </div>
-      <button class="ww-btn gray" type="button" onclick="resetWorkerWageForm()">مسح النموذج</button>
-    </div>
 
-    <div class="ww-grid">
-      <div class="ww-field">
-        <label>اسم الصنايعي *</label>
-        <input id="wwWorkerName" type="text" placeholder="مثال: أحمد محمد">
-      </div>
-      <div class="ww-field">
-        <label>التاريخ *</label>
-        <input id="wwDate" type="date">
-      </div>
-      <div class="ww-field">
-        <label>عدد الأيام *</label>
-        <input id="wwDays" type="number" min="0.5" step="0.5" value="1" placeholder="مثال: 3">
-      </div>
-      <div class="ww-field">
-        <label>أجر العامل لليوم الواحد (ج.م) *</label>
-        <input id="wwDailyWage" type="number" min="0" step="0.01" placeholder="مثال: 500">
-      </div>
-      <div class="ww-field">
-        <label>مكان الصنايعي في اليوم *</label>
-        <input id="wwPlace" type="text" placeholder="مثال: مشروع شارع البحر / موقع الحواتم">
-      </div>
-      <div class="ww-field">
-        <label>إجمالي الأجر</label>
-        <div class="ww-total-box">
-          <span>عدد الأيام × أجر اليوم</span>
-          <strong id="wwTotalPreview">٠٫٠٠ ج.م</strong>
-        </div>
-      </div>
-      <div class="ww-field">
-        <label>ملاحظات</label>
-        <input id="wwNotes" type="text" placeholder="اختياري">
-      </div>
-    </div>
+</body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+}
 
-    <div class="ww-actions">
-      <button id="wwSaveBtn" class="ww-btn primary" type="button" onclick="saveWorkerWage()">💾 حفظ أجر العامل</button>
-      <button class="ww-btn gold" type="button" onclick="printWorkerWagesReport()">🖨️ طباعة التقرير</button>
-    </div>
-    <div id="wwMsg" class="ww-msg"></div>
-  </div>
 
-  <div class="ww-form-card">
-    <div class="ww-section-title">
-      <div>
-        <h3>📋 سجل أجور العمال</h3>
-        <small>يمكنك البحث والتعديل والحذف.</small>
-      </div>
-    </div>
-    <div class="ww-toolbar">
-      <div class="ww-search">
-        <input id="wwSearch" type="search" placeholder="ابحث باسم الصنايعي أو مكان العمل..." oninput="renderWorkerWages()">
-      </div>
-      <button class="ww-btn gray" type="button" onclick="loadWorkerWages()">↻ تحديث</button>
-    </div>
-    <div class="ww-table-wrap">
-      <table class="ww-table" id="workerWagesTable">
-        <thead>
-          <tr>
-            <th>التاريخ</th>
-            <th>اسم الصنايعي</th>
-            <th>مكان الصنايعي</th>
-            <th>عدد الأيام</th>
-            <th>أجر اليوم</th>
-            <th>إجمالي الأجر</th>
-            <th>ملاحظات</th>
-            <th>الإجراءات</th>
-          </tr>
-        </thead>
-        <tbody id="wwBody">
-          <tr><td colspan="8" class="ww-empty">جاري التحميل...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
+/* Worker wages module */
 
-<script id="alhamd-worker-wages-js">
 (function(){
   let workerWages = [];
   let editingWorkerWageId = null;
@@ -2667,11 +2497,6 @@ function printProjectSummary(){
     return result;
   };
 })();
-</script>
-
-</body></html>`;
-  const w=window.open('','_blank');w.document.write(html);w.document.close();
-}
 
 function printProjectTableReport(){const t=document.getElementById('projectsTable');if(!t)return;printHtmlTableReport('تقرير المقاولات',t.outerHTML)}
 function printWorkmanshipTableReport(){const t=document.getElementById('workmanshipTable');if(!t)return;printHtmlTableReport('تقرير المصنعيات',t.outerHTML)}
@@ -6547,6 +6372,186 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
 @media(max-width:900px){.ah-offline-status{font-size:10px!important;padding:6px 8px!important}}
 @media(max-width:560px){.ah-offline-status{font-size:9px!important;padding:5px 7px!important}}
 </style>
+<!-- =========================================================
+     ALHAMD STOCK — وحدة أجور العمال
+     الحقول:
+     اسم الصنايعي | عدد الأيام | أجر اليوم | إجمالي الأجر | مكان الصنايعي في اليوم
+     ========================================================= -->
+<style id="alhamd-worker-wages-css">
+  #workerWages{max-width:1500px;margin:auto}
+  .ww-hero{
+    background:linear-gradient(135deg,#111d3d,#1e3a8a 60%,#0b1224);
+    color:#fff;border-radius:22px;padding:24px;margin-bottom:16px;
+    box-shadow:0 16px 40px rgba(15,23,42,.14)
+  }
+  .ww-hero h2{margin:0 0 6px;color:#fff!important;font-size:24px}
+  .ww-hero p{margin:0;color:#dbeafe;font-size:12px;line-height:1.8}
+  .ww-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .ww-kpi{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px;box-shadow:0 7px 22px rgba(15,23,42,.05)}
+  .ww-kpi span{display:block;color:#64748b;font-size:11px;font-weight:800}
+  .ww-kpi b{display:block;color:#172554;font-size:22px;margin-top:7px}
+  .ww-kpi.gold{border-right:4px solid #d4a84f}
+  .ww-kpi.green{border-right:4px solid #16a34a}
+  .ww-kpi.blue{border-right:4px solid #2563eb}
+  .ww-kpi.orange{border-right:4px solid #f59e0b}
+  .ww-form-card{background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,.06);margin-bottom:16px}
+  .ww-section-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .ww-section-title h3{margin:0;color:#172554;font-size:17px}
+  .ww-section-title small{color:#64748b}
+  .ww-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .ww-field label{display:block;margin-bottom:6px;font-size:12px;font-weight:800;color:#334155}
+  .ww-field input,.ww-field select{
+    width:100%;min-height:45px!important;border:1px solid #dbe2ea;
+    border-radius:11px;padding:8px 12px;background:#fff;font-family:inherit
+  }
+  .ww-total-box{
+    min-height:45px;display:flex;align-items:center;justify-content:space-between;
+    padding:8px 13px;border-radius:11px;background:#f8fafc;border:1px solid #dbe2ea
+  }
+  .ww-total-box strong{font-size:18px;color:#172554}
+  .ww-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .ww-btn{border:0;border-radius:10px;padding:10px 15px;font-family:inherit;font-weight:800;cursor:pointer}
+  .ww-btn.primary{background:linear-gradient(135deg,#172554,#1e3a8a);color:#fff}
+  .ww-btn.gold{background:linear-gradient(135deg,#c79b3b,#e5bf66);color:#172033}
+  .ww-btn.gray{background:#eef2f7;color:#334155}
+  .ww-btn.red{background:#fee2e2;color:#b91c1c}
+  .ww-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+  .ww-search{flex:1;min-width:240px}
+  .ww-search input{width:100%;min-height:43px!important;border:1px solid #dbe2ea;border-radius:11px;padding:8px 12px;font-family:inherit}
+  .ww-table-wrap{overflow:auto;border:1px solid #e5e7eb;border-radius:15px;background:#fff}
+  .ww-table{width:100%;min-width:1050px;border-collapse:collapse}
+  .ww-table th{background:#f8fafc!important;color:#334155!important;padding:12px 10px!important;text-align:right!important}
+  .ww-table td{padding:11px 10px!important;border-bottom:1px solid #eef2f7!important;text-align:right!important}
+  .ww-table tr:hover{background:#f8fbff}
+  .ww-action{border:0;border-radius:8px;padding:6px 9px;font-family:inherit;font-weight:800;font-size:11px;cursor:pointer;margin:2px}
+  .ww-action.edit{background:#fff1d6;color:#9a5a00}
+  .ww-action.delete{background:#fee2e2;color:#b91c1c}
+  .ww-empty{text-align:center;padding:30px;color:#64748b}
+  .ww-msg{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;display:none}
+  .ww-msg.show{display:block}.ww-msg.ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+  .ww-msg.err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+  html[data-theme="dark"] #workerWages .ww-kpi,
+  html[data-theme="dark"] #workerWages .ww-form-card,
+  html[data-theme="dark"] #workerWages .ww-table-wrap{background:#111827!important;border-color:#263244!important;color:#e5e7eb}
+  html[data-theme="dark"] #workerWages .ww-section-title h3,
+  html[data-theme="dark"] #workerWages .ww-kpi b{color:#f8d67b!important}
+  html[data-theme="dark"] #workerWages .ww-field label{color:#cbd5e1}
+  html[data-theme="dark"] #workerWages .ww-field input,
+  html[data-theme="dark"] #workerWages .ww-search input,
+  html[data-theme="dark"] #workerWages .ww-total-box{background:#0f172a;color:#e5e7eb;border-color:#334155}
+  html[data-theme="dark"] #workerWages .ww-table th{background:#172033!important;color:#f8fafc!important}
+  html[data-theme="dark"] #workerWages .ww-table td{color:#dbe4f0;border-bottom-color:#243042!important}
+  @media(max-width:900px){
+    .ww-kpis{grid-template-columns:1fr 1fr}
+    .ww-grid{grid-template-columns:1fr}
+    .ww-form-card{padding:15px}
+  }
+  @media(max-width:560px){
+    .ww-kpis{grid-template-columns:1fr 1fr;gap:8px}
+    .ww-kpi{padding:12px}.ww-kpi b{font-size:18px}
+    .ww-search{min-width:100%}
+    .ww-actions .ww-btn{flex:1;min-width:130px}
+  }
+</style>
+
+<section id="workerWages" class="tab-page hidden">
+  <div class="ww-hero">
+    <h2>👷‍♂️ أجور العمال والصنايعية</h2>
+    <p>تسجيل حضور الصنايعي اليومية وحساب أجره تلقائيًا حسب عدد الأيام × أجر اليوم، مع تحديد مكان عمله في اليوم.</p>
+  </div>
+
+  <div class="ww-kpis">
+    <div class="ww-kpi gold"><span>👷 عدد السجلات</span><b id="wwKpiRecords">٠</b></div>
+    <div class="ww-kpi blue"><span>📅 إجمالي الأيام</span><b id="wwKpiDays">٠</b></div>
+    <div class="ww-kpi green"><span>💰 إجمالي الأجور</span><b id="wwKpiTotal">٠٫٠٠ ج.م</b></div>
+    <div class="ww-kpi orange"><span>📍 آخر مكان مسجل</span><b id="wwKpiPlace" style="font-size:16px">—</b></div>
+  </div>
+
+  <div class="ww-form-card">
+    <div class="ww-section-title">
+      <div>
+        <h3 id="wwFormTitle">➕ إضافة أجر عامل</h3>
+        <small>املأ البيانات ثم اضغط حفظ.</small>
+      </div>
+      <button class="ww-btn gray" type="button" onclick="resetWorkerWageForm()">مسح النموذج</button>
+    </div>
+
+    <div class="ww-grid">
+      <div class="ww-field">
+        <label>اسم الصنايعي *</label>
+        <input id="wwWorkerName" type="text" placeholder="مثال: أحمد محمد">
+      </div>
+      <div class="ww-field">
+        <label>التاريخ *</label>
+        <input id="wwDate" type="date">
+      </div>
+      <div class="ww-field">
+        <label>عدد الأيام *</label>
+        <input id="wwDays" type="number" min="0.5" step="0.5" value="1" placeholder="مثال: 3">
+      </div>
+      <div class="ww-field">
+        <label>أجر العامل لليوم الواحد (ج.م) *</label>
+        <input id="wwDailyWage" type="number" min="0" step="0.01" placeholder="مثال: 500">
+      </div>
+      <div class="ww-field">
+        <label>مكان الصنايعي في اليوم *</label>
+        <input id="wwPlace" type="text" placeholder="مثال: مشروع شارع البحر / موقع الحواتم">
+      </div>
+      <div class="ww-field">
+        <label>إجمالي الأجر</label>
+        <div class="ww-total-box">
+          <span>عدد الأيام × أجر اليوم</span>
+          <strong id="wwTotalPreview">٠٫٠٠ ج.م</strong>
+        </div>
+      </div>
+      <div class="ww-field">
+        <label>ملاحظات</label>
+        <input id="wwNotes" type="text" placeholder="اختياري">
+      </div>
+    </div>
+
+    <div class="ww-actions">
+      <button id="wwSaveBtn" class="ww-btn primary" type="button" onclick="saveWorkerWage()">💾 حفظ أجر العامل</button>
+      <button class="ww-btn gold" type="button" onclick="printWorkerWagesReport()">🖨️ طباعة التقرير</button>
+    </div>
+    <div id="wwMsg" class="ww-msg"></div>
+  </div>
+
+  <div class="ww-form-card">
+    <div class="ww-section-title">
+      <div>
+        <h3>📋 سجل أجور العمال</h3>
+        <small>يمكنك البحث والتعديل والحذف.</small>
+      </div>
+    </div>
+    <div class="ww-toolbar">
+      <div class="ww-search">
+        <input id="wwSearch" type="search" placeholder="ابحث باسم الصنايعي أو مكان العمل..." oninput="renderWorkerWages()">
+      </div>
+      <button class="ww-btn gray" type="button" onclick="loadWorkerWages()">↻ تحديث</button>
+    </div>
+    <div class="ww-table-wrap">
+      <table class="ww-table" id="workerWagesTable">
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>اسم الصنايعي</th>
+            <th>مكان الصنايعي</th>
+            <th>عدد الأيام</th>
+            <th>أجر اليوم</th>
+            <th>إجمالي الأجر</th>
+            <th>ملاحظات</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="wwBody">
+          <tr><td colspan="8" class="ww-empty">جاري التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
 </body>
 </html>
     
