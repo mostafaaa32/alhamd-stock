@@ -6334,6 +6334,259 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
   window.loadWorkerModules=async function(tabId){try{if(tabId==="workerAttendance"){await loadWorkers();await loadWorkerAttendanceDay()}if(tabId==="workerAccounts"){await loadWorkers();fillWorkerSelect();if($("acWorkerSelect")?.value)await loadWorkerAccount()}}catch(e){console.error("worker module:",e)}};
 })();
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style id="alhamd-excel-import-v1-css">
+.ah-excel-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ah-excel-btn{border:0;border-radius:10px;padding:10px 14px;font-family:Cairo,sans-serif;font-weight:800;cursor:pointer}
+.ah-excel-btn.gold{background:linear-gradient(135deg,#c79b3b,#e5bf66);color:#172033}
+.ah-excel-btn.blue{background:#172554;color:#fff}
+.ah-excel-btn.green{background:#16a34a;color:#fff}
+.ah-excel-btn.red{background:#dc2626;color:#fff}
+.ah-excel-btn.gray{background:#f1f5f9;color:#334155;border:1px solid #dbe2ea}
+.ah-excel-modal{display:none;position:fixed;inset:0;background:rgba(2,8,23,.62);backdrop-filter:blur(6px);z-index:20000;padding:14px}
+.ah-excel-modal.show{display:flex;align-items:center;justify-content:center}
+.ah-excel-box{background:#fff;width:min(1500px,100%);max-height:94vh;overflow:hidden;border-radius:22px;box-shadow:0 30px 90px rgba(0,0,0,.28);display:flex;flex-direction:column}
+.ah-excel-head{padding:17px 20px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ah-excel-head h3{margin:0;color:#172554}.ah-excel-close{border:0;background:#fee2e2;color:#991b1b;width:38px;height:38px;border-radius:10px;font-size:22px;cursor:pointer}
+.ah-excel-body{padding:16px;overflow:auto}
+.ah-excel-guide{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.ah-excel-guide>div{padding:13px;border:1px solid #e5e7eb;border-radius:13px;background:#f8fafc}
+.ah-excel-guide b{display:block;color:#172554;margin-bottom:4px}.ah-excel-guide span{font-size:12px;color:#64748b;line-height:1.7}
+.ah-excel-summary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+.ah-excel-pill{padding:7px 11px;border-radius:999px;background:#f8fafc;border:1px solid #e2e8f0;font-size:11px;font-weight:800;color:#475569}
+.ah-excel-table-wrap{border:1px solid #e2e8f0;border-radius:14px;overflow:auto;max-height:52vh}
+.ah-excel-table{width:100%;min-width:1150px;border-collapse:collapse}
+.ah-excel-table th{position:sticky;top:0;z-index:2;background:#172554;color:#fff!important;padding:10px;font-size:11px;white-space:nowrap}
+.ah-excel-table td{padding:7px;border-bottom:1px solid #edf0f4;text-align:center;font-size:11px;vertical-align:middle}
+.ah-excel-table input{width:100%;min-width:90px;height:34px!important;padding:4px 7px!important;border:1px solid #dbe2ea!important;border-radius:8px!important}
+.ah-excel-table .readonly{background:#f8fafc;color:#64748b}
+.ah-excel-row-new{background:#f0fdf4}.ah-excel-row-change{background:#fffbeb}.ah-excel-row-delete{background:#fef2f2!important}.ah-excel-row-error{background:#fff1f2!important}
+.ah-excel-status{font-weight:900;white-space:nowrap}.ah-excel-status.new{color:#15803d}.ah-excel-status.change{color:#a16207}.ah-excel-status.delete{color:#b91c1c}.ah-excel-status.same{color:#64748b}
+.ah-excel-footer{padding:13px 16px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.ah-excel-help{font-size:11px;color:#64748b;line-height:1.7}
+.ah-excel-file{display:none}
+html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data-theme="dark"] .ah-excel-head{border-color:#263244}html[data-theme="dark"] .ah-excel-guide>div,html[data-theme="dark"] .ah-excel-pill{background:#0f172a;border-color:#263244;color:#cbd5e1}html[data-theme="dark"] .ah-excel-table td{border-color:#263244}html[data-theme="dark"] .ah-excel-table input{background:#0f172a!important;color:#e5e7eb!important;border-color:#334155!important}
+@media(max-width:800px){.ah-excel-guide{grid-template-columns:1fr}.ah-excel-body{padding:10px}.ah-excel-footer{align-items:stretch}.ah-excel-footer>div{width:100%}.ah-excel-footer button{width:100%;margin-bottom:6px}}
+</style>
+<script id="alhamd-excel-import-v1-js">
+(function(){
+  'use strict';
+  const FIELDS=[
+    ['code','كود الصنف','الكود الحالي، ويمكن تغييره قبل الاعتماد.'],
+    ['name','اسم الصنف','اسم الصنف كما يظهر في شاشة المخزن.'],
+    ['unit','الوحدة','قطعة / كرتونة / متر / شكارة...'],
+    ['buy_price','سعر الشراء','سعر شراء الوحدة.'],
+    ['sell_price','سعر البيع','سعر بيع الوحدة.'],
+    ['quantity','الكمية','الرصيد الحالي الذي سيظهر في المخزن.'],
+    ['min_quantity','الحد الأدنى','الحد الذي يبدأ عنده تنبيه نقص المخزون.']
+  ];
+  let rows=[], original=[];
+  const n=v=>{const x=Number(String(v??'').replace(/,/g,''));return Number.isFinite(x)?x:0};
+  const val=(v)=>String(v??'').trim()===''?'0':String(v).trim();
+  const esc2=v=>{if(typeof esc==='function')return esc(v);return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))};
+  function productPayload(r){return {code:val(r.code),name:val(r.name),unit:val(r.unit),buy_price:n(r.buy_price),sell_price:n(r.sell_price),quantity:n(r.quantity),min_quantity:n(r.min_quantity)}}
+  function normalizeProduct(p){return {...p,...productPayload(p)}}
+  function statusFor(r){
+    if(r._delete)return ['delete','🗑️ حذف'];
+    if(r._new)return ['new','➕ جديد'];
+    const o=original.find(x=>String(x.id)===String(r.id));
+    if(!o)return ['new','➕ جديد'];
+    const a=productPayload(r),b=productPayload(o);
+    return JSON.stringify(a)!==JSON.stringify(b)?['change','✏️ تعديل']:['same','✓ بدون تغيير'];
+  }
+  function open(){document.getElementById('ahExcelModal')?.classList.add('show');render();document.body.style.overflow='hidden'}
+  function close(){document.getElementById('ahExcelModal')?.classList.remove('show');document.body.style.overflow=''}
+  function buildUI(){
+    const section=document.querySelector('#productsTable')?.closest('.card');
+    if(!section || document.getElementById('ahExcelImportBtn'))return;
+    const head=section.querySelector('.row.between');
+    if(!head)return;
+    const actions=head.querySelector('div');
+    if(!actions)return;
+    const wrap=document.createElement('div');wrap.className='ah-excel-actions';
+    wrap.innerHTML=`
+      <button id="ahExcelTemplateBtn" class="ah-excel-btn gray">📋 نموذج Excel</button>
+      <button id="ahExcelImportBtn" class="ah-excel-btn gold">📤 استيراد ومراجعة Excel</button>
+      <input id="ahExcelFile" class="ah-excel-file" type="file" accept=".xlsx,.xls,.csv">
+    `;
+    actions.insertBefore(wrap,actions.firstChild);
+    document.getElementById('ahExcelImportBtn').onclick=()=>document.getElementById('ahExcelFile').click();
+    document.getElementById('ahExcelTemplateBtn').onclick=exportTemplate;
+    document.getElementById('ahExcelFile').onchange=e=>{const f=e.target.files?.[0];if(f)readFile(f);e.target.value=''};
+    document.body.insertAdjacentHTML('beforeend',`
+      <div id="ahExcelModal" class="ah-excel-modal">
+        <div class="ah-excel-box">
+          <div class="ah-excel-head">
+            <div><h3>📦 استيراد وتعديل أصناف المخزن</h3><small style="color:#64748b">مراجعة كاملة قبل اعتماد أي تغيير</small></div>
+            <button class="ah-excel-close" id="ahExcelClose">×</button>
+          </div>
+          <div class="ah-excel-body">
+            <div class="ah-excel-guide">
+              ${FIELDS.map(f=>'<div><b>'+f[1]+'</b><span>'+f[2]+'<br>الخانة الفارغة = <strong>0</strong></span></div>').join('')}
+            </div>
+            <div id="ahExcelSummary" class="ah-excel-summary"></div>
+            <div class="ah-excel-table-wrap">
+              <table class="ah-excel-table">
+                <thead><tr>
+                  <th>الحالة</th><th>الكود الحالي</th><th>الكود الجديد</th><th>اسم الصنف</th><th>الوحدة</th>
+                  <th>الشراء</th><th>البيع</th><th>الكمية</th><th>الحد الأدنى</th><th>إجراء</th>
+                </tr></thead>
+                <tbody id="ahExcelBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="ah-excel-footer">
+            <div class="ah-excel-help">لن يتم تعديل الفواتير السابقة. الاعتماد يغيّر بيانات <b>products</b> فقط، وكل تعديل يمر عبر Offline First الحالي.</div>
+            <div>
+              <button class="ah-excel-btn gray" id="ahExcelCancel">إلغاء</button>
+              <button class="ah-excel-btn green" id="ahExcelCommit">✅ اعتماد التعديلات</button>
+            </div>
+          </div>
+        </div>
+      </div>`);
+    document.getElementById('ahExcelClose').onclick=close;
+    document.getElementById('ahExcelCancel').onclick=close;
+    document.getElementById('ahExcelCommit').onclick=commit;
+  }
+  function render(){
+    const body=document.getElementById('ahExcelBody'),sum=document.getElementById('ahExcelSummary');
+    if(!body||!sum)return;
+    let counts={new:0,change:0,delete:0,same:0,error:0};
+    const codeMap=new Map();
+    rows.forEach(r=>{if(r._delete)return;const c=val(r.code);if(codeMap.has(c))counts.error++;else codeMap.set(c,r)});
+    const html=rows.map((r,i)=>{
+      const [st,label]=statusFor(r);counts[st]++;
+      const dup=!r._delete && codeMap.get(val(r.code))!==r;
+      if(dup)counts.error++;
+      const disabled=r._new?'':'readonly';
+      return `<tr class="ah-excel-row-${st}${dup?' ah-excel-row-error':''}">
+        <td class="ah-excel-status ${st}">${dup?'⚠️ كود مكرر':label}</td>
+        <td><input class="readonly" value="${esc2(r._oldCode||r.code||'0')}" readonly></td>
+        <td><input data-i="${i}" data-k="code" value="${esc2(r.code)}" ${r._delete?'disabled':''}></td>
+        <td><input data-i="${i}" data-k="name" value="${esc2(r.name)}" ${r._delete?'disabled':''}></td>
+        <td><input data-i="${i}" data-k="unit" value="${esc2(r.unit)}" ${r._delete?'disabled':''}></td>
+        <td><input data-i="${i}" data-k="buy_price" type="number" step="0.01" value="${n(r.buy_price)}" ${r._delete?'disabled':''}></td>
+        <td><input data-i="${i}" data-k="sell_price" type="number" step="0.01" value="${n(r.sell_price)}" ${r._delete?'disabled':''}></td>
+        <td><input data-i="${i}" data-k="quantity" type="number" step="0.01" value="${n(r.quantity)}" ${r._delete?'disabled':''}></td>
+        <td><input data-i="${i}" data-k="min_quantity" type="number" step="0.01" value="${n(r.min_quantity)}" ${r._delete?'disabled':''}></td>
+        <td><button class="ah-excel-btn ${r._delete?'gray':'red'}" style="padding:7px 9px" data-del="${i}">${r._delete?'↩️ إلغاء الحذف':'🗑️ حذف'}</button></td>
+      </tr>`;
+    }).join('');
+    body.innerHTML=html||'<tr><td colspan="10" style="padding:30px;color:#64748b">ارفع ملف Excel أو اضغط نموذج Excel.</td></tr>';
+    sum.innerHTML=[
+      ['الإجمالي',rows.length],['جديد',counts.new],['تعديل',counts.change],['حذف',counts.delete],['بدون تغيير',counts.same],['أخطاء',counts.error]
+    ].map(x=>`<span class="ah-excel-pill">${x[0]}: ${x[1]}</span>`).join('');
+    body.querySelectorAll('input[data-i]').forEach(el=>el.oninput=function(){
+      const r=rows[Number(this.dataset.i)],k=this.dataset.k;
+      r[k]=k==='buy_price'||k==='sell_price'||k==='quantity'||k==='min_quantity'?n(this.value):val(this.value);
+      render();
+    });
+    body.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.del);rows[i]._delete=!rows[i]._delete;render()});
+  }
+  async function loadCurrent(){
+    try{
+      if(typeof loadProducts==='function') await loadProducts();
+      const list=(Array.isArray(products)?products:[]).map(normalizeProduct);
+      original=JSON.parse(JSON.stringify(list));
+      rows=list.map(p=>({...productPayload(p),id:p.id,_oldCode:p.code,_new:false,_delete:false}));
+      open();
+    }catch(e){alert('تعذر تحميل أصناف المخزن: '+(e.message||e))}
+  }
+  async function readFile(file){
+    if(!window.XLSX)return alert('مكتبة Excel لم تُحمّل بعد. افتح الصفحة مرة مع الإنترنت ثم أعد المحاولة.');
+    try{
+      const data=await file.arrayBuffer();
+      const wb=XLSX.read(data,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!raw.length)return alert('ملف Excel لا يحتوي على بيانات.');
+      if(typeof loadProducts==='function')await loadProducts();
+      original=JSON.parse(JSON.stringify((Array.isArray(products)?products:[]).map(normalizeProduct)));
+      const byCode=new Map(original.map(p=>[val(p.code),p]));
+      rows=raw.map(x=>{
+        const get=(keys)=>{for(const k of keys){if(Object.prototype.hasOwnProperty.call(x,k))return x[k]}return ''};
+        const code=val(get(['كود الصنف','الكود','code','Code']));
+        const old=byCode.get(code);
+        const r={...productPayload({
+          code,name:get(['اسم الصنف','الصنف','name','Name']),
+          unit:get(['الوحدة','unit','Unit']),
+          buy_price:get(['سعر الشراء','الشراء','buy_price','buy']),
+          sell_price:get(['سعر البيع','البيع','sell_price','sell']),
+          quantity:get(['الكمية','quantity','qty']),
+          min_quantity:get(['الحد الأدنى','الحد_الأدنى','min_quantity','min'])
+        }),id:old?.id||null,_oldCode:code,_new:!old,_delete:false};
+        return r;
+      });
+      open();
+    }catch(e){console.error(e);alert('تعذر قراءة ملف Excel: '+(e.message||e))}
+  }
+  function exportTemplate(){
+    if(!window.XLSX)return alert('مكتبة Excel لم تُحمّل بعد. افتح الصفحة مرة مع الإنترنت ثم أعد المحاولة.');
+    const list=(Array.isArray(products)?products:[]).map(normalizeProduct);
+    const data=list.map(p=>({
+      'كود الصنف':val(p.code),'اسم الصنف':val(p.name),'الوحدة':val(p.unit),
+      'سعر الشراء':n(p.buy_price),'سعر البيع':n(p.sell_price),'الكمية':n(p.quantity),'الحد الأدنى':n(p.min_quantity)
+    }));
+    const guide=FIELDS.map(f=>({'العمود':f[1],'الشرح':f[2],'إذا كانت الخانة فارغة':'0'}));
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),'الأصناف');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(guide),'شرح الأعمدة');
+    XLSX.writeFile(wb,'نموذج_أصناف_الحمد_ستوك.xlsx');
+  }
+  async function validate(){
+    const active=rows.filter(r=>!r._delete);
+    const seen=new Map(),dups=[];
+    active.forEach(r=>{const c=val(r.code);if(seen.has(c))dups.push(c);else seen.set(c,r)});
+    if(dups.length)return 'الأكواد التالية مكررة: '+[...new Set(dups)].join('، ');
+    for(const r of active){
+      if(val(r.code)==='0' || val(r.name)==='0')return 'يوجد صنف بدون كود أو اسم. راجع البيانات قبل الاعتماد.';
+    }
+    return '';
+  }
+  async function commit(){
+    const err=await validate();if(err)return alert('⚠️ '+err);
+    if(!rows.length)return alert('لا توجد بيانات للاعتماد.');
+    const changed=rows.filter(r=>r._delete||r._new||statusFor(r)[0]==='change');
+    if(!changed.length)return alert('لا توجد تغييرات جديدة.');
+    if(!confirm(`سيتم اعتماد ${changed.length} تغيير على الأصناف. هل تريد المتابعة؟`))return;
+    const originalById=new Map(original.map(p=>[String(p.id),p]));
+    let done=0,fail=[];
+    for(const r of changed){
+      try{
+        if(r._delete){
+          // حماية من حذف صنف مرتبط بفواتير سابقة.
+          const chk=await sb.from('invoice_items').select('product_id').eq('product_id',r.id).limit(1);
+          if(chk.error)throw chk.error;
+          if(chk.data&&chk.data.length)throw new Error('الصنف مرتبط بفواتير سابقة ولا يمكن حذفه حفاظًا على سجل الفواتير.');
+          const d=await sb.from('products').delete().eq('id',r.id);
+          if(d.error)throw d.error;
+        }else if(r._new){
+          const ins=await sb.from('products').insert([productPayload(r)]);
+          if(ins.error)throw ins.error;
+        }else{
+          const old=originalById.get(String(r.id));
+          const u=await sb.from('products').update(productPayload(r)).eq('id',r.id);
+          if(u.error)throw u.error;
+        }
+        done++;
+      }catch(e){fail.push((r.code||r._oldCode||'بدون كود')+': '+(e.message||e))}
+    }
+    if(typeof loadProducts==='function')await loadProducts();
+    if(typeof renderProducts==='function')renderProducts();
+    if(typeof refreshDashboard==='function')try{await refreshDashboard()}catch(e){}
+    if(fail.length){
+      alert(`تم اعتماد ${done} تغيير، وتعذر اعتماد ${fail.length}.\n\n${fail.slice(0,8).join('\\n')}${fail.length>8?'\\n...':''}`);
+    }else{
+      alert(`✅ تم اعتماد ${done} تغيير بنجاح.\\nالفواتير السابقة لم يتم تعديلها.`);
+      close();
+    }
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(buildUI,800));
+  window.openAlhamdExcelImport=loadCurrent;
+})();
+</script>
+
 </body>
 </html>
     
