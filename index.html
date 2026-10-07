@@ -5824,6 +5824,7 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
       const arr=normalizePayload(payload).map(r=>{
         if(r.id==null) r.id=tempId(table);
         if(r.created_at==null) r.created_at=new Date().toISOString();
+        if(old) usedIds.add(String(old.id));
         return r;
       });
       rows=rows.concat(arr);
@@ -6081,8 +6082,15 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
                 // fetch/network exceptions so Offline First can use cache/queue.
                 if(result && result.error){
                   if(state.write){
+                    const code=String(result.error.code||"");
+                    const msg=String(result.error.message||"");
+                    const networkFailure = !code || /network|fetch|failed to fetch|load failed|timeout|offline|connection/i.test(msg) || /^(408|429|500|502|503|504)$/.test(code);
+                    // Real database errors (especially 409/23505) must be returned;
+                    // do not turn them into local writes and duplicate queue entries.
+                    if(!networkFailure) return result;
                     const local=await applyLocalMutation(table,state.write.method,state.write.payload,state.calls,state.write.options);
-                    await addQueue({table,method:state.write.method,payload:state.write.payload,calls:state.calls,options:state.write.options});
+                    const queuePayload=(state.write.method==="insert"||state.write.method==="upsert")?clone(local):clone(state.write.payload);
+                    await addQueue({table,method:state.write.method,payload:queuePayload,calls:state.calls,options:state.write.options});
                     setStatus("pending", result.error.message||"تعذر الاتصال بالخادم — تم الحفظ محليًا");
                     const wantsSingle=state.calls.some(c=>c.name==="single"||c.name==="maybeSingle");
                     return {data:wantsSingle?(local[0]||null):local,error:null};
@@ -6362,7 +6370,7 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
 .ah-excel-table input{width:100%;min-width:90px;height:34px!important;padding:4px 7px!important;border:1px solid #dbe2ea!important;border-radius:8px!important}
 .ah-excel-table .readonly{background:#f8fafc;color:#64748b}
 .ah-excel-row-new{background:#f0fdf4}.ah-excel-row-change{background:#fffbeb}.ah-excel-row-delete{background:#fef2f2!important}.ah-excel-row-error{background:#fff1f2!important}
-.ah-excel-status{font-weight:900;white-space:nowrap}.ah-excel-status.new{color:#15803d}.ah-excel-status.change{color:#a16207}.ah-excel-status.delete{color:#b91c1c}.ah-excel-status.same{color:#64748b}
+.ah-excel-status{font-weight:900;white-space:nowrap}.ah-excel-status.new{color:#15803d}.ah-excel-status.change{color:#a16207}.ah-excel-status.codechange{color:#2563eb}.ah-excel-status.delete{color:#b91c1c}.ah-excel-status.same{color:#64748b}
 .ah-excel-footer{padding:13px 16px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
 .ah-excel-help{font-size:11px;color:#64748b;line-height:1.7}
 .ah-excel-file{display:none}
@@ -6379,7 +6387,8 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
     ['buy_price','سعر الشراء','سعر شراء الوحدة.'],
     ['sell_price','سعر البيع','سعر بيع الوحدة.'],
     ['quantity','الكمية','الرصيد الحالي الذي سيظهر في المخزن.'],
-    ['min_quantity','الحد الأدنى','الحد الذي يبدأ عنده تنبيه نقص المخزون.']
+    ['min_quantity','الحد الأدنى','الحد الذي يبدأ عنده تنبيه نقص المخزون.'],
+    ['_product_id','معرف الصنف (تقني)','معرف داخلي لحماية تغيير الكود؛ لا تعدله ولا تحذفه من ملف الجرد.']
   ];
   let rows=[], original=[];
   const n=v=>{const x=Number(String(v??'').replace(/,/g,''));return Number.isFinite(x)?x:0};
@@ -6393,6 +6402,7 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
     const o=original.find(x=>String(x.id)===String(r.id));
     if(!o)return ['new','➕ جديد'];
     const a=productPayload(r),b=productPayload(o);
+    if(String(r.code)!==String(o.code)) return ['codechange','🔁 تغيير الكود'];
     return JSON.stringify(a)!==JSON.stringify(b)?['change','✏️ تعديل']:['same','✓ بدون تغيير'];
   }
   function open(){document.getElementById('ahExcelModal')?.classList.add('show');render();document.body.style.overflow='hidden'}
@@ -6426,6 +6436,7 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
               ${FIELDS.map(f=>'<div><b>'+f[1]+'</b><span>'+f[2]+'<br>الخانة الفارغة = <strong>0</strong></span></div>').join('')}
             </div>
             <div id="ahExcelSummary" class="ah-excel-summary"></div>
+            <div id="ahExcelReport" style="margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:#f8fafc;border:1px solid #e5e7eb;font-size:12px;line-height:1.8;"></div>
             <div class="ah-excel-table-wrap">
               <table class="ah-excel-table">
                 <thead><tr>
@@ -6437,7 +6448,7 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
             </div>
           </div>
           <div class="ah-excel-footer">
-            <div class="ah-excel-help">لن يتم تعديل الفواتير السابقة. الاعتماد يغيّر بيانات <b>products</b> فقط، وكل تعديل يمر عبر Offline First الحالي.</div>
+            <div class="ah-excel-help"><b>ملف الجرد هو المرجع:</b> أي صنف غير موجود فيه سيتم حذفه من المخزون. إذا كان الصنف مرتبطًا بفواتير سابقة سيمنع النظام حذفه حفاظًا على التاريخ. تغيير الكود محفوظ بواسطة معرف الصنف التقني. لن يتم تعديل الفواتير السابقة.</div>
             <div>
               <button class="ah-excel-btn gray" id="ahExcelCancel">إلغاء</button>
               <button class="ah-excel-btn green" id="ahExcelCommit">✅ اعتماد التعديلات</button>
@@ -6452,7 +6463,7 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
   function render(){
     const body=document.getElementById('ahExcelBody'),sum=document.getElementById('ahExcelSummary');
     if(!body||!sum)return;
-    let counts={new:0,change:0,delete:0,same:0,error:0};
+    let counts={new:0,change:0,codechange:0,delete:0,same:0,error:0};
     const codeMap=new Map();
     rows.forEach(r=>{if(r._delete)return;const c=val(r.code);if(codeMap.has(c))counts.error++;else codeMap.set(c,r)});
     const html=rows.map((r,i)=>{
@@ -6470,13 +6481,19 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
         <td><input data-i="${i}" data-k="sell_price" type="number" step="0.01" value="${n(r.sell_price)}" ${r._delete?'disabled':''}></td>
         <td><input data-i="${i}" data-k="quantity" type="number" step="0.01" value="${n(r.quantity)}" ${r._delete?'disabled':''}></td>
         <td><input data-i="${i}" data-k="min_quantity" type="number" step="0.01" value="${n(r.min_quantity)}" ${r._delete?'disabled':''}></td>
-        <td><button class="ah-excel-btn ${r._delete?'gray':'red'}" style="padding:7px 9px" data-del="${i}">${r._delete?'↩️ إلغاء الحذف':'🗑️ حذف'}</button></td>
+        <td><button class="ah-excel-btn ${r._delete?'gray':'red'}" style="padding:7px 9px" data-del="${i}">${r._delete?(r._autoMissing?'↩️ إبقاء الصنف':'↩️ إلغاء الحذف'):'🗑️ حذف'}</button></td>
       </tr>`;
     }).join('');
     body.innerHTML=html||'<tr><td colspan="10" style="padding:30px;color:#64748b">ارفع ملف Excel أو اضغط نموذج Excel.</td></tr>';
     sum.innerHTML=[
-      ['الإجمالي',rows.length],['جديد',counts.new],['تعديل',counts.change],['حذف',counts.delete],['بدون تغيير',counts.same],['أخطاء',counts.error]
+      ['الإجمالي',rows.length],['جديد',counts.new],['تعديل',counts.change],['تغيير كود',counts.codechange],['حذف',counts.delete],['بدون تغيير',counts.same],['أخطاء',counts.error]
     ].map(x=>`<span class="ah-excel-pill">${x[0]}: ${x[1]}</span>`).join('');
+    const report=document.getElementById('ahExcelReport');
+    if(report){
+      const deleted=rows.filter(r=>r._delete);
+      const codeChanged=rows.filter(r=>!r._delete && r.id && String(r._oldCode||'')!==String(r.code||''));
+      report.innerHTML = `<b>تقرير الجرد:</b> سيتم حذف <strong>${deleted.length}</strong> صنفًا غير موجود في الملف، وتعديل كود <strong>${codeChanged.length}</strong> صنفًا مع الاحتفاظ بنفس <code>id</code> حتى تظل الفواتير السابقة مرتبطة بالصنف نفسه. ${deleted.length?'<br>🗑️ الحذف سيظهر بوضوح في القائمة، وأي صنف مرتبط بفواتير سابقة سيُمنع حذفه.':''} ${codeChanged.length?'<br>🔁 تغيير الكود لا ينشئ صنفًا جديدًا؛ يتم تعديل كود نفس الصنف، لذلك لا تتأثر الفواتير السابقة.':''}`;
+    }
     body.querySelectorAll('input[data-i]').forEach(el=>el.oninput=function(){
       const r=rows[Number(this.dataset.i)],k=this.dataset.k;
       r[k]=k==='buy_price'||k==='sell_price'||k==='quantity'||k==='min_quantity'?n(this.value):val(this.value);
@@ -6504,10 +6521,18 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
       if(typeof loadProducts==='function')await loadProducts();
       original=JSON.parse(JSON.stringify((Array.isArray(products)?products:[]).map(normalizeProduct)));
       const byCode=new Map(original.map(p=>[val(p.code),p]));
+      const byName=new Map();
+      original.forEach(p=>{const k=String(p.name||'').trim().toLowerCase();if(k&&!byName.has(k))byName.set(k,p);else if(k)byName.set(k,null)});
+      const usedIds=new Set();
       rows=raw.map(x=>{
         const get=(keys)=>{for(const k of keys){if(Object.prototype.hasOwnProperty.call(x,k))return x[k]}return ''};
         const code=val(get(['كود الصنف','الكود','code','Code']));
-        const old=byCode.get(code);
+        const technicalId=String(get(['_product_id','معرف الصنف (تقني)','product_id','id'])||'').trim();
+        const name=String(get(['اسم الصنف','الصنف','name','Name'])||'').trim();
+        const byId=technicalId ? original.find(p=>String(p.id)===technicalId) : null;
+        const byCodeCandidate=byCode.get(code);
+        const byNameCandidate=byName.get(name.toLowerCase());
+        const old=byId || (byCodeCandidate && !usedIds.has(String(byCodeCandidate.id)) ? byCodeCandidate : null) || (byNameCandidate && !usedIds.has(String(byNameCandidate.id)) ? byNameCandidate : null);
         const r={...productPayload({
           code,name:get(['اسم الصنف','الصنف','name','Name']),
           unit:get(['الوحدة','unit','Unit']),
@@ -6515,7 +6540,7 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
           sell_price:get(['سعر البيع','البيع','sell_price','sell']),
           quantity:get(['الكمية','quantity','qty']),
           min_quantity:get(['الحد الأدنى','الحد_الأدنى','min_quantity','min'])
-        }),id:old?.id||null,_oldCode:code,_new:!old,_delete:false};
+        }),id:old?.id||null,_oldCode:old?.code||code,_new:!old,_delete:false,_technicalId:technicalId};
         return r;
       });
       open();
@@ -6526,11 +6551,16 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
     const list=(Array.isArray(products)?products:[]).map(normalizeProduct);
     const data=list.map(p=>({
       'كود الصنف':val(p.code),'اسم الصنف':val(p.name),'الوحدة':val(p.unit),
-      'سعر الشراء':n(p.buy_price),'سعر البيع':n(p.sell_price),'الكمية':n(p.quantity),'الحد الأدنى':n(p.min_quantity)
+      'سعر الشراء':n(p.buy_price),'سعر البيع':n(p.sell_price),'الكمية':n(p.quantity),'الحد الأدنى':n(p.min_quantity),
+      '_product_id':String(p.id||'')
     }));
     const guide=FIELDS.map(f=>({'العمود':f[1],'الشرح':f[2],'إذا كانت الخانة فارغة':'0'}));
     const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),'الأصناف');
+    const productsSheet=XLSX.utils.json_to_sheet(data);
+    // Keep the technical product id available for safe code changes, but hide it from normal viewing.
+    if(!productsSheet['!cols'])productsSheet['!cols']=[];
+    productsSheet['!cols'][7]={hidden:true};
+    XLSX.utils.book_append_sheet(wb,productsSheet,'الأصناف');
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(guide),'شرح الأعمدة');
     XLSX.writeFile(wb,'نموذج_أصناف_الحمد_ستوك.xlsx');
   }
@@ -6539,46 +6569,111 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
     const seen=new Map(),dups=[];
     active.forEach(r=>{const c=val(r.code);if(seen.has(c))dups.push(c);else seen.set(c,r)});
     if(dups.length)return 'الأكواد التالية مكررة: '+[...new Set(dups)].join('، ');
+    const ids=new Set();
     for(const r of active){
       if(val(r.code)==='0' || val(r.name)==='0')return 'يوجد صنف بدون كود أو اسم. راجع البيانات قبل الاعتماد.';
+      if(r.id){ if(ids.has(String(r.id))) return 'يوجد نفس الصنف مكررًا في ملف الجرد.'; ids.add(String(r.id)); }
     }
     return '';
   }
   async function commit(){
     const err=await validate();if(err)return alert('⚠️ '+err);
     if(!rows.length)return alert('لا توجد بيانات للاعتماد.');
+    // The uploaded inventory file is authoritative: any existing product that is NOT represented
+    // in the file will be removed from the stock list (subject to historical invoice protection).
+    const representedIds=new Set(rows.filter(r=>!r._delete&&r.id).map(r=>String(r.id)));
+    const representedCodes=new Set(rows.filter(r=>!r._delete).map(r=>val(r.code)));
+    const missingProducts=original.filter(p=>!representedIds.has(String(p.id)) && !representedCodes.has(val(p.code)));
+    missingProducts.forEach(p=>rows.push({...productPayload(p),id:p.id,_oldCode:p.code,_new:false,_delete:true,_autoMissing:true}));
+
     const changed=rows.filter(r=>r._delete||r._new||statusFor(r)[0]==='change');
     if(!changed.length)return alert('لا توجد تغييرات جديدة.');
     if(!confirm(`سيتم اعتماد ${changed.length} تغيير على الأصناف. هل تريد المتابعة؟`))return;
-    const originalById=new Map(original.map(p=>[String(p.id),p]));
-    let done=0,fail=[];
-    for(const r of changed){
-      try{
-        if(r._delete){
-          // حماية من حذف صنف مرتبط بفواتير سابقة.
-          const chk=await sb.from('invoice_items').select('product_id').eq('product_id',r.id).limit(1);
-          if(chk.error)throw chk.error;
-          if(chk.data&&chk.data.length)throw new Error('الصنف مرتبط بفواتير سابقة ولا يمكن حذفه حفاظًا على سجل الفواتير.');
-          const d=await sb.from('products').delete().eq('id',r.id);
-          if(d.error)throw d.error;
-        }else if(r._new){
-          const ins=await sb.from('products').insert([productPayload(r)]);
-          if(ins.error)throw ins.error;
-        }else{
-          const old=originalById.get(String(r.id));
-          const u=await sb.from('products').update(productPayload(r)).eq('id',r.id);
-          if(u.error)throw u.error;
+
+    // Check final code ownership before writing. A code is allowed to move from
+    // another product only when that other product is itself being deleted or
+    // is changing to a different final code in this same inventory import.
+    try{
+      const active=rows.filter(r=>!r._delete);
+      const seen=new Map();
+      for(const r of active){
+        const c=val(r.code);
+        if(seen.has(c) && String(seen.get(c).id)!==String(r.id))
+          throw new Error(`الكود ${c} مكرر داخل ملف Excel.`);
+        seen.set(c,r);
+      }
+      const codes=[...seen.keys()].filter(c=>c!=='0');
+      if(codes.length){
+        const remote=await sb.from('products').select('id,code,name').in('code',codes);
+        if(remote.error)throw remote.error;
+        const byCode=new Map((remote.data||[]).map(p=>[String(p.code),p]));
+        for(const r of active){
+          const p=byCode.get(String(r.code));
+          if(!p || String(p.id)===String(r.id)) continue;
+          const ownerRow=rows.find(x=>String(x.id)===String(p.id));
+          const ownerWillLeaveCode=ownerRow && (ownerRow._delete || String(ownerRow.code)!==String(p.code));
+          if(!ownerWillLeaveCode)
+            throw new Error(`الكود ${r.code} مستخدم بالفعل في الصنف «${p.name||''}»، ولم يتم تغييره/حذفه في ملف الجرد.`);
         }
-        done++;
-      }catch(e){fail.push((r.code||r._oldCode||'بدون كود')+': '+(e.message||e))}
+      }
+    }catch(e){
+      return alert('⚠️ تعارض في أكواد الأصناف:\n\n'+(e.message||e));
     }
+
+    let done=0,fail=[];
+
+    // Deletes first: allows reusing a code when the old product is deleted.
+    for(const r of changed.filter(x=>x._delete)){
+      try{
+        const chk=await sb.from('invoice_items').select('product_id').eq('product_id',r.id).limit(1);
+        if(chk.error)throw chk.error;
+        if(chk.data&&chk.data.length)throw new Error('الصنف مرتبط بفواتير سابقة ولا يمكن حذفه حفاظًا على سجل الفواتير.');
+        const d=await sb.from('products').delete().eq('id',r.id);
+        if(d.error)throw d.error;
+        done++;
+      }catch(e){fail.push((r.code||r._oldCode||'بدون كود')+': '+(e.message||e));}
+    }
+
+    // Existing product updates. If codes are being swapped/moved, first assign
+    // temporary unique codes so the products_code_key constraint is never hit.
+    const updateRows=changed.filter(x=>!x._delete&&!x._new&&statusFor(x)[0]==='change'||!x._delete&&!x._new&&statusFor(x)[0]==='codechange');
+    const tempChanged=[];
+    for(const r of updateRows){
+      try{
+        if(String(r.code)!==String(r._oldCode||'')){
+          const tempCode=`__AH_TMP_${String(r.id).replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${Date.now().toString(36)}`;
+          const t=await sb.from('products').update({code:tempCode}).eq('id',r.id);
+          if(t.error)throw t.error;
+          tempChanged.push({r,tempCode});
+        }
+      }catch(e){fail.push((r._oldCode||r.code||'بدون كود')+': '+(e.message||e));}
+    }
+    for(const r of updateRows){
+      if(fail.some(x=>x.startsWith((r._oldCode||r.code||'بدون كود')+': '))) continue;
+      try{
+        const u=await sb.from('products').update(productPayload(r)).eq('id',r.id);
+        if(u.error)throw u.error;
+        done++;
+      }catch(e){fail.push((r.code||r._oldCode||'بدون كود')+': '+(e.message||e));}
+    }
+
+    // New products last.
+    for(const r of changed.filter(x=>!x._delete&&x._new)){
+      try{
+        const ins=await sb.from('products').insert([productPayload(r)]);
+        if(ins.error)throw ins.error;
+        done++;
+      }catch(e){fail.push((r.code||r._oldCode||'بدون كود')+': '+(e.message||e));}
+    }
+
     if(typeof loadProducts==='function')await loadProducts();
     if(typeof renderProducts==='function')renderProducts();
     if(typeof refreshDashboard==='function')try{await refreshDashboard()}catch(e){}
     if(fail.length){
-      alert(`تم اعتماد ${done} تغيير، وتعذر اعتماد ${fail.length}.\n\n${fail.slice(0,8).join('\\n')}${fail.length>8?'\\n...':''}`);
+      const deletedOk=changed.filter(x=>x._delete).length - fail.filter(x=>x.includes('مرتبط بفواتير')||x.includes('تعذر')||x.includes('فشل')).length;
+      alert(`تم اعتماد ${done} تغيير، وتعذر اعتماد ${fail.length}.\n\n${fail.slice(0,12).join('\n')}${fail.length>12?'\n...':''}`);
     }else{
-      alert(`✅ تم اعتماد ${done} تغيير بنجاح.\\nالفواتير السابقة لم يتم تعديلها.`);
+      alert(`✅ تم اعتماد ${done} تغيير بنجاح.\nالفواتير السابقة لم يتم تعديلها.`);
       close();
     }
   }
