@@ -5924,6 +5924,49 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
       }
     }
 
+    // PRODUCTS: prevent a stale Offline First INSERT from ever reaching the
+    // unique products_code_key constraint when the code already exists.
+    // This is the important preflight: we resolve the conflict BEFORE POST,
+    // instead of waiting for Supabase to return 409/23505.
+    if(op.table === "products" && (op.method === "insert" || op.method === "upsert")){
+      const productRows = normalizePayload(op.payload);
+      let allResolved = productRows.length > 0;
+      const resolvedRows = [];
+
+      for(const row of productRows){
+        if(!row || row.code == null){ allResolved=false; break; }
+        try{
+          const existing = await originalFrom("products")
+            .select("id,code,name,unit,buy_price,sell_price,quantity,min_quantity")
+            .eq("code", String(row.code))
+            .limit(1);
+          if(existing.error) { allResolved=false; break; }
+          const remote = Array.isArray(existing.data) ? existing.data[0] : null;
+
+          if(!remote){
+            allResolved=false;
+            break;
+          }
+
+          // The code already belongs to a server product. Never POST another
+          // product with the same code. Preserve the server product identity.
+          if(row.id != null && String(row.id) !== String(remote.id)){
+            map[String(row.id)] = remote.id;
+            await setMeta("idMap", map);
+          }
+          resolvedRows.push({id:remote.id, code:remote.code});
+        }catch(_){
+          allResolved=false;
+          break;
+        }
+      }
+
+      if(allResolved){
+        console.info("♻️ تم منع INSERT مكرر للصنف قبل إرساله إلى Supabase:", resolvedRows.map(x=>x.code).join("، "));
+        return {data:resolvedRows, error:null, alreadyReconciled:true, preflight:true};
+      }
+    }
+
     let builder=originalFrom(op.table);
     if(op.method==="insert") builder=builder.insert(op.payload);
     else if(op.method==="upsert") builder=builder.upsert(op.payload,op.options||{});
