@@ -2644,7 +2644,7 @@ function printProjectSummary(){
       <table><thead><tr><th>التاريخ</th><th>الصنايعي</th><th>المكان</th><th>الأيام</th><th>أجر اليوم</th><th>الإجمالي</th><th>ملاحظات</th></tr></thead>
       <tbody>${trs}</tbody></table>
       <div class="total">إجمالي الأيام: ${wwEsc(wwArabic(totalDays))} — إجمالي الأجور: ${wwEsc(wwArabic(wwMoney(totalWages)))} ج.م</div>
-      <script>window.onload=function(){window.print();}</script>
+      <script>window.onload=function(){window.print();}<\/script>
       </body></html>`);
     win.document.close();
   }
