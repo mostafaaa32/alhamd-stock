@@ -5944,6 +5944,36 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
       const isConflict = String(result.error.code || "") === "23505" ||
                          /409|duplicate|unique/i.test(msg);
 
+      // Products have a UNIQUE(code) constraint. An old Offline First queue item
+      // can contain a stale INSERT for a product whose code was already accepted
+      // by Supabase (for example after an earlier successful request whose response
+      // was lost). Never replay that INSERT forever. Reconcile it to the existing
+      // product by code, preserving the server product.id and recording the mapping.
+      if(op.table === "products" && (op.method === "insert" || op.method === "upsert") && isConflict){
+        const productRows = normalizePayload(op.payload);
+        let reconciled = 0;
+        for(const row of productRows){
+          if(!row || row.code == null) continue;
+          try{
+            const existing = await originalFrom("products")
+              .select("id,code,name,unit,buy_price,sell_price,quantity,min_quantity")
+              .eq("code", String(row.code))
+              .limit(1);
+            if(existing.error || !Array.isArray(existing.data) || !existing.data.length) continue;
+            const remote = existing.data[0];
+            if(row.id != null && String(row.id) !== String(remote.id)) {
+              map[String(row.id)] = remote.id;
+              await setMeta("idMap",map);
+            }
+            // Keep the server row authoritative. The queued INSERT is obsolete.
+            reconciled++;
+          }catch(_){}
+        }
+        if(productRows.length && reconciled === productRows.length){
+          return {data:productRows.map(r=>({id:map[String(r.id)]||r.id,code:r.code})), error:null, alreadyReconciled:true};
+        }
+      }
+
       if(op.table === "invoice_items" && op.method === "insert" && isConflict){
         const rows = normalizePayload(op.payload);
         let verifiedCount = 0;
@@ -6024,6 +6054,9 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
           await removeQueue(item.qid);
           if(syncResult && syncResult.alreadySynced){
             console.info("✅ تم تأكيد أن بند الفاتورة موجود بالفعل على Supabase. تم حذف المحاولة المكررة من قائمة المزامنة.");
+          }
+          if(syncResult && syncResult.alreadyReconciled){
+            console.info("♻️ تمّت معالجة محاولة INSERT قديمة لصنف موجود بالفعل، ولن تتكرر مشكلة 23505.");
           }
         }catch(e){
           item.status="error"; item.last_error=e.message||String(e); await updateQueue(item);
@@ -6576,149 +6609,123 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
     }
     return '';
   }
-    async function commit(){
-    const err=await validate();
-    if(err)return alert('⚠️ '+err);
+  async function commit(){
+    const err=await validate();if(err)return alert('⚠️ '+err);
     if(!rows.length)return alert('لا توجد بيانات للاعتماد.');
-
-    // ملف الجرد هو المرجع النهائي.
+    // The uploaded inventory file is authoritative: any existing product that is NOT represented
+    // in the file will be removed from the stock list (subject to historical invoice protection).
     const representedIds=new Set(rows.filter(r=>!r._delete&&r.id).map(r=>String(r.id)));
     const representedCodes=new Set(rows.filter(r=>!r._delete).map(r=>val(r.code)));
     const missingProducts=original.filter(p=>!representedIds.has(String(p.id)) && !representedCodes.has(val(p.code)));
     missingProducts.forEach(p=>rows.push({...productPayload(p),id:p.id,_oldCode:p.code,_new:false,_delete:true,_autoMissing:true}));
 
-    const changed=rows.filter(r=>r._delete||r._new||['change','codechange'].includes(statusFor(r)[0]));
+    const changed=rows.filter(r=>r._delete||r._new||statusFor(r)[0]==='change');
     if(!changed.length)return alert('لا توجد تغييرات جديدة.');
-    if(!confirm(`سيتم اعتماد ${changed.length} تغيير على الأصناف.\\n\\nسيتم الحفاظ على نفس معرف الصنف عند تغيير الكود، ولن يتم إنشاء صنف بديل.\\nهل تريد المتابعة؟`))return;
+    if(!confirm(`سيتم اعتماد ${changed.length} تغيير على الأصناف. هل تريد المتابعة؟`))return;
 
+    // Check final code ownership before writing. A code is allowed to move from
+    // another product only when that other product is itself being deleted or
+    // is changing to a different final code in this same inventory import.
     try{
-      /*
-       * IMPORTANT:
-       * products.code has UNIQUE constraint. Therefore we never move a code
-       * directly from A to B while B still owns it. Every product whose code
-       * changes gets a temporary unique code first, then receives its final code.
-       * This also supports swaps such as A:1001→2002 and B:2002→1001.
-       */
       const active=rows.filter(r=>!r._delete);
-      const finalOwners=new Map();
-
+      const seen=new Map();
       for(const r of active){
         const c=val(r.code);
-        if(c==='0') throw new Error(`الكود غير صالح للصنف «${r.name||''}». أدخل كودًا صحيحًا.`);
-        if(finalOwners.has(c) && String(finalOwners.get(c).id)!==String(r.id)){
-          throw new Error(`الكود ${c} مكرر داخل ملف Excel. يجب أن يكون لكل صنف كود واحد فقط.`);
-        }
-        finalOwners.set(c,r);
+        if(seen.has(c) && String(seen.get(c).id)!==String(r.id))
+          throw new Error(`الكود ${c} مكرر داخل ملف Excel.`);
+        seen.set(c,r);
       }
-
-      // Read the real owners from Supabase before any write.
-      const codes=[...finalOwners.keys()];
-      let remote=[];
+      const codes=[...seen.keys()].filter(c=>c!=='0');
       if(codes.length){
-        const rr=await sb.from('products').select('id,code,name').in('code',codes);
-        if(rr.error)throw rr.error;
-        remote=rr.data||[];
-      }
-      const remoteByCode=new Map(remote.map(p=>[String(p.code),p]));
-
-      for(const r of active){
-        const owner=remoteByCode.get(String(r.code));
-        if(!owner || String(owner.id)===String(r.id)) continue;
-
-        const ownerRow=rows.find(x=>String(x.id)===String(owner.id));
-        if(!ownerRow){
-          throw new Error(`الكود ${r.code} مستخدم بالفعل في الصنف «${owner.name||''}». لم يتم إدراج هذا الصنف في ملف الجرد، لذلك لن أستبدله تلقائيًا.`);
+        const remote=await sb.from('products').select('id,code,name').in('code',codes);
+        if(remote.error)throw remote.error;
+        const byCode=new Map((remote.data||[]).map(p=>[String(p.code),p]));
+        for(const r of active){
+          const p=byCode.get(String(r.code));
+          if(!p || String(p.id)===String(r.id)) continue;
+          const ownerRow=rows.find(x=>String(x.id)===String(p.id));
+          const ownerWillLeaveCode=ownerRow && (ownerRow._delete || String(ownerRow.code)!==String(p.code));
+          if(!ownerWillLeaveCode)
+            throw new Error(`الكود ${r.code} مستخدم بالفعل في الصنف «${p.name||''}»، ولم يتم تغييره/حذفه في ملف الجرد.`);
         }
-
-        const ownerFinal=ownerRow._delete ? null : val(ownerRow.code);
-        if(ownerFinal===String(owner.code)){
-          throw new Error(`الكود ${r.code} مستخدم بالفعل في الصنف «${owner.name||''}». غيّر الكود في ملف الجرد أولًا.`);
-        }
-      }
-
-      let done=0,fail=[];
-      const changedDeletes=changed.filter(r=>r._delete);
-      const updateRows=changed.filter(r=>!r._delete&&!r._new&&['change','codechange'].includes(statusFor(r)[0]));
-      const newRows=changed.filter(r=>!r._delete&&r._new);
-
-      // 1) Delete only products that are safe to delete.
-      // Historical invoice_items are checked explicitly.
-      for(const r of changedDeletes){
-        try{
-          const chk=await sb.from('invoice_items').select('product_id').eq('product_id',r.id).limit(1);
-          if(chk.error)throw chk.error;
-          if(chk.data&&chk.data.length)throw new Error('الصنف مرتبط بفواتير سابقة ولا يمكن حذفه حفاظًا على سجل الفواتير.');
-          const d=await sb.from('products').delete().eq('id',r.id);
-          if(d.error)throw d.error;
-          done++;
-        }catch(e){
-          fail.push(`${r._oldCode||r.code||'بدون كود'}: ${e.message||e}`);
-        }
-      }
-
-      // 2) Put ALL changing existing products on unique temporary codes.
-      // This step is deliberately completed before any final code is assigned.
-      const tempRows=[];
-      for(const r of updateRows){
-        if(String(r.code)===String(r._oldCode||'')) continue;
-        try{
-          const tempCode=`__AH_TMP_${String(r.id).replace(/[^a-zA-Z0-9]/g,'').slice(0,24)}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,7)}`;
-          const t=await sb.from('products').update({code:tempCode}).eq('id',r.id);
-          if(t.error)throw t.error;
-          tempRows.push({r,tempCode});
-        }catch(e){
-          fail.push(`${r._oldCode||r.code||'بدون كود'}: تعذر تحرير الكود القديم: ${e.message||e}`);
-        }
-      }
-
-      // 3) Apply final data. If a code was changed, all conflicting owners
-      // are already on temporary codes.
-      for(const r of updateRows){
-        const key=String(r._oldCode||r.code||'بدون كود');
-        if(fail.some(x=>x.startsWith(key+':'))) continue;
-        try{
-          const u=await sb.from('products').update(productPayload(r)).eq('id',r.id);
-          if(u.error)throw u.error;
-          done++;
-        }catch(e){
-          fail.push(`${r.code||r._oldCode||'بدون كود'}: ${e.message||e}`);
-        }
-      }
-
-      // 4) New rows are inserted last, after all old code owners have been
-      // moved/updated. A 23505 here is never silently converted to an insert.
-      for(const r of newRows){
-        try{
-          const existing=await sb.from('products').select('id,code,name').eq('code',val(r.code)).limit(1);
-          if(existing.error)throw existing.error;
-          if(existing.data&&existing.data.length){
-            throw new Error(`الكود ${r.code} موجود بالفعل في الصنف «${existing.data[0].name||''}».`);
-          }
-          const ins=await sb.from('products').insert([productPayload(r)]);
-          if(ins.error){
-            if(ins.error.code==='23505'){
-              throw new Error(`الكود ${r.code} مستخدم بالفعل. لم يتم إنشاء صنف مكرر.`);
-            }
-            throw ins.error;
-          }
-          done++;
-        }catch(e){
-          fail.push(`${r.code||'بدون كود'}: ${e.message||e}`);
-        }
-      }
-
-      if(typeof loadProducts==='function')await loadProducts();
-      if(typeof renderProducts==='function')renderProducts();
-      if(typeof refreshDashboard==='function')try{await refreshDashboard()}catch(e){}
-
-      if(fail.length){
-        alert(`⚠️ تم اعتماد ${done} تغيير، وتعذر اعتماد ${fail.length}.\\n\\n${fail.slice(0,15).join('\\n')}${fail.length>15?'\\n...':''}\\n\\nلم يتم إنشاء أصناف بديلة ولم يتم تعديل الفواتير السابقة.`);
-      }else{
-        alert(`✅ تم اعتماد ${done} تغيير بنجاح.\\n\\nتم الحفاظ على نفس معرفات الأصناف عند تغيير الأكواد، والفواتير السابقة لم يتم تعديلها.`);
-        close();
       }
     }catch(e){
-      alert('❌ تم إيقاف اعتماد الجرد قبل إكماله:\\n\\n'+(e.message||e));
+      return alert('⚠️ تعارض في أكواد الأصناف:\n\n'+(e.message||e));
+    }
+
+    let done=0,fail=[];
+
+    // Deletes first: allows reusing a code when the old product is deleted.
+    for(const r of changed.filter(x=>x._delete)){
+      try{
+        const chk=await sb.from('invoice_items').select('product_id').eq('product_id',r.id).limit(1);
+        if(chk.error)throw chk.error;
+        if(chk.data&&chk.data.length)throw new Error('الصنف مرتبط بفواتير سابقة ولا يمكن حذفه حفاظًا على سجل الفواتير.');
+        const d=await sb.from('products').delete().eq('id',r.id);
+        if(d.error)throw d.error;
+        done++;
+      }catch(e){fail.push((r.code||r._oldCode||'بدون كود')+': '+(e.message||e));}
+    }
+
+    // Existing product updates. If codes are being swapped/moved, first assign
+    // temporary unique codes so the products_code_key constraint is never hit.
+    const updateRows=changed.filter(x=>!x._delete&&!x._new&&statusFor(x)[0]==='change'||!x._delete&&!x._new&&statusFor(x)[0]==='codechange');
+    const tempChanged=[];
+    for(const r of updateRows){
+      try{
+        if(String(r.code)!==String(r._oldCode||'')){
+          const tempCode=`__AH_TMP_${String(r.id).replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${Date.now().toString(36)}`;
+          const t=await sb.from('products').update({code:tempCode}).eq('id',r.id);
+          if(t.error)throw t.error;
+          tempChanged.push({r,tempCode});
+        }
+      }catch(e){fail.push((r._oldCode||r.code||'بدون كود')+': '+(e.message||e));}
+    }
+    for(const r of updateRows){
+      if(fail.some(x=>x.startsWith((r._oldCode||r.code||'بدون كود')+': '))) continue;
+      try{
+        const u=await sb.from('products').update(productPayload(r)).eq('id',r.id);
+        if(u.error)throw u.error;
+        done++;
+      }catch(e){fail.push((r.code||r._oldCode||'بدون كود')+': '+(e.message||e));}
+    }
+
+    // New products last. If a stale/previous record already owns the code,
+    // reconcile to that existing row instead of creating a duplicate.
+    for(const r of changed.filter(x=>!x._delete&&x._new)){
+      try{
+        const payload=productPayload(r);
+        const ins=await sb.from('products').insert([payload]);
+        if(ins.error){
+          const code=String(ins.error.code||'');
+          const msg=String(ins.error.message||'');
+          const duplicate=code==='23505' || /duplicate|unique/i.test(msg);
+          if(duplicate){
+            const existing=await sb.from('products').select('id,code').eq('code',String(payload.code)).limit(1);
+            if(!existing.error && existing.data && existing.data[0]){
+              const remoteId=existing.data[0].id;
+              // Do not overwrite an existing product merely because of a stale queue item.
+              // The authoritative Excel row is already handled by the existing-row update path.
+              console.warn('♻️ تم تجاهل INSERT مكرر للصنف واستخدام السجل الموجود:', payload.code, remoteId);
+              done++;
+              continue;
+            }
+          }
+          throw ins.error;
+        }
+        done++;
+      }catch(e){fail.push((r.code||r._oldCode||'بدون كود')+': '+(e.message||e));}
+    }
+
+    if(typeof loadProducts==='function')await loadProducts();
+    if(typeof renderProducts==='function')renderProducts();
+    if(typeof refreshDashboard==='function')try{await refreshDashboard()}catch(e){}
+    if(fail.length){
+      const deletedOk=changed.filter(x=>x._delete).length - fail.filter(x=>x.includes('مرتبط بفواتير')||x.includes('تعذر')||x.includes('فشل')).length;
+      alert(`تم اعتماد ${done} تغيير، وتعذر اعتماد ${fail.length}.\n\n${fail.slice(0,12).join('\n')}${fail.length>12?'\n...':''}`);
+    }else{
+      alert(`✅ تم اعتماد ${done} تغيير بنجاح.\nالفواتير السابقة لم يتم تعديلها.`);
+      close();
     }
   }
   document.addEventListener('DOMContentLoaded',()=>setTimeout(buildUI,800));
