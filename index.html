@@ -1304,6 +1304,237 @@ td button.danger,td .cp-row-actions button,td .stock-mini-btn{
 }
 </style>
 
+
+<style id="alhamd-header-fix-v2">
+/* ===== HEADER FIX V2 ===== */
+.ah-main-header{
+  width:100%!important;
+  min-height:76px!important;
+  height:76px!important;
+  display:grid!important;
+  grid-template-columns:minmax(205px,260px) minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:12px!important;
+  padding:0 18px!important;
+  overflow:visible!important;
+  position:sticky!important;
+  top:0!important;
+  z-index:5000!important;
+  box-sizing:border-box!important;
+}
+.ah-header-brand{
+  min-width:0!important;
+  width:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:9px!important;
+  overflow:hidden!important;
+}
+.ah-brand-home{
+  flex:0 0 40px!important;
+  width:40px!important;
+  height:40px!important;
+  min-height:40px!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center!important;
+}
+.ah-header-brand > div{
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.ah-header-brand strong{
+  display:block!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:14px!important;
+}
+.ah-header-brand small{
+  display:block!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.ah-main-nav{
+  min-width:0!important;
+  width:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:3px!important;
+  overflow:visible!important;
+}
+.ah-nav-group{flex:0 0 auto!important}
+.ah-nav-home,.ah-nav-toggle{
+  min-height:42px!important;
+  height:42px!important;
+  padding:0 9px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  white-space:nowrap!important;
+  font-size:11px!important;
+}
+.ah-header-end{
+  min-width:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:7px!important;
+  white-space:nowrap!important;
+}
+.ah-header-end .topbar-info{
+  margin:0!important;
+  display:block!important;
+}
+.ah-header-end .topbar-info span{
+  display:inline-flex!important;
+  align-items:center!important;
+  height:36px!important;
+  padding:0 9px!important;
+}
+.ah-main-header #authUserBox{
+  min-width:0!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+}
+.ah-main-header .auth-user-email{
+  max-width:115px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.ah-main-header .auth-logout-btn{
+  min-height:36px!important;
+  height:36px!important;
+  padding:0 10px!important;
+  white-space:nowrap!important;
+}
+
+/* dropdowns stay anchored to their menu buttons */
+.ah-nav-menu{
+  z-index:7000!important;
+}
+
+/* Hide legacy injected search/action containers if an old cached script created them. */
+.ah-main-header .ah-top-search,
+.ah-main-header .ah-top-actions{
+  display:none!important;
+}
+
+/* Medium screens: prioritize navigation and keep header intact. */
+@media (max-width:1250px){
+  .ah-main-header{
+    grid-template-columns:minmax(175px,215px) minmax(0,1fr) auto!important;
+    padding:0 12px!important;
+    gap:7px!important;
+  }
+  .ah-nav-home,.ah-nav-toggle{
+    padding:0 6px!important;
+    font-size:10px!important;
+  }
+  .ah-header-end .topbar-info{display:none!important}
+  .ah-main-header .auth-user-email{display:none!important}
+}
+
+/* Mobile: compact header + menu opens below it. */
+@media (max-width:900px){
+  .ah-main-header{
+    min-height:68px!important;
+    height:auto!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    padding:8px 10px!important;
+    gap:8px!important;
+  }
+  .ah-header-brand{
+    min-width:0!important;
+  }
+  .ah-header-brand strong{
+    font-size:12px!important;
+    max-width:180px!important;
+  }
+  .ah-header-brand small{font-size:8px!important}
+  .ah-brand-home{
+    flex-basis:36px!important;
+    width:36px!important;
+    height:36px!important;
+    min-height:36px!important;
+  }
+  .ah-header-end{
+    grid-column:2!important;
+    grid-row:1!important;
+  }
+  .ah-header-end .topbar-info,
+  .ah-header-end .auth-user-email{
+    display:none!important;
+  }
+  .ah-header-end .auth-logout-btn{
+    height:36px!important;
+    min-height:36px!important;
+    padding:0 9px!important;
+  }
+  .ah-main-nav{
+    grid-column:1 / -1!important;
+    grid-row:2!important;
+    position:absolute!important;
+    right:8px!important;
+    left:8px!important;
+    top:calc(100% + 7px)!important;
+    width:auto!important;
+    display:none!important;
+    padding:8px!important;
+    background:rgba(255,255,255,.98)!important;
+    border:1px solid #e5e7eb!important;
+    border-radius:18px!important;
+    box-shadow:0 20px 55px rgba(15,23,42,.16)!important;
+    flex-wrap:wrap!important;
+    justify-content:flex-start!important;
+  }
+  .ah-main-nav.ah-mobile-open{display:flex!important}
+  .ah-nav-group{flex:0 0 auto!important}
+  .ah-nav-home,.ah-nav-toggle{
+    height:42px!important;
+    min-height:42px!important;
+    padding:0 10px!important;
+    font-size:10px!important;
+  }
+  .ah-nav-menu{
+    position:fixed!important;
+    right:8px!important;
+    left:8px!important;
+    top:118px!important;
+    width:auto!important;
+    max-height:calc(100vh - 135px)!important;
+    overflow:auto!important;
+  }
+}
+@media (max-width:560px){
+  .ah-header-brand strong{max-width:135px!important}
+  .ah-header-brand small{display:none!important}
+  .ah-main-header .auth-logout-btn{font-size:10px!important}
+  .ah-nav-menu{top:112px!important}
+  .ah-main-nav{right:6px!important;left:6px!important}
+}
+
+/* Dark mode */
+html[data-theme="dark"] .ah-main-header{
+  background:rgba(15,23,42,.96)!important;
+  border-bottom-color:#263244!important;
+}
+html[data-theme="dark"] .ah-brand-home{
+  background:#172033!important;
+  border-color:#334155!important;
+  color:#f8d67b!important;
+}
+html[data-theme="dark"] .ah-main-nav{
+  background:rgba(15,23,42,.98)!important;
+  border-color:#263244!important;
+}
+</style>
+
 </head>
 <body>
 
@@ -5323,41 +5554,7 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
       document.body.classList.toggle('ah-drawer-open',open);
     };
 
-    /* تحسين الهيدر بدون المساس بالـ HTML الوظيفي */
-    const top=q('.topbar');
-    if(top && !q('.ah-top-search')){
-      const search=document.createElement('div');
-      search.className='ah-top-search';
-      search.innerHTML='<span>⌕</span><input id="ahGlobalSearch" type="search" placeholder="ابحث في النظام... (Ctrl + K)" autocomplete="off">';
-      const brand=q('.brand-top');
-      if(brand) brand.insertAdjacentElement('afterend',search);
-      const actions=document.createElement('div');
-      actions.className='ah-top-actions';
-      actions.innerHTML='<button class="ah-top-action" type="button" title="فتح الفاتورة الجديدة">＋ فاتورة</button>';
-      top.appendChild(actions);
-      actions.firstElementChild.addEventListener('click',function(){
-        const b=q('.sidebar-menu button.tab[data-tab="invoice"]');
-        if(b) b.click();
-      });
-      const inp=q('#ahGlobalSearch');
-      if(inp){
-        inp.addEventListener('keydown',function(e){
-          if(e.key==='Enter'){
-            const term=this.value.trim();
-            const ps=q('#productSearch');
-            const productsTab=q('.sidebar-menu button.tab[data-tab="products"]');
-            if(term && ps && productsTab){productsTab.click();ps.value=term;ps.dispatchEvent(new Event('input',{bubbles:true}));}
-          }
-        });
-      }
-    }
-
     document.addEventListener('keydown',function(e){
-      if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){
-        e.preventDefault();
-        const input=q('#ahGlobalSearch');
-        if(input){input.focus();input.select();}
-      }
       if(e.key==='Escape') closeDrawer();
     });
 
