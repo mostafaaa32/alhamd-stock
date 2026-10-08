@@ -2405,63 +2405,18 @@ async function loadProjectSummary(){
 function printProjectSummary(){
   if(!currentProjectSummary)return alert("اختر مشروعًا أولاً");
   const r=currentProjectSummary,p=r.project;
-  const html=`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>ملخص مشروع ${esc(p.name)}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px;color:#333}h1,h2{color:#0f233c}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #cbd5e1;padding:7px;text-align:center}th{background:#0f233c;color:#fff}.box{background:#f8fafc;padding:12px;border:1px solid #ddd;border-radius:8px;margin:10px 0}</style></head><body><h1>${esc(storeSettings.store_name)}</h1><h2>تقرير ملخص المشروع: ${esc(p.name)}</h2><div class="box">المبلغ المستلم من المالك: <b>${money(r.received)} ج.م</b> — إجمالي المبيعات: <b>${money(r.salesTotal)} ج.م</b> — إجمالي المصنعيات: <b>${money(r.workTotal)} ج.م</b> — إجمالي المدفوع: <b>${money(r.totalPaid)} ج.م</b> — الدين: <b>${money(r.salesDebt+r.workDebt)} ج.م</b> — المتبقي/العجز: <b>${money(r.balance)} ج.م</b></div><h3>فواتير البيع</h3><table><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.salesInvoices.map(x=>`<tr><td>${esc(x.invoice_code||x.id.slice(0,8))}</td><td>${esc(x.customer_name)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><h3>فواتير المصنعيات</h3><table><tr><th>الفاتورة</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.work.map(x=>`<tr><td>${esc(x.invoice_code)}</td><td>${esc(x.description)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p><script>window.onload=function(){window.print();window.close()}<\/script>
-<script id="alhamd-ai-assistant-js">
-(function(){
-  const state={invs:null,products:null,expenses:null,loaded:false};
-  const $=id=>document.getElementById(id);
-  const moneyAI=n=>Number(n||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const escAI=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  function addMsg(text,who='bot'){const box=$('aiMessages');if(!box)return;const row=document.createElement('div');row.className='ah-ai-msg '+who;const b=document.createElement('div');b.className='ah-ai-bubble';b.innerHTML=escAI(text).replace(/\n/g,'<br>');row.appendChild(b);box.appendChild(row);box.scrollTop=box.scrollHeight;}
-  async function getTable(name,select='*'){try{const r=await sb.from(name).select(select);return r.error?[]:(r.data||[])}catch(e){return []}}
-  async function loadAIData(){
-    if(state.loaded)return state;
-    $('aiDataStatus')&&($('aiDataStatus').textContent='جاري التحميل');
-    state.products=Array.isArray(window.products)&&window.products.length?window.products:await getTable('products');
-    state.invs=await getTable('invoices');
-    state.expenses=await getTable('expenses');
-    state.loaded=true;
-    if($('aiDataStatus'))$('aiDataStatus').textContent=navigator.onLine?'متصل':'محلي';
-    if($('aiProductsCount'))$('aiProductsCount').textContent=String(state.products.length);
-    if($('aiInvoicesCount'))$('aiInvoicesCount').textContent=String(state.invs.length);
-    return state;
-  }
-  function monthFilter(invs){const now=new Date();return invs.filter(x=>{const d=new Date(x.created_at||x.date||0);return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()})}
-  function debtReport(){const m={};state.invs.forEach(x=>{const name=(x.customer_name||'عميل نقدي').trim();const k=name.toLowerCase();if(!m[k])m[k]={name,phone:x.customer_phone||'',debt:0,invoices:0};m[k].debt+=Math.max(0,Number(x.remaining||0));if(Number(x.remaining||0)>0)m[k].invoices++});const a=Object.values(m).filter(x=>x.debt>0).sort((a,b)=>b.debt-a.debt);if(!a.length)return 'لا توجد مديونيات مستحقة مسجلة حالياً.';return 'العملاء المديونون:\n'+a.slice(0,15).map((x,i)=>(i+1)+'. '+x.name+' — '+moneyAI(x.debt)+' ج.م — '+x.invoices+' فاتورة').join('\n')+'\n\nالإجمالي: '+moneyAI(a.reduce((s,x)=>s+x.debt,0))+' ج.م';}
-  function lowStock(){const a=(state.products||[]).filter(p=>Number(p.quantity||0)<=Number(p.min_quantity||0)).sort((a,b)=>Number(a.quantity||0)-Number(b.quantity||0));if(!a.length)return 'ممتاز، لا توجد أصناف عند أو تحت الحد الأدنى.';return 'أصناف تحتاج متابعة:\n'+a.slice(0,20).map((p,i)=>(i+1)+'. '+(p.name||'بدون اسم')+' ('+(p.code||'بدون كود')+') — الحالي '+moneyAI(p.quantity)+' / الحد الأدنى '+moneyAI(p.min_quantity)).join('\n');}
-  function topProducts(){const map={};state.invs.forEach(inv=>{if(!inv.id)return});const cached=Array.isArray(window._allInvoiceItems)?window._allInvoiceItems:[];if(cached.length){cached.forEach(it=>{const k=it.product_id||it.product_name||it.name||'غير معروف';map[k]=(map[k]||0)+Number(it.quantity||0)});}else{(state.products||[]).forEach(p=>{map[p.id]=0});}
-    const arr=Object.entries(map).map(([k,q])=>{const p=(state.products||[]).find(x=>String(x.id)===String(k));return{name:p?.name||k,q}}).filter(x=>x.q>0).sort((a,b)=>b.q-a.q);return arr.length?'الأكثر مبيعاً حسب الكميات المتاحة في البيانات المحملة:\n'+arr.slice(0,10).map((x,i)=>(i+1)+'. '+x.name+' — '+moneyAI(x.q)).join('\n'):'لا أملك حالياً بيانات بنود الفواتير الكافية لحساب الأكثر مبيعاً. افتح إدارة المبيعات أولاً لتحميل تفاصيل الفواتير.';}
-  function salesReport(){const a=monthFilter(state.invs);const total=a.reduce((s,x)=>s+Number(x.total||0),0),paid=a.reduce((s,x)=>s+Number(x.paid||0),0),rem=a.reduce((s,x)=>s+Number(x.remaining||0),0);return 'تقرير مبيعات الشهر الحالي\n\nعدد الفواتير: '+a.length+'\nإجمالي المبيعات: '+moneyAI(total)+' ج.م\nالمحصّل: '+moneyAI(paid)+' ج.م\nالمتبقي: '+moneyAI(rem)+' ج.م';}
-  function financial(){const total=state.invs.reduce((s,x)=>s+Number(x.total||0),0),paid=state.invs.reduce((s,x)=>s+Number(x.paid||0),0),debt=state.invs.reduce((s,x)=>s+Math.max(0,Number(x.remaining||0)),0),exp=state.expenses.reduce((s,x)=>s+Number(x.amount||0),0);return 'الملخص المالي\n\nإجمالي المبيعات: '+moneyAI(total)+' ج.م\nإجمالي التحصيل: '+moneyAI(paid)+' ج.م\nإجمالي المتبقي: '+moneyAI(debt)+' ج.م\nإجمالي المصروفات: '+moneyAI(exp)+' ج.م\nالصافي التقريبي: '+moneyAI(total-exp)+' ج.م';}
-  function customerSearch(q){const n=q.replace(/.*(?:عميل|العميل|ابحث عن|دور على)/,'').trim().toLowerCase();const a=state.invs.filter(x=>String(x.customer_name||'').toLowerCase().includes(n));if(!a.length)return 'لم أجد عميلًا بهذا الاسم.';return a.slice(0,12).map(x=>`${x.customer_name||'عميل نقدي'} — فاتورة ${x.invoice_code||x.id} — المتبقي ${moneyAI(x.remaining)} ج.م`).join('\n');}
-  async function answer(q){q=q.trim();if(!q)return;await loadAIData();const l=q.toLowerCase();if(/مديون|ديون|عليه فلوس|عليهم فلوس/.test(l)){if(/عميل|شخص|الناس/.test(l)||l.length<35)return debtReport();}
-    if(/قرب.*تخلص|ناقص|الحد الأدنى|مخزون منخفض/.test(l))return lowStock();
-    if(/أكثر.*مبيع|اكتر.*مبيع|الأكثر مبيع|مبيعات.*أصناف/.test(l))return topProducts();
-    if(/تقرير.*مبيعات|مبيعات.*الشهر|مبيعات الشهر/.test(l))return salesReport();
-    if(/ملخص مالي|الملخص المالي|حالة مالية|صافي الربح/.test(l))return financial();
-    if(/ابحث|دور|هات.*عميل|العميل/.test(l)&&!(/مديون/.test(l)))return customerSearch(q);
-    if(/عدد.*فاتورة|كام فاتورة/.test(l))return `عدد الفواتير المسجلة: ${state.invs.length}`;
-    return 'أقدر أساعدك في المديونيات، المخزون، المبيعات، المصروفات والتقارير. جرّب مثلاً: «مين أكبر العملاء مديونية؟» أو «اعمل تقرير مبيعات الشهر الحالي».';
-  }
-  async function send(q){addMsg(q,'user');const box=$('aiInput');if(box)box.value='';addMsg('جاري تحليل بيانات الحمد ستوك...','bot');const msgs=$('aiMessages');const last=msgs?.lastElementChild;try{const a=await answer(q);if(last)last.remove();addMsg(a,'bot');}catch(e){if(last)last.remove();addMsg('تعذر قراءة البيانات حالياً. تأكد من الاتصال أو جرّب مرة أخرى.','bot');}}
-  function init(){if(!$('aiMessages'))return;if(!$('aiMessages').children.length)addMsg('أهلاً بك 👋\nأنا مساعد الحمد الذكي. اسألني عن المبيعات، المديونيات، المخزون أو اطلب تقريراً.');$('aiSend')?.addEventListener('click',()=>send($('aiInput')?.value||''));$('aiInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(e.currentTarget.value)}});document.querySelectorAll('[data-ai-cmd]').forEach(b=>b.addEventListener('click',()=>send(b.dataset.aiCmd)));}
-  window.initAlhamdAI=init;window.askAlhamdAI=send;
-  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,500));
-})();
-</script>
-
-<button id="alhamdAiFloat" class="ah-ai-float" type="button">🤖 مساعد الحمد</button>
-<script>document.getElementById("alhamdAiFloat")?.addEventListener("click",function(){if(typeof showTab==="function")showTab("aiAssistant");if(window.initAlhamdAI)window.initAlhamdAI();});</script>
+  const html=`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>ملخص مشروع ${esc(p.name)}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px;color:#333}h1,h2{color:#0f233c}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #cbd5e1;padding:7px;text-align:center}th{background:#0f233c;color:#fff}.box{background:#f8fafc;padding:12px;border:1px solid #ddd;border-radius:8px;margin:10px 0}</style></head><body><h1>${esc(storeSettings.store_name)}</h1><h2>تقرير ملخص المشروع: ${esc(p.name)}</h2><div class="box">المبلغ المستلم من المالك: <b>${money(r.received)} ج.م</b> — إجمالي المبيعات: <b>${money(r.salesTotal)} ج.م</b> — إجمالي المصنعيات: <b>${money(r.workTotal)} ج.م</b> — إجمالي المدفوع: <b>${money(r.totalPaid)} ج.م</b> — الدين: <b>${money(r.salesDebt+r.workDebt)} ج.م</b> — المتبقي/العجز: <b>${money(r.balance)} ج.م</b></div><h3>فواتير البيع</h3><table><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.salesInvoices.map(x=>`<tr><td>${esc(x.invoice_code||x.id.slice(0,8))}</td><td>${esc(x.customer_name)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><h3>فواتير المصنعيات</h3><table><tr><th>الفاتورة</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.work.map(x=>`<tr><td>${esc(x.invoice_code)}</td><td>${esc(x.description)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p>
 </body></html>`;
   const w=window.open('','_blank');
   if(!w)return;
   w.document.write(html);
   w.document.close();
+  setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} }, 250);
 }
 
 function printProjectTableReport(){const t=document.getElementById('projectsTable');if(!t)return;printHtmlTableReport('تقرير المقاولات',t.outerHTML)}
 function printWorkmanshipTableReport(){const t=document.getElementById('workmanshipTable');if(!t)return;printHtmlTableReport('تقرير المصنعيات',t.outerHTML)}
-function printHtmlTableReport(title,tableHtml){const w=window.open('','_blank');w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>${title}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px}h2{text-align:center;color:#0f233c}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:8px;text-align:center}th{background:#0f233c;color:#fff}</style></head><body><h2>${storeSettings.store_name}</h2><h2>${title}</h2>${tableHtml}<script>window.onload=function(){window.print();window.close()}<\/script></body></html>`);w.document.close();}
+function printHtmlTableReport(title,tableHtml){const w=window.open('','_blank');if(!w)return;w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>${title}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px}h2{text-align:center;color:#0f233c}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:8px;text-align:center}th{background:#0f233c;color:#fff}</style></head><body><h2>${storeSettings.store_name}</h2><h2>${title}</h2>${tableHtml}</body></html>`);w.document.close();setTimeout(function(){try{w.focus();w.print()}catch(e){}},250);}
 
 document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
   document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
@@ -7076,6 +7031,53 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
 })();
 </script>
 
+
+<script id="alhamd-ai-assistant-js">
+(function(){
+  const state={invs:null,products:null,expenses:null,loaded:false};
+  const byId=id=>document.getElementById(id);
+  const moneyAI=n=>Number(n||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const escAI=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  function addMsg(text,who='bot'){const box=byId('aiMessages');if(!box)return;const row=document.createElement('div');row.className='ah-ai-msg '+who;const b=document.createElement('div');b.className='ah-ai-bubble';b.innerHTML=escAI(text).replace(/\n/g,'<br>');row.appendChild(b);box.appendChild(row);box.scrollTop=box.scrollHeight;}
+  async function getTable(name,select='*'){try{const r=await sb.from(name).select(select);return r.error?[]:(r.data||[])}catch(e){return []}}
+  async function loadAIData(){
+    if(state.loaded)return state;
+    byId('aiDataStatus')&&(byId('aiDataStatus').textContent='جاري التحميل');
+    state.products=Array.isArray(window.products)&&window.products.length?window.products:await getTable('products');
+    state.invs=await getTable('invoices');
+    state.expenses=await getTable('expenses');
+    state.loaded=true;
+    if(byId('aiDataStatus'))byId('aiDataStatus').textContent=navigator.onLine?'متصل':'محلي';
+    if(byId('aiProductsCount'))byId('aiProductsCount').textContent=String(state.products.length);
+    if(byId('aiInvoicesCount'))byId('aiInvoicesCount').textContent=String(state.invs.length);
+    return state;
+  }
+  function monthFilter(invs){const now=new Date();return invs.filter(x=>{const d=new Date(x.created_at||x.date||0);return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()})}
+  function debtReport(){const m={};state.invs.forEach(x=>{const name=(x.customer_name||'عميل نقدي').trim();const k=name.toLowerCase();if(!m[k])m[k]={name,phone:x.customer_phone||'',debt:0,invoices:0};m[k].debt+=Math.max(0,Number(x.remaining||0));if(Number(x.remaining||0)>0)m[k].invoices++});const a=Object.values(m).filter(x=>x.debt>0).sort((a,b)=>b.debt-a.debt);if(!a.length)return 'لا توجد مديونيات مستحقة مسجلة حالياً.';return 'العملاء المديونون:\n'+a.slice(0,15).map((x,i)=>`${i+1}. ${x.name} — ${moneyAI(x.debt)} ج.م — ${x.invoices} فاتورة`).join('\n')+'\n\nالإجمالي: '+moneyAI(a.reduce((s,x)=>s+x.debt,0))+' ج.م';}
+  function lowStock(){const a=(state.products||[]).filter(p=>Number(p.quantity||0)<=Number(p.min_quantity||0)).sort((a,b)=>Number(a.quantity||0)-Number(b.quantity||0));if(!a.length)return 'ممتاز، لا توجد أصناف عند أو تحت الحد الأدنى.';return 'أصناف تحتاج متابعة:\n'+a.slice(0,20).map((p,i)=>`${i+1}. ${p.name||'بدون اسم'} (${p.code||'بدون كود'}) — الحالي ${moneyAI(p.quantity)} / الحد الأدنى ${moneyAI(p.min_quantity)}`).join('\n');}
+  function topProducts(){const map={};state.invs.forEach(inv=>{if(!inv.id)return});const cached=Array.isArray(window._allInvoiceItems)?window._allInvoiceItems:[];if(cached.length){cached.forEach(it=>{const k=it.product_id||it.product_name||it.name||'غير معروف';map[k]=(map[k]||0)+Number(it.quantity||0)});}else{(state.products||[]).forEach(p=>{map[p.id]=0});}
+    const arr=Object.entries(map).map(([k,q])=>{const p=(state.products||[]).find(x=>String(x.id)===String(k));return{name:p?.name||k,q}}).filter(x=>x.q>0).sort((a,b)=>b.q-a.q);return arr.length?'الأكثر مبيعاً حسب الكميات المتاحة في البيانات المحملة:\n'+arr.slice(0,10).map((x,i)=>`${i+1}. ${x.name} — ${moneyAI(x.q)}`).join('\n'):'لا أملك حالياً بيانات بنود الفواتير الكافية لحساب الأكثر مبيعاً. افتح إدارة المبيعات أولاً لتحميل تفاصيل الفواتير.';}
+  function salesReport(){const a=monthFilter(state.invs);const total=a.reduce((s,x)=>s+Number(x.total||0),0),paid=a.reduce((s,x)=>s+Number(x.paid||0),0),rem=a.reduce((s,x)=>s+Number(x.remaining||0),0);return `تقرير مبيعات الشهر الحالي\n\nعدد الفواتير: ${a.length}\nإجمالي المبيعات: ${moneyAI(total)} ج.م\nالمحصّل: ${moneyAI(paid)} ج.م\nالمتبقي: ${moneyAI(rem)} ج.م`;}
+  function financial(){const total=state.invs.reduce((s,x)=>s+Number(x.total||0),0),paid=state.invs.reduce((s,x)=>s+Number(x.paid||0),0),debt=state.invs.reduce((s,x)=>s+Math.max(0,Number(x.remaining||0)),0),exp=state.expenses.reduce((s,x)=>s+Number(x.amount||0),0);return `الملخص المالي\n\nإجمالي المبيعات: ${moneyAI(total)} ج.م\nإجمالي التحصيل: ${moneyAI(paid)} ج.م\nإجمالي المتبقي: ${moneyAI(debt)} ج.م\nإجمالي المصروفات: ${moneyAI(exp)} ج.م\nالصافي التقريبي: ${moneyAI(total-exp)} ج.م`;}
+  function customerSearch(q){const n=q.replace(/.*(?:عميل|العميل|ابحث عن|دور على)/,'').trim().toLowerCase();const a=state.invs.filter(x=>String(x.customer_name||'').toLowerCase().includes(n));if(!a.length)return 'لم أجد عميلًا بهذا الاسم.';return a.slice(0,12).map(x=>`${x.customer_name||'عميل نقدي'} — فاتورة ${x.invoice_code||x.id} — المتبقي ${moneyAI(x.remaining)} ج.م`).join('\n');}
+  async function answer(q){q=q.trim();if(!q)return;await loadAIData();const l=q.toLowerCase();if(/مديون|ديون|عليه فلوس|عليهم فلوس/.test(l)){if(/عميل|شخص|الناس/.test(l)||l.length<35)return debtReport();}
+    if(/قرب.*تخلص|ناقص|الحد الأدنى|مخزون منخفض/.test(l))return lowStock();
+    if(/أكثر.*مبيع|اكتر.*مبيع|الأكثر مبيع|مبيعات.*أصناف/.test(l))return topProducts();
+    if(/تقرير.*مبيعات|مبيعات.*الشهر|مبيعات الشهر/.test(l))return salesReport();
+    if(/ملخص مالي|الملخص المالي|حالة مالية|صافي الربح/.test(l))return financial();
+    if(/ابحث|دور|هات.*عميل|العميل/.test(l)&&!(/مديون/.test(l)))return customerSearch(q);
+    if(/عدد.*فاتورة|كام فاتورة/.test(l))return `عدد الفواتير المسجلة: ${state.invs.length}`;
+    return 'أقدر أساعدك في المديونيات، المخزون، المبيعات، المصروفات والتقارير. جرّب مثلاً: «مين أكبر العملاء مديونية؟» أو «اعمل تقرير مبيعات الشهر الحالي».';
+  }
+  async function send(q){addMsg(q,'user');const box=byId('aiInput');if(box)box.value='';addMsg('جاري تحليل بيانات الحمد ستوك...','bot');const msgs=byId('aiMessages');const last=msgs?.lastElementChild;try{const a=await answer(q);if(last)last.remove();addMsg(a,'bot');}catch(e){if(last)last.remove();addMsg('تعذر قراءة البيانات حالياً. تأكد من الاتصال أو جرّب مرة أخرى.','bot');}}
+  function init(){if(!byId('aiMessages'))return;if(!byId('aiMessages').children.length)addMsg('أهلاً بك 👋\nأنا مساعد الحمد الذكي. اسألني عن المبيعات، المديونيات، المخزون أو اطلب تقريراً.');byId('aiSend')?.addEventListener('click',()=>send(byId('aiInput')?.value||''));byId('aiInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(e.currentTarget.value)}});document.querySelectorAll('[data-ai-cmd]').forEach(b=>b.addEventListener('click',()=>send(b.dataset.aiCmd)));}
+  window.initAlhamdAI=init;window.askAlhamdAI=send;
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,500));
+})();
+</script>
+
+<button id="alhamdAiFloat" class="ah-ai-float" type="button">🤖 مساعد الحمد</button>
+<script>document.getElementById("alhamdAiFloat")?.addEventListener("click",function(){if(typeof showTab==="function")showTab("aiAssistant");if(window.initAlhamdAI)window.initAlhamdAI();});</script>
 </body>
 </html>
     
