@@ -5712,7 +5712,82 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
   window.ahMegaCash=async function(){var a=num($('#cashAmount').value);if(a<=0)return alert('أدخل مبلغًا صحيحًا');var payload={transaction_type:$('#cashType').value==='in'?'income':'expense',category:$('#cashCat').value||null,amount:a,transaction_date:$('#cashDate').value||today(),notes:$('#cashNote').value||null};var r=await sb.from('cash_transactions').insert(payload);if(r.error)return alert('تعذر حفظ حركة الخزينة: '+r.error.message);toast('✅ تم تسجيل حركة الخزينة في Supabase');render()}
   window.ahMegaPayment=async function(){var a=num($('#payAmount').value),kind=$('#payKind').value,name=$('#payName').value.trim();if(!name)return alert('اكتب الاسم');if(a<=0)return alert('أدخل مبلغًا صحيحًا');var table=kind==='customer'?'customer_payments':'supplier_payments',payload=kind==='customer'?{customer_name:name,amount:a,payment_date:$('#payDate').value||today(),reference:$('#payRef').value||null}:{supplier_name:name,amount:a,payment_date:$('#payDate').value||today(),reference:$('#payRef').value||null};var r=await sb.from(table).insert(payload);if(r.error)return alert('تعذر حفظ الدفعة: '+r.error.message);toast('✅ تم حفظ الدفعة في Supabase');render()}
   window.ahMegaReturn=async function(){var p=productsList().find(function(x){return String(x.id)===String($('#retProduct').value)}),a=num($('#retQty').value);if(!p)return alert('اختر الصنف');if(a<=0)return alert('أدخل كمية صحيحة');var type=$('#retType').value;var payload={return_type:type,product_id:p.id,quantity:a,amount:num($('#retAmount').value),return_date:$('#retDate').value||today(),reason:$('#retRef').value||null};var ins=await sb.from('stock_returns').insert(payload);if(ins.error)return alert('تعذر حفظ المرتجع: '+ins.error.message);var qty=Math.max(0,num(p.quantity)+(type==='sale'?a:-a));var up=await sb.from('products').update({quantity:qty}).eq('id',p.id);if(up.error){toast('⚠️ تم حفظ المرتجع لكن تعذر تحديث المخزون: '+up.error.message)}else{toast('✅ تم تسجيل المرتجع وتحديث المخزون')}if(typeof loadProducts==='function')try{await loadProducts()}catch(e){}render()}
-  window.ahMegaStock=async function(){var items=[];all('[data-stock-count]').forEach(function(i){if(i.value==='')return;items.push({product_id:i.dataset.stockCount,counted_quantity:num(i.value)})});if(!items.length)return alert('أدخل كميات الجرد أولًا');var todayDate=today();for(var i=0;i<items.length;i++){var p=productsList().find(function(x){return String(x.id)===String(items[i].product_id)});if(!p)continue;var del=await sb.from('stock_counts').delete().eq('product_id',items[i].product_id).eq('count_date',todayDate);if(del.error)return alert('تعذر تحديث الجرد: '+del.error.message);var ins=await sb.from('stock_counts').insert({count_date:todayDate,product_id:items[i].product_id,system_quantity:num(p.quantity),counted_quantity:items[i].counted_quantity});if(ins.error)return alert('تعذر حفظ الجرد: '+ins.error.message)}toast('✅ تم حفظ الجرد في Supabase');render()}
+  window.ahMegaStock=async function(){
+    var items=[];
+    all('[data-stock-count]').forEach(function(i){
+      if(i.value==='')return;
+      var q=num(i.value);
+      if(q<0) return;
+      items.push({product_id:i.dataset.stockCount,counted_quantity:q});
+    });
+    if(!items.length)return alert('أدخل كميات الجرد أولًا');
+
+    var todayDate=today(), done=0, fail=[];
+    for(var i=0;i<items.length;i++){
+      var item=items[i];
+      var p=productsList().find(function(x){return String(x.id)===String(item.product_id)});
+      if(!p)continue;
+
+      var oldQty=num(p.quantity), newQty=num(item.counted_quantity), diff=newQty-oldQty;
+
+      try{
+        /* 1) حفظ الجرد */
+        var del=await sb.from('stock_counts').delete()
+          .eq('product_id',item.product_id).eq('count_date',todayDate);
+        if(del.error)throw del.error;
+
+        var ins=await sb.from('stock_counts').insert({
+          count_date:todayDate,
+          product_id:item.product_id,
+          system_quantity:oldQty,
+          counted_quantity:newQty,
+          difference:diff,
+          notes:'جرد المخزون'
+        });
+        if(ins.error)throw ins.error;
+
+        /* 2) جعل الكمية الفعلية هي رصيد الصنف الحالي */
+        var up=await sb.from('products').update({quantity:newQty}).eq('id',item.product_id);
+        if(up.error)throw up.error;
+
+        /* 3) تسجيل التسوية في سجل حركة المخزون */
+        if(diff!==0){
+          var adjId=Date.now()*1000+i+Math.floor(Math.random()*999);
+          var adj=await sb.from('stock_adjustments').insert({
+            id:adjId,
+            product_id:item.product_id,
+            product_code:p.code||null,
+            product_name:p.name||null,
+            product_unit:p.unit||'قطعة',
+            old_quantity:oldQty,
+            new_quantity:newQty,
+            difference:diff,
+            reason:'جرد المخزون',
+            adjustment_type:'stock_count',
+            created_by:(typeof currentUser!=='undefined'&&currentUser?.id)?currentUser.id:null,
+            notes:'تسوية ناتجة عن الجرد بتاريخ '+todayDate,
+            old_code:p.code||null,
+            new_code:p.code||null,
+            source:'stock_count'
+          });
+          if(adj.error)throw adj.error;
+        }
+
+        done++;
+      }catch(e){
+        fail.push((p.code||p.name||item.product_id)+': '+(e.message||e));
+      }
+    }
+
+    if(typeof loadProducts==='function')try{await loadProducts()}catch(e){}
+    render();
+
+    if(fail.length){
+      alert('تم حفظ '+done+' صنف، وتعذر حفظ '+fail.length+' صنف:\n\n'+fail.slice(0,10).join('\n'));
+    }else{
+      toast('✅ تم حفظ الجرد وتحديث الكميات وتسجيل التسويات');
+    }
+  }
   window.ahMegaClearStock=function(){var d=get();d.stock=[];put(d);render()}
   window.ahMegaPrice=async function(){var id=$('#priceProduct').value;if(!id)return alert('اختر الصنف');var payload={product_id:id,unit_name:$('#priceUnit').value||'قطعة',wholesale_price:num($('#priceWholesale').value),contractor_price:num($('#priceContractor').value),special_price:num($('#priceSpecial').value),updated_at:new Date().toISOString()};var r=await sb.from('product_price_levels').upsert(payload,{onConflict:'product_id'});if(r.error)return alert('تعذر حفظ مستويات الأسعار: '+r.error.message);toast('✅ تم حفظ مستويات الأسعار في Supabase');render()}
   window.ahMegaBarcode=function(){var p=productsList().find(function(x){return String(x.id)===String($('#priceProduct').value)});if(!p)return alert('اختر الصنف');var code=p.code||p.id,w=window.open('','_blank','width=500,height=350');if(!w)return;w.document.write('<html dir="rtl"><body style="font-family:Arial;text-align:center;padding:30px"><h2>'+esc(p.name)+'</h2><div style="font-size:40px;letter-spacing:5px">*'+esc(code)+'*</div><p>'+esc(code)+'</p><button onclick="print()">طباعة</button></body></html>');w.document.close()}
@@ -6604,7 +6679,7 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
             </div>
           </div>
           <div class="ah-excel-footer">
-            <div class="ah-excel-help"><b>ملف الجرد هو المرجع:</b> أي صنف غير موجود فيه سيتم حذفه من المخزون. إذا كان الصنف مرتبطًا بفواتير سابقة سيمنع النظام حذفه حفاظًا على التاريخ. تغيير الكود محفوظ بواسطة معرف الصنف التقني. لن يتم تعديل الفواتير السابقة.</div>
+            <div class="ah-excel-help"><b>ملف الجرد هو المرجع:</b> أي صنف غير موجود فيه سيتم حذفه من المخزون. إذا كان الصنف مرتبطًا بفواتير سابقة سيمنع النظام حذفه حفاظًا على التاريخ. تغيير الكود محفوظ بواسطة معرف الصنف التقني. لا يتم إنشاء صنف جديد عند تغيير الكود.</div>
             <div>
               <button class="ah-excel-btn gray" id="ahExcelCancel">إلغاء</button>
               <button class="ah-excel-btn green" id="ahExcelCommit">✅ اعتماد التعديلات</button>
@@ -6648,7 +6723,7 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
     if(report){
       const deleted=rows.filter(r=>r._delete);
       const codeChanged=rows.filter(r=>!r._delete && r.id && String(r._oldCode||'')!==String(r.code||''));
-      report.innerHTML = `<b>تقرير الجرد:</b> سيتم حذف <strong>${deleted.length}</strong> صنفًا غير موجود في الملف، وتعديل كود <strong>${codeChanged.length}</strong> صنفًا مع الاحتفاظ بنفس <code>id</code> حتى تظل الفواتير السابقة مرتبطة بالصنف نفسه. ${deleted.length?'<br>🗑️ الحذف سيظهر بوضوح في القائمة، وأي صنف مرتبط بفواتير سابقة سيُمنع حذفه.':''} ${codeChanged.length?'<br>🔁 تغيير الكود لا ينشئ صنفًا جديدًا؛ يتم تعديل كود نفس الصنف، لذلك لا تتأثر الفواتير السابقة.':''}`;
+      report.innerHTML = `<b>تقرير الجرد:</b> سيتم حذف <strong>${deleted.length}</strong> صنفًا غير موجود في الملف، وتعديل كود <strong>${codeChanged.length}</strong> صنفًا مع الاحتفاظ بنفس <code>id</code> حتى تظل الفواتير السابقة مرتبطة بالصنف نفسه. ${deleted.length?'<br>🗑️ الحذف سيظهر بوضوح في القائمة، وأي صنف مرتبط بفواتير سابقة سيُمنع حذفه.':''} ${codeChanged.length?'<br>🔁 تغيير الكود لا ينشئ صنفًا جديدًا؛ يتم تعديل كود نفس الصنف، وتظل سجلات الفواتير مرتبطة بنفس معرف الصنف.':''}`;
     }
     body.querySelectorAll('input[data-i]').forEach(el=>el.oninput=function(){
       const r=rows[Number(this.dataset.i)],k=this.dataset.k;
@@ -6809,6 +6884,22 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
       try{
         const u=await sb.from('products').update(productPayload(r)).eq('id',r.id);
         if(u.error)throw u.error;
+
+        /* سجل تغيير الكود مع الحفاظ على نفس product_id */
+        if(String(r.code)!==String(r._oldCode||'')){
+          const audit=await sb.from('product_code_changes').insert({
+            product_id:r.id,
+            old_code:String(r._oldCode||''),
+            new_code:String(r.code||''),
+            reason:'تحديث مخزون من Excel',
+            change_type:'excel',
+            changed_by:(typeof currentUser!=='undefined'&&currentUser?.id)?currentUser.id:null,
+            changed_at:new Date().toISOString(),
+            notes:'تغيير كود من شاشة استيراد ومراجعة Excel'
+          });
+          if(audit.error)throw audit.error;
+        }
+
         done++;
       }catch(e){fail.push((r.code||r._oldCode||'بدون كود')+': '+(e.message||e));}
     }
@@ -6847,7 +6938,7 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
       const deletedOk=changed.filter(x=>x._delete).length - fail.filter(x=>x.includes('مرتبط بفواتير')||x.includes('تعذر')||x.includes('فشل')).length;
       alert(`تم اعتماد ${done} تغيير، وتعذر اعتماد ${fail.length}.\n\n${fail.slice(0,12).join('\n')}${fail.length>12?'\n...':''}`);
     }else{
-      alert(`✅ تم اعتماد ${done} تغيير بنجاح.\nالفواتير السابقة لم يتم تعديلها.`);
+      alert(`✅ تم اعتماد ${done} تغيير بنجاح.\nتم الحفاظ على معرفات الأصناف ولم يتم إنشاء أصناف بديلة بسبب تغيير الكود.`);
       close();
     }
   }
