@@ -2079,8 +2079,13 @@ html[data-theme="dark"] .ah-main-header{background:rgba(15,23,42,.96)!important;
 const SUPABASE_URL = 'https://ienqyavjyaizxjvrsgbv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_jRrQIQiQCm4AGyvfV3WMhQ_x9FeWKhV';
 
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseLib = window.supabase;
+const sb = supabaseLib && typeof supabaseLib.createClient === 'function'
+  ? supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+// اجعل عميل Supabase متاحًا لكل السكربتات والإضافات والـ inline handlers.
+window.sb = sb;
+if (!sb) console.error('Supabase client failed to initialize: CDN library is unavailable.');
 
 let products = [];
 let invoiceItems = []; 
@@ -6398,6 +6403,87 @@ html[data-theme="dark"] .ah-mega-kpi,html[data-theme="dark"] .ah-mega-card,html[
 })();
 </script>
 
+<script id="alhamd-header-navigation-fix">
+(function(){
+  function qs(s,root){return (root||document).querySelector(s)}
+  function qsa(s,root){return Array.from((root||document).querySelectorAll(s))}
+
+  function closeMenus(except){
+    qsa('.ah-nav-group.open').forEach(function(g){
+      if(g!==except){
+        g.classList.remove('open');
+        var t=g.querySelector('.ah-nav-toggle');
+        if(t)t.setAttribute('aria-expanded','false');
+      }
+    });
+  }
+
+  function bindHeader(){
+    // القوائم المنسدلة في الهيدر كانت تملك CSS فقط بدون click handler.
+    qsa('.ah-nav-group').forEach(function(group){
+      var toggle=group.querySelector(':scope > .ah-nav-toggle');
+      if(!toggle || toggle.dataset.bound==='1')return;
+      toggle.dataset.bound='1';
+      toggle.addEventListener('click',function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        var open=group.classList.contains('open');
+        closeMenus(group);
+        group.classList.toggle('open',!open);
+        toggle.setAttribute('aria-expanded',String(!open));
+      });
+    });
+
+    // أزرار الهيدر نفسها تعمل مباشرة حتى لو لم تعد هناك sidebar.
+    qsa('.ah-main-header .tab, .ah-mobile-bottom [data-tab]').forEach(function(btn){
+      if(btn.dataset.headerBound==='1')return;
+      btn.dataset.headerBound='1';
+      btn.addEventListener('click',function(ev){
+        var tab=this.dataset.tab;
+        if(!tab)return;
+        if(typeof window.showTab==='function'){
+          try{ window.showTab(tab); }catch(e){ console.error('Navigation error:',e); }
+        }else{
+          var page=document.getElementById(tab);
+          if(page){
+            qsa('.tab-page').forEach(function(x){x.classList.add('hidden')});
+            page.classList.remove('hidden');
+          }
+        }
+        closeMenus();
+      });
+    });
+
+    // زر القائمة للموبايل الحقيقي بدل pseudo-element غير قابل للنقر.
+    var header=qs('.ah-main-header');
+    if(header && !qs('#ahHeaderMobileBtn')){
+      var mobileBtn=document.createElement('button');
+      mobileBtn.id='ahHeaderMobileBtn';
+      mobileBtn.type='button';
+      mobileBtn.className='ah-header-mobile-btn';
+      mobileBtn.setAttribute('aria-label','فتح القائمة');
+      mobileBtn.textContent='☰';
+      header.appendChild(mobileBtn);
+      mobileBtn.addEventListener('click',function(){
+        var nav=qs('.ah-main-nav');
+        if(nav)nav.classList.toggle('ah-mobile-open');
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded',bindHeader);
+  window.addEventListener('load',function(){setTimeout(bindHeader,50)});
+  document.addEventListener('click',function(ev){
+    if(!ev.target.closest('.ah-nav-group'))closeMenus();
+  });
+})();
+</script>
+
+<style id="alhamd-header-navigation-fix-css">
+.ah-header-mobile-btn{display:none;border:1px solid #e5e7eb!important;background:#f3f6fb!important;color:#172554!important;width:40px;height:40px;border-radius:12px!important;font-size:19px!important;font-weight:900!important;cursor:pointer!important;align-items:center;justify-content:center;flex:0 0 40px}
+@media(max-width:900px){.ah-header-mobile-btn{display:flex!important}.ah-main-header:after,.ah-header-end:before{display:none!important}}
+</style>
+
 <style id="alhamd-offline-status-css">
 .ah-offline-status{display:inline-flex!important;align-items:center!important;gap:5px!important;padding:7px 11px!important;border-radius:999px!important;border:1px solid #e5e7eb!important;background:#fff!important;color:#334155!important;font-size:11px!important;font-weight:800!important;white-space:nowrap!important}
 .ah-offline-status[data-state="offline"]{background:#fef2f2!important;color:#b91c1c!important;border-color:#fecaca!important}
@@ -6913,4 +6999,5 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
 
 </body>
 </html>
+
     
