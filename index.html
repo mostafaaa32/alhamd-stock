@@ -1040,6 +1040,9 @@ html[data-theme="dark"] .ww-field label{color:#cbd5e1}html[data-theme="dark"] .w
 @media(max-width:560px){.ah-header-brand strong{max-width:125px}.ah-menu-grid{grid-template-columns:1fr}.ah-nav-menu{top:118px}.ah-main-nav{right:6px;left:6px}.ah-header-end{display:none}.ah-main-header:after{margin-right:auto}}
 html[data-theme="dark"] .ah-main-header{background:rgba(15,23,42,.96)!important;border-bottom-color:#263244!important}.dark html[data-theme="dark"]{}html[data-theme="dark"] .ah-header-brand strong,html[data-theme="dark"] .ah-nav-home,html[data-theme="dark"] .ah-nav-toggle{color:#f8d67b!important}html[data-theme="dark"] .ah-header-brand small,html[data-theme="dark"] .ah-menu-title small{color:#94a3b8}html[data-theme="dark"] .ah-nav-menu{background:#111827;border-color:#263244}html[data-theme="dark"] .ah-menu-item{background:#172033!important;border-color:#263244!important;color:#e5e7eb!important}html[data-theme="dark"] .ah-menu-item:hover{background:#1d2940!important}html[data-theme="dark"] .ah-menu-item i{background:#263244}
 </style>
+<style id="alhamd-ai-css">
+.ah-ai-page{max-width:1200px;margin:auto}.ah-ai-hero{background:linear-gradient(135deg,#111d3d,#1e3a8a 60%,#0b1224);color:#fff;border-radius:24px;padding:28px;box-shadow:0 18px 45px rgba(15,23,42,.18);margin-bottom:18px}.ah-ai-hero h2{margin:0 0 8px;font-size:28px}.ah-ai-hero p{margin:0;opacity:.86;line-height:1.9}.ah-ai-grid{display:grid;grid-template-columns:1fr 310px;gap:18px}.ah-ai-chat{background:#fff;border:1px solid #e5e7eb;border-radius:22px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,.07)}.ah-ai-messages{height:500px;overflow:auto;padding:20px;background:#f8fafc}.ah-ai-msg{display:flex;margin:10px 0}.ah-ai-msg.user{justify-content:flex-start}.ah-ai-msg.bot{justify-content:flex-end}.ah-ai-bubble{max-width:82%;padding:12px 15px;border-radius:17px;line-height:1.8;white-space:pre-wrap}.ah-ai-msg.user .ah-ai-bubble{background:#e8eefc;color:#172554;border-bottom-right-radius:5px}.ah-ai-msg.bot .ah-ai-bubble{background:#fff;border:1px solid #e5e7eb;color:#1f2937;border-bottom-left-radius:5px}.ah-ai-input{display:flex;gap:8px;padding:14px;border-top:1px solid #e5e7eb;background:#fff}.ah-ai-input textarea{flex:1;resize:none;min-height:48px;max-height:120px;border:1px solid #dbe2ea;border-radius:14px;padding:10px 13px;font-family:inherit}.ah-ai-send{border:0;border-radius:14px;padding:0 20px;background:#1e3a8a;color:#fff;font-weight:800;cursor:pointer}.ah-ai-side{background:#fff;border:1px solid #e5e7eb;border-radius:22px;padding:16px;height:max-content}.ah-ai-side h3{margin-top:0}.ah-ai-cmd{display:block;width:100%;text-align:right;border:1px solid #e5e7eb;background:#f8fafc;padding:11px;border-radius:12px;margin:8px 0;cursor:pointer;font-family:inherit}.ah-ai-cmd:hover{background:#eef2ff;border-color:#c7d2fe}.ah-ai-report{margin-top:12px;padding:14px;border-radius:14px;background:#f8fafc;border:1px dashed #cbd5e1}.ah-ai-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}.ah-ai-kpi div{background:rgba(255,255,255,.09);padding:12px;border-radius:14px}.ah-ai-kpi b{display:block;font-size:19px;margin-top:4px}.ah-ai-float{position:fixed;left:20px;bottom:20px;z-index:1800;border:0;border-radius:999px;padding:13px 18px;background:#1e3a8a;color:#fff;font-weight:800;box-shadow:0 12px 30px rgba(0,0,0,.25);cursor:pointer}.ah-ai-status{font-size:12px;color:#64748b;margin-top:8px}@media(max-width:800px){.ah-ai-grid{grid-template-columns:1fr}.ah-ai-side{order:-1}.ah-ai-messages{height:55vh}.ah-ai-kpi{grid-template-columns:1fr}.ah-ai-float{left:12px;bottom:72px}}
+</style>
 </head>
 <body>
 
@@ -1317,6 +1320,7 @@ html[data-theme="dark"] .ah-main-header{background:rgba(15,23,42,.96)!important;
 
         <nav class="ah-main-nav" aria-label="التنقل الرئيسي">
           <button class="tab ah-nav-home" data-tab="dashboard" type="button">🏠 الرئيسية</button>
+          <button class="tab ah-nav-ai" data-tab="aiAssistant" type="button">🤖 مساعد الحمد AI</button>
 
           <div class="ah-nav-group">
             <button class="ah-nav-toggle" type="button" aria-expanded="false">🛒 التجاري <span>⌄</span></button>
@@ -2071,6 +2075,34 @@ html[data-theme="dark"] .ah-main-header{background:rgba(15,23,42,.96)!important;
     <div class="ww-form-card"><div class="ww-section-title"><div><h3>💳 سجل المقبوضات</h3><small>كل دفعة تظهر هنا لمعرفة ما إذا كان القبض كاملًا أو جزئيًا.</small></div><div id="acStatus"></div></div><div class="ww-table-wrap"><table class="ww-table"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>البيان</th><th>الإجراء</th></tr></thead><tbody id="acPaymentsBody"><tr><td colspan="4" class="ww-empty">لا توجد دفعات.</td></tr></tbody></table></div></div>
   </div>
 </section>
+
+<section id="aiAssistant" class="tab-page hidden">
+  <div class="ah-ai-page">
+    <div class="ah-ai-hero">
+      <h2>🤖 مساعد الحمد الذكي</h2>
+      <p>اسأل عن المبيعات، المديونيات، المخزون، الأصناف، المصروفات أو اطلب تقريرًا. المساعد يعتمد على بيانات الحمد ستوك الموجودة في النظام، ويعمل بوضع تحليلي آمن بدون تعديل البيانات.</p>
+      <div class="ah-ai-kpi"><div>البيانات المستخدمة<b id="aiDataStatus">جاري التحضير...</b></div><div>الأصناف<b id="aiProductsCount">—</b></div><div>الفواتير<b id="aiInvoicesCount">—</b></div></div>
+    </div>
+    <div class="ah-ai-grid">
+      <div class="ah-ai-chat">
+        <div id="aiMessages" class="ah-ai-messages"></div>
+        <div class="ah-ai-input"><textarea id="aiInput" placeholder="مثال: مين أكبر العملاء مديونية؟ أو اعمل تقرير مبيعات الشهر الحالي"></textarea><button id="aiSend" class="ah-ai-send">إرسال</button></div>
+      </div>
+      <aside class="ah-ai-side">
+        <h3>أوامر سريعة</h3>
+        <button class="ah-ai-cmd" data-ai-cmd="مين أكبر العملاء مديونية؟">💰 أكبر المديونيات</button>
+        <button class="ah-ai-cmd" data-ai-cmd="إيه الأصناف اللي قربت تخلص؟">📦 أصناف قربت تخلص</button>
+        <button class="ah-ai-cmd" data-ai-cmd="إيه أكتر الأصناف مبيعًا؟">🔥 الأكثر مبيعًا</button>
+        <button class="ah-ai-cmd" data-ai-cmd="اعمل تقرير مبيعات الشهر الحالي">📊 تقرير مبيعات الشهر</button>
+        <button class="ah-ai-cmd" data-ai-cmd="اعمل ملخص مالي">💵 ملخص مالي</button>
+        <button class="ah-ai-cmd" data-ai-cmd="مين عليه مديونية؟">👥 العملاء المديونون</button>
+        <div id="aiReportBox" class="ah-ai-report hidden"></div>
+        <div class="ah-ai-status">حالياً المساعد في وضع القراءة والتحليل فقط. لا ينشئ أو يحذف أو يعدّل بيانات.</div>
+      </aside>
+    </div>
+  </div>
+</section>
+
 </main>
     </div>
   </div>
@@ -2373,7 +2405,54 @@ async function loadProjectSummary(){
 function printProjectSummary(){
   if(!currentProjectSummary)return alert("اختر مشروعًا أولاً");
   const r=currentProjectSummary,p=r.project;
-  const html=`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>ملخص مشروع ${esc(p.name)}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px;color:#333}h1,h2{color:#0f233c}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #cbd5e1;padding:7px;text-align:center}th{background:#0f233c;color:#fff}.box{background:#f8fafc;padding:12px;border:1px solid #ddd;border-radius:8px;margin:10px 0}</style></head><body><h1>${esc(storeSettings.store_name)}</h1><h2>تقرير ملخص المشروع: ${esc(p.name)}</h2><div class="box">المبلغ المستلم من المالك: <b>${money(r.received)} ج.م</b> — إجمالي المبيعات: <b>${money(r.salesTotal)} ج.م</b> — إجمالي المصنعيات: <b>${money(r.workTotal)} ج.م</b> — إجمالي المدفوع: <b>${money(r.totalPaid)} ج.م</b> — الدين: <b>${money(r.salesDebt+r.workDebt)} ج.م</b> — المتبقي/العجز: <b>${money(r.balance)} ج.م</b></div><h3>فواتير البيع</h3><table><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.salesInvoices.map(x=>`<tr><td>${esc(x.invoice_code||x.id.slice(0,8))}</td><td>${esc(x.customer_name)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><h3>فواتير المصنعيات</h3><table><tr><th>الفاتورة</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.work.map(x=>`<tr><td>${esc(x.invoice_code)}</td><td>${esc(x.description)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p><script>window.onload=function(){window.print();window.close()}<\/script></body></html>`;
+  const html=`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>ملخص مشروع ${esc(p.name)}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px;color:#333}h1,h2{color:#0f233c}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #cbd5e1;padding:7px;text-align:center}th{background:#0f233c;color:#fff}.box{background:#f8fafc;padding:12px;border:1px solid #ddd;border-radius:8px;margin:10px 0}</style></head><body><h1>${esc(storeSettings.store_name)}</h1><h2>تقرير ملخص المشروع: ${esc(p.name)}</h2><div class="box">المبلغ المستلم من المالك: <b>${money(r.received)} ج.م</b> — إجمالي المبيعات: <b>${money(r.salesTotal)} ج.م</b> — إجمالي المصنعيات: <b>${money(r.workTotal)} ج.م</b> — إجمالي المدفوع: <b>${money(r.totalPaid)} ج.م</b> — الدين: <b>${money(r.salesDebt+r.workDebt)} ج.م</b> — المتبقي/العجز: <b>${money(r.balance)} ج.م</b></div><h3>فواتير البيع</h3><table><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.salesInvoices.map(x=>`<tr><td>${esc(x.invoice_code||x.id.slice(0,8))}</td><td>${esc(x.customer_name)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><h3>فواتير المصنعيات</h3><table><tr><th>الفاتورة</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.work.map(x=>`<tr><td>${esc(x.invoice_code)}</td><td>${esc(x.description)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p><script>window.onload=function(){window.print();window.close()}<\/script>
+<script id="alhamd-ai-assistant-js">
+(function(){
+  const state={invs:null,products:null,expenses:null,loaded:false};
+  const $=id=>document.getElementById(id);
+  const moneyAI=n=>Number(n||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const escAI=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  function addMsg(text,who='bot'){const box=$('aiMessages');if(!box)return;const row=document.createElement('div');row.className='ah-ai-msg '+who;const b=document.createElement('div');b.className='ah-ai-bubble';b.innerHTML=escAI(text).replace(/\n/g,'<br>');row.appendChild(b);box.appendChild(row);box.scrollTop=box.scrollHeight;}
+  async function getTable(name,select='*'){try{const r=await sb.from(name).select(select);return r.error?[]:(r.data||[])}catch(e){return []}}
+  async function loadAIData(){
+    if(state.loaded)return state;
+    $('aiDataStatus')&&($('aiDataStatus').textContent='جاري التحميل');
+    state.products=Array.isArray(window.products)&&window.products.length?window.products:await getTable('products');
+    state.invs=await getTable('invoices');
+    state.expenses=await getTable('expenses');
+    state.loaded=true;
+    if($('aiDataStatus'))$('aiDataStatus').textContent=navigator.onLine?'متصل':'محلي';
+    if($('aiProductsCount'))$('aiProductsCount').textContent=String(state.products.length);
+    if($('aiInvoicesCount'))$('aiInvoicesCount').textContent=String(state.invs.length);
+    return state;
+  }
+  function monthFilter(invs){const now=new Date();return invs.filter(x=>{const d=new Date(x.created_at||x.date||0);return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()})}
+  function debtReport(){const m={};state.invs.forEach(x=>{const name=(x.customer_name||'عميل نقدي').trim();const k=name.toLowerCase();if(!m[k])m[k]={name,phone:x.customer_phone||'',debt:0,invoices:0};m[k].debt+=Math.max(0,Number(x.remaining||0));if(Number(x.remaining||0)>0)m[k].invoices++});const a=Object.values(m).filter(x=>x.debt>0).sort((a,b)=>b.debt-a.debt);if(!a.length)return 'لا توجد مديونيات مستحقة مسجلة حالياً.';return 'العملاء المديونون:\n'+a.slice(0,15).map((x,i)=>(i+1)+'. '+x.name+' — '+moneyAI(x.debt)+' ج.م — '+x.invoices+' فاتورة').join('\n')+'\n\nالإجمالي: '+moneyAI(a.reduce((s,x)=>s+x.debt,0))+' ج.م';}
+  function lowStock(){const a=(state.products||[]).filter(p=>Number(p.quantity||0)<=Number(p.min_quantity||0)).sort((a,b)=>Number(a.quantity||0)-Number(b.quantity||0));if(!a.length)return 'ممتاز، لا توجد أصناف عند أو تحت الحد الأدنى.';return 'أصناف تحتاج متابعة:\n'+a.slice(0,20).map((p,i)=>(i+1)+'. '+(p.name||'بدون اسم')+' ('+(p.code||'بدون كود')+') — الحالي '+moneyAI(p.quantity)+' / الحد الأدنى '+moneyAI(p.min_quantity)).join('\n');}
+  function topProducts(){const map={};state.invs.forEach(inv=>{if(!inv.id)return});const cached=Array.isArray(window._allInvoiceItems)?window._allInvoiceItems:[];if(cached.length){cached.forEach(it=>{const k=it.product_id||it.product_name||it.name||'غير معروف';map[k]=(map[k]||0)+Number(it.quantity||0)});}else{(state.products||[]).forEach(p=>{map[p.id]=0});}
+    const arr=Object.entries(map).map(([k,q])=>{const p=(state.products||[]).find(x=>String(x.id)===String(k));return{name:p?.name||k,q}}).filter(x=>x.q>0).sort((a,b)=>b.q-a.q);return arr.length?'الأكثر مبيعاً حسب الكميات المتاحة في البيانات المحملة:\n'+arr.slice(0,10).map((x,i)=>(i+1)+'. '+x.name+' — '+moneyAI(x.q)).join('\n'):'لا أملك حالياً بيانات بنود الفواتير الكافية لحساب الأكثر مبيعاً. افتح إدارة المبيعات أولاً لتحميل تفاصيل الفواتير.';}
+  function salesReport(){const a=monthFilter(state.invs);const total=a.reduce((s,x)=>s+Number(x.total||0),0),paid=a.reduce((s,x)=>s+Number(x.paid||0),0),rem=a.reduce((s,x)=>s+Number(x.remaining||0),0);return 'تقرير مبيعات الشهر الحالي\n\nعدد الفواتير: '+a.length+'\nإجمالي المبيعات: '+moneyAI(total)+' ج.م\nالمحصّل: '+moneyAI(paid)+' ج.م\nالمتبقي: '+moneyAI(rem)+' ج.م';}
+  function financial(){const total=state.invs.reduce((s,x)=>s+Number(x.total||0),0),paid=state.invs.reduce((s,x)=>s+Number(x.paid||0),0),debt=state.invs.reduce((s,x)=>s+Math.max(0,Number(x.remaining||0)),0),exp=state.expenses.reduce((s,x)=>s+Number(x.amount||0),0);return 'الملخص المالي\n\nإجمالي المبيعات: '+moneyAI(total)+' ج.م\nإجمالي التحصيل: '+moneyAI(paid)+' ج.م\nإجمالي المتبقي: '+moneyAI(debt)+' ج.م\nإجمالي المصروفات: '+moneyAI(exp)+' ج.م\nالصافي التقريبي: '+moneyAI(total-exp)+' ج.م';}
+  function customerSearch(q){const n=q.replace(/.*(?:عميل|العميل|ابحث عن|دور على)/,'').trim().toLowerCase();const a=state.invs.filter(x=>String(x.customer_name||'').toLowerCase().includes(n));if(!a.length)return 'لم أجد عميلًا بهذا الاسم.';return a.slice(0,12).map(x=>`${x.customer_name||'عميل نقدي'} — فاتورة ${x.invoice_code||x.id} — المتبقي ${moneyAI(x.remaining)} ج.م`).join('\n');}
+  async function answer(q){q=q.trim();if(!q)return;await loadAIData();const l=q.toLowerCase();if(/مديون|ديون|عليه فلوس|عليهم فلوس/.test(l)){if(/عميل|شخص|الناس/.test(l)||l.length<35)return debtReport();}
+    if(/قرب.*تخلص|ناقص|الحد الأدنى|مخزون منخفض/.test(l))return lowStock();
+    if(/أكثر.*مبيع|اكتر.*مبيع|الأكثر مبيع|مبيعات.*أصناف/.test(l))return topProducts();
+    if(/تقرير.*مبيعات|مبيعات.*الشهر|مبيعات الشهر/.test(l))return salesReport();
+    if(/ملخص مالي|الملخص المالي|حالة مالية|صافي الربح/.test(l))return financial();
+    if(/ابحث|دور|هات.*عميل|العميل/.test(l)&&!(/مديون/.test(l)))return customerSearch(q);
+    if(/عدد.*فاتورة|كام فاتورة/.test(l))return `عدد الفواتير المسجلة: ${state.invs.length}`;
+    return 'أقدر أساعدك في المديونيات، المخزون، المبيعات، المصروفات والتقارير. جرّب مثلاً: «مين أكبر العملاء مديونية؟» أو «اعمل تقرير مبيعات الشهر الحالي».';
+  }
+  async function send(q){addMsg(q,'user');const box=$('aiInput');if(box)box.value='';addMsg('جاري تحليل بيانات الحمد ستوك...','bot');const msgs=$('aiMessages');const last=msgs?.lastElementChild;try{const a=await answer(q);if(last)last.remove();addMsg(a,'bot');}catch(e){if(last)last.remove();addMsg('تعذر قراءة البيانات حالياً. تأكد من الاتصال أو جرّب مرة أخرى.','bot');}}
+  function init(){if(!$('aiMessages'))return;if(!$('aiMessages').children.length)addMsg('أهلاً بك 👋\nأنا مساعد الحمد الذكي. اسألني عن المبيعات، المديونيات، المخزون أو اطلب تقريراً.');$('aiSend')?.addEventListener('click',()=>send($('aiInput')?.value||''));$('aiInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(e.currentTarget.value)}});document.querySelectorAll('[data-ai-cmd]').forEach(b=>b.addEventListener('click',()=>send(b.dataset.aiCmd)));}
+  window.initAlhamdAI=init;window.askAlhamdAI=send;
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,500));
+})();
+</script>
+
+<button id="alhamdAiFloat" class="ah-ai-float" type="button">🤖 مساعد الحمد</button>
+<script>document.getElementById("alhamdAiFloat")?.addEventListener("click",function(){if(typeof showTab==="function")showTab("aiAssistant");if(window.initAlhamdAI)window.initAlhamdAI();});</script>
+</body></html>`;
   const w=window.open('','_blank');
   if(!w)return;
   w.document.write(html);
@@ -6999,5 +7078,4 @@ html[data-theme="dark"] .ah-excel-box{background:#111827;color:#e5e7eb}html[data
 
 </body>
 </html>
-
     
