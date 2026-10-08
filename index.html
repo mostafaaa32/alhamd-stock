@@ -2368,48 +2368,12 @@ async function loadProjectSummary(){
 function printProjectSummary(){
   if(!currentProjectSummary)return alert("اختر مشروعًا أولاً");
   const r=currentProjectSummary,p=r.project;
-  const html=`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>ملخص مشروع ${esc(p.name)}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px;color:#333}h1,h2{color:#0f233c}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #cbd5e1;padding:7px;text-align:center}th{background:#0f233c;color:#fff}.box{background:#f8fafc;padding:12px;border:1px solid #ddd;border-radius:8px;margin:10px 0}</style></head><body><h1>${esc(storeSettings.store_name)}</h1><h2>تقرير ملخص المشروع: ${esc(p.name)}</h2><div class="box">المبلغ المستلم من المالك: <b>${money(r.received)} ج.م</b> — إجمالي المبيعات: <b>${money(r.salesTotal)} ج.م</b> — إجمالي المصنعيات: <b>${money(r.workTotal)} ج.م</b> — إجمالي المدفوع: <b>${money(r.totalPaid)} ج.م</b> — الدين: <b>${money(r.salesDebt+r.workDebt)} ج.م</b> — المتبقي/العجز: <b>${money(r.balance)} ج.م</b></div><h3>فواتير البيع</h3><table><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.salesInvoices.map(x=>`<tr><td>${esc(x.invoice_code||x.id.slice(0,8))}</td><td>${esc(x.customer_name)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><h3>فواتير المصنعيات</h3><table><tr><th>الفاتورة</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.work.map(x=>`<tr><td>${esc(x.invoice_code)}</td><td>${esc(x.description)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p><script>window.onload=function(){window.print();window.close()}<\/script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<script id="alhamd-v18-header-nav-js">
-(function(){
-  function initHeaderNav(){
-    const nav=document.querySelector('.ah-main-nav'); if(!nav) return;
-    const groups=[...nav.querySelectorAll('.ah-nav-group')];
-    const closeAll=()=>groups.forEach(g=>{g.classList.remove('open');const b=g.querySelector('.ah-nav-toggle');if(b)b.setAttribute('aria-expanded','false');});
-    groups.forEach(g=>{const btn=g.querySelector('.ah-nav-toggle'); if(!btn)return; btn.addEventListener('click',e=>{e.stopPropagation(); const was=g.classList.contains('open'); closeAll(); if(!was){g.classList.add('open');btn.setAttribute('aria-expanded','true');}});});
-    nav.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{setTimeout(closeAll,40);nav.classList.remove('ah-mobile-open');}));
-    document.addEventListener('click',e=>{if(!e.target.closest('.ah-main-nav'))closeAll();});
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll();});
-    const header=document.querySelector('.ah-main-header');
-    if(header && !header.querySelector('.ah-mobile-menu-btn')){const b=document.createElement('button');b.className='ah-mobile-menu-btn';b.type='button';b.innerHTML='☰';b.setAttribute('aria-label','فتح قائمة التنقل');b.addEventListener('click',()=>nav.classList.toggle('ah-mobile-open'));header.insertBefore(b,header.querySelector('.ah-header-end'));}
-    const originalShow=window.showTab; window.showTab=function(tabId){if(typeof originalShow==='function')originalShow(tabId); nav.querySelectorAll('.ah-menu-item,.ah-nav-home,.ah-brand-home').forEach(x=>x.classList.toggle('active',x.dataset.tab===tabId));};
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initHeaderNav);else initHeaderNav();
-})();
-</script>
-</body></html>`;
-  const w=window.open('','_blank');w.document.write(html);w.document.close();
+  const html=`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>ملخص مشروع ${esc(p.name)}</title><style>body{font-family:Cairo,Tahoma,sans-serif;padding:20px;color:#333}h1,h2{color:#0f233c}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #cbd5e1;padding:7px;text-align:center}th{background:#0f233c;color:#fff}.box{background:#f8fafc;padding:12px;border:1px solid #ddd;border-radius:8px;margin:10px 0}</style></head><body><h1>${esc(storeSettings.store_name)}</h1><h2>تقرير ملخص المشروع: ${esc(p.name)}</h2><div class="box">المبلغ المستلم من المالك: <b>${money(r.received)} ج.م</b> — إجمالي المبيعات: <b>${money(r.salesTotal)} ج.م</b> — إجمالي المصنعيات: <b>${money(r.workTotal)} ج.م</b> — إجمالي المدفوع: <b>${money(r.totalPaid)} ج.م</b> — الدين: <b>${money(r.salesDebt+r.workDebt)} ج.م</b> — المتبقي/العجز: <b>${money(r.balance)} ج.م</b></div><h3>فواتير البيع</h3><table><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.salesInvoices.map(x=>`<tr><td>${esc(x.invoice_code||x.id.slice(0,8))}</td><td>${esc(x.customer_name)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><h3>فواتير المصنعيات</h3><table><tr><th>الفاتورة</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>الدين</th><th>التاريخ</th></tr>${r.work.map(x=>`<tr><td>${esc(x.invoice_code)}</td><td>${esc(x.description)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.remaining)}</td><td>${new Date(x.created_at).toLocaleString('ar-EG')}</td></tr>`).join("")||'<tr><td colspan="6">لا توجد</td></tr>'}</table><p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p><script>window.onload=function(){window.print();window.close()}<\/script></body></html>`;
+  const w=window.open('','_blank');
+  if(!w)return;
+  w.document.write(html);
+  w.document.close();
 }
-
-
 
 function printProjectTableReport(){const t=document.getElementById('projectsTable');if(!t)return;printHtmlTableReport('تقرير المقاولات',t.outerHTML)}
 function printWorkmanshipTableReport(){const t=document.getElementById('workmanshipTable');if(!t)return;printHtmlTableReport('تقرير المصنعيات',t.outerHTML)}
