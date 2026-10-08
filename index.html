@@ -1043,6 +1043,267 @@ html[data-theme="dark"] .ah-main-header{background:rgba(15,23,42,.96)!important;
 <style id="alhamd-ai-css">
 .ah-ai-page{max-width:1200px;margin:auto}.ah-ai-hero{background:linear-gradient(135deg,#111d3d,#1e3a8a 60%,#0b1224);color:#fff;border-radius:24px;padding:28px;box-shadow:0 18px 45px rgba(15,23,42,.18);margin-bottom:18px}.ah-ai-hero h2{margin:0 0 8px;font-size:28px}.ah-ai-hero p{margin:0;opacity:.86;line-height:1.9}.ah-ai-grid{display:grid;grid-template-columns:1fr 310px;gap:18px}.ah-ai-chat{background:#fff;border:1px solid #e5e7eb;border-radius:22px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,.07)}.ah-ai-messages{height:500px;overflow:auto;padding:20px;background:#f8fafc}.ah-ai-msg{display:flex;margin:10px 0}.ah-ai-msg.user{justify-content:flex-start}.ah-ai-msg.bot{justify-content:flex-end}.ah-ai-bubble{max-width:82%;padding:12px 15px;border-radius:17px;line-height:1.8;white-space:pre-wrap}.ah-ai-msg.user .ah-ai-bubble{background:#e8eefc;color:#172554;border-bottom-right-radius:5px}.ah-ai-msg.bot .ah-ai-bubble{background:#fff;border:1px solid #e5e7eb;color:#1f2937;border-bottom-left-radius:5px}.ah-ai-input{display:flex;gap:8px;padding:14px;border-top:1px solid #e5e7eb;background:#fff}.ah-ai-input textarea{flex:1;resize:none;min-height:48px;max-height:120px;border:1px solid #dbe2ea;border-radius:14px;padding:10px 13px;font-family:inherit}.ah-ai-send{border:0;border-radius:14px;padding:0 20px;background:#1e3a8a;color:#fff;font-weight:800;cursor:pointer}.ah-ai-side{background:#fff;border:1px solid #e5e7eb;border-radius:22px;padding:16px;height:max-content}.ah-ai-side h3{margin-top:0}.ah-ai-cmd{display:block;width:100%;text-align:right;border:1px solid #e5e7eb;background:#f8fafc;padding:11px;border-radius:12px;margin:8px 0;cursor:pointer;font-family:inherit}.ah-ai-cmd:hover{background:#eef2ff;border-color:#c7d2fe}.ah-ai-report{margin-top:12px;padding:14px;border-radius:14px;background:#f8fafc;border:1px dashed #cbd5e1}.ah-ai-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}.ah-ai-kpi div{background:rgba(255,255,255,.09);padding:12px;border-radius:14px}.ah-ai-kpi b{display:block;font-size:19px;margin-top:4px}.ah-ai-float{position:fixed;left:20px;bottom:20px;z-index:1800;border:0;border-radius:999px;padding:13px 18px;background:#1e3a8a;color:#fff;font-weight:800;box-shadow:0 12px 30px rgba(0,0,0,.25);cursor:pointer}.ah-ai-status{font-size:12px;color:#64748b;margin-top:8px}@media(max-width:800px){.ah-ai-grid{grid-template-columns:1fr}.ah-ai-side{order:-1}.ah-ai-messages{height:55vh}.ah-ai-kpi{grid-template-columns:1fr}.ah-ai-float{left:12px;bottom:72px}}
 </style>
+
+<style id="alhamd-final-ui-fix">
+/* ===== FINAL UI / BUTTONS POLISH ===== */
+:root{
+  --ui-navy:#172554;
+  --ui-navy-2:#1e3a8a;
+  --ui-gold:#d4a84f;
+  --ui-gold-2:#efd078;
+  --ui-border:#e2e8f0;
+  --ui-text:#1e293b;
+  --ui-muted:#64748b;
+  --ui-success:#16a34a;
+  --ui-danger:#dc2626;
+  --ui-warning:#d97706;
+}
+
+/* General buttons */
+button{
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+button:not(.tab):not(.ah-mobile-bottom button):not(.mobile-menu-toggle){
+  min-height:42px;
+  padding:9px 15px;
+  border:1px solid transparent;
+  border-radius:11px !important;
+  font-weight:800 !important;
+  line-height:1.25;
+  cursor:pointer;
+  transition:
+    transform .16s ease,
+    box-shadow .16s ease,
+    background .16s ease,
+    border-color .16s ease,
+    opacity .16s ease;
+}
+button:not(.tab):not(.ah-mobile-bottom button):not(.mobile-menu-toggle):hover{
+  transform:translateY(-1px);
+}
+button:not(.tab):not(.ah-mobile-bottom button):not(.mobile-menu-toggle):active{
+  transform:translateY(0) scale(.98);
+}
+button:disabled{
+  opacity:.55 !important;
+  cursor:not-allowed !important;
+  transform:none !important;
+  box-shadow:none !important;
+}
+
+/* Main action buttons */
+.ah-mega-primary,
+.ah-mega-btn.ah-dark,
+.ah-primary-btn,
+.stock-btn.primary{
+  background:linear-gradient(135deg,var(--ui-navy),var(--ui-navy-2)) !important;
+  color:#fff !important;
+  border-color:transparent !important;
+  box-shadow:0 6px 16px rgba(23,37,84,.16) !important;
+}
+.ah-gold-btn,
+.stock-btn.orange{
+  background:linear-gradient(135deg,#c79b3b,var(--ui-gold-2)) !important;
+  color:#172033 !important;
+  border-color:transparent !important;
+}
+.ah-mega-light,
+.ah-top-action,
+.ah-top-actions button{
+  background:#fff !important;
+  color:var(--ui-navy) !important;
+  border:1px solid var(--ui-border) !important;
+  box-shadow:0 3px 10px rgba(15,23,42,.05) !important;
+}
+.ah-mega-light:hover,
+.ah-top-action:hover{
+  background:#f8fafc !important;
+  border-color:#cbd5e1 !important;
+}
+
+/* Semantic buttons */
+.btn-qty,.btn-pay,.btn-edit,.btn-preview,.btn-whatsapp,
+.cp-btn,.stock-btn,.stock-mini-btn,.ah-mega-btn,.ah-excel-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+.btn-qty{background:#16a34a !important;color:#fff !important;border:0 !important}
+.btn-edit{background:#fff7df !important;color:#9a6700 !important;border:1px solid #f1d58e !important}
+.btn-pay{background:#e8f1ff !important;color:#174ea6 !important;border:1px solid #cfe0ff !important}
+.btn-preview{background:#f0edff !important;color:#5b4acb !important;border:1px solid #ddd7ff !important}
+.btn-whatsapp{background:#16a34a !important;color:#fff !important;border:0 !important}
+.cp-primary{background:var(--ui-navy) !important;color:#fff !important}
+.cp-green{background:#16a34a !important;color:#fff !important}
+.cp-red{background:#dc2626 !important;color:#fff !important}
+
+/* Dangerous / generic red buttons */
+button.danger,
+button[onclick*="delete"],
+button[onclick*="Delete"],
+button[onclick*="remove"],
+.ah-danger{
+  background:#fff1f2 !important;
+  color:#b91c1c !important;
+  border:1px solid #fecdd3 !important;
+}
+button.danger:hover,
+button[onclick*="delete"]:hover,
+button[onclick*="Delete"]:hover,
+button[onclick*="remove"]:hover,
+.ah-danger:hover{
+  background:#fee2e2 !important;
+}
+
+/* Sidebar buttons */
+.sidebar-menu button.tab{
+  min-height:48px !important;
+  height:48px !important;
+  padding:0 16px !important;
+  border-radius:13px !important;
+  justify-content:flex-start;
+  position:relative;
+}
+.sidebar-menu button.tab .ico,
+.sidebar-menu button.tab i,
+.sidebar-menu button.tab svg{
+  flex:0 0 auto;
+}
+.sidebar-menu button.tab.active{
+  transform:none !important;
+}
+.sidebar-menu button.tab:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible{
+  outline:3px solid rgba(37,99,235,.18);
+  outline-offset:2px;
+}
+
+/* Header */
+.topbar{
+  gap:12px !important;
+}
+.ah-top-actions{
+  flex:0 0 auto;
+}
+.ah-top-action{
+  min-height:42px !important;
+  white-space:nowrap;
+}
+
+/* Forms */
+input:not([type=checkbox]):not([type=radio]),
+select,textarea{
+  border-radius:12px !important;
+}
+input:not([type=checkbox]):not([type=radio]):hover,
+select:hover,textarea:hover{
+  border-color:#cbd5e1 !important;
+}
+
+/* Action groups in tables */
+td .btn-edit,td .btn-pay,td .btn-preview,td .btn-whatsapp,
+td button.danger,td .cp-row-actions button,td .stock-mini-btn{
+  min-height:34px !important;
+  padding:7px 10px !important;
+  font-size:11px !important;
+  margin:2px !important;
+  border-radius:9px !important;
+}
+.cp-row-actions{
+  align-items:center;
+}
+
+/* Invoice actions */
+.invoice-actions-pro{
+  align-items:center;
+}
+.invoice-actions-pro button{
+  min-height:45px !important;
+  border-radius:12px !important;
+}
+.invoice-add button{
+  box-shadow:0 6px 15px rgba(23,37,84,.14) !important;
+}
+
+/* Mobile bottom navigation */
+.ah-mobile-bottom{
+  box-shadow:0 -8px 25px rgba(15,23,42,.08);
+}
+.ah-mobile-bottom button{
+  min-height:52px !important;
+  padding:5px 4px !important;
+  transition:background .16s ease,color .16s ease,transform .16s ease !important;
+}
+.ah-mobile-bottom button:active{
+  transform:scale(.94);
+}
+
+/* Better tables */
+.table-wrap table button{
+  white-space:nowrap;
+}
+.table-wrap{
+  scrollbar-width:thin;
+}
+
+/* Toast / messages */
+.msg,.auth-msg{
+  border-radius:12px !important;
+}
+
+/* Small screens */
+@media(max-width:900px){
+  button:not(.tab):not(.ah-mobile-bottom button):not(.mobile-menu-toggle){
+    min-height:43px;
+  }
+  .ah-v4-actions{
+    width:100%;
+  }
+  .ah-v4-action{
+    min-height:44px !important;
+  }
+  .customer-pro-actions{
+    width:100%;
+  }
+  .customer-pro-actions .cp-btn{
+    min-height:44px;
+  }
+}
+@media(max-width:560px){
+  button:not(.tab):not(.ah-mobile-bottom button):not(.mobile-menu-toggle){
+    padding:9px 12px;
+  }
+  .ah-top-action{
+    padding:8px 10px !important;
+    font-size:11px !important;
+  }
+  .stock-tools{
+    align-items:stretch;
+  }
+  .stock-tools .stock-btn{
+    flex:1;
+    min-width:120px;
+  }
+  .invoice-actions-pro{
+    display:grid !important;
+    grid-template-columns:1fr 1fr;
+  }
+  .invoice-actions-pro button{
+    width:100%;
+  }
+}
+@media(max-width:390px){
+  .invoice-actions-pro{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
 </head>
 <body>
 
