@@ -3273,6 +3273,7 @@ function renderProducts() {
         <td class="no-print">
           <button class="btn-qty small" onclick="addQuantity('${p.id}',${p.quantity})">+ كمية</button>
           <button class="btn-edit small" onclick="printProductLabel('${esc(p.code)}', '${esc(p.name)}', ${p.sell_price})">🏷️ كود</button>
+          <button class="btn-edit small" onclick="editProductPrices('${p.id}')">💰 الأسعار</button>
           <button class="btn-edit small" onclick="editProduct('${p.id}')">تعديل</button>
           <button class="danger small" onclick="deleteProduct('${p.id}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">حذف</button>
         </td>
@@ -3320,6 +3321,25 @@ async function editProduct(id) {
   alert("تم تعديل الصنف بنجاح!");
   await loadProducts();
   await refreshDashboard();
+}
+
+async function editProductPrices(id) {
+  const p = products.find(x => String(x.id) === String(id));
+  if (!p) return alert("لم يتم العثور على الصنف");
+  const buyText = prompt(`سعر الشراء للصنف (${p.name}):`, String(Number(p.buy_price) || 0));
+  if (buyText === null) return;
+  const buy = Number(buyText.trim());
+  if (buyText.trim() === "" || !Number.isFinite(buy) || buy < 0) return alert("أدخل سعر شراء صحيحًا");
+  const sellText = prompt(`سعر البيع للصنف (${p.name}):`, String(Number(p.sell_price) || 0));
+  if (sellText === null) return;
+  const sell = Number(sellText.trim());
+  if (sellText.trim() === "" || !Number.isFinite(sell) || sell < 0) return alert("أدخل سعر بيع صحيحًا");
+  const { error } = await sb.from("products").update({ buy_price: buy, sell_price: sell }).eq("id", p.id);
+  if (error) return alert("تعذر تحديث الأسعار: " + error.message);
+  await loadProducts();
+  await refreshDashboard();
+  if (typeof refreshStockV11 === "function") refreshStockV11();
+  alert("تم تحديث أسعار الصنف بنجاح");
 }
 
 async function deleteProduct(id) {
@@ -3424,14 +3444,24 @@ function addInvoiceItem() {
     return alert(`عذراً، الكمية المطلوبة غير متوفرة بالكامل في المخزن! المتاح حالياً للصنف (${prod.name}) هو: ${availableStock}`);
   }
 
+  // يسمح بتحديد سعر خاص للفاتورة الحالية دون تغيير سعر الصنف الأساسي بالمخزن.
+  const defaultInvoicePrice = existingItem ? existingItem.unit_price : (Number(prod.sell_price) || 0);
+  const priceText = prompt(`سعر بيع (${prod.name}) في الفاتورة الحالية؟\nيمكنك تغييره لهذه الفاتورة فقط دون تعديل سعر المخزون.`, String(defaultInvoicePrice));
+  if (priceText === null) return;
+  const invoicePrice = Number(priceText.trim());
+  if (priceText.trim() === '' || !Number.isFinite(invoicePrice) || invoicePrice < 0) {
+    return alert('من فضلك أدخل سعر بيع صحيحًا (صفر أو أكثر).');
+  }
+
   if (existingItem) {
     existingItem.quantity += qty;
+    existingItem.unit_price = invoicePrice;
   } else {
     invoiceItems.push({ 
       product_id: prod.id, 
       name: prod.name, 
       quantity: qty, 
-      unit_price: Number(prod.sell_price) || 0,
+      unit_price: invoicePrice,
       buy_price: Number(prod.buy_price) || 0 
     });
   }
@@ -3676,38 +3706,61 @@ function printInvoiceDocument(elementId, mode = "a4") {
   const source = document.getElementById(elementId);
   if (!source) return alert("تعذر تجهيز الفاتورة للطباعة");
 
-  // طباعة داخل نفس الصفحة حتى لا يعتمد النظام على نافذة منبثقة قد يمنعها Chrome.
   const oldLayer = document.getElementById("ahDirectPrintLayer");
   if (oldLayer) oldLayer.remove();
   const oldStyle = document.getElementById("ahDirectPrintStyle");
   if (oldStyle) oldStyle.remove();
 
   const isThermal = mode === "thermal";
-  const contentWidth = isThermal ? "80mm" : "190mm";
-  const contentPadding = isThermal ? "4mm" : "10mm";
+  const safe = value => String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  const settings = (typeof storeSettings !== "undefined" && storeSettings) ? storeSettings : {};
+  const storeName = settings.store_name || document.getElementById("prevStoreName")?.textContent || "مكتب الحمد لمواد البناء والتشطيبات";
+  const storePhone = settings.phone || document.getElementById("thStorePhone")?.textContent?.replace(/^هاتف:\s*/, "") || "";
+  const storeAddress = settings.address || "";
+  const storeDetails = [storeAddress, storePhone ? "هاتف: " + storePhone : ""].filter(Boolean).join(" | ");
+  const logo = document.getElementById("prevStoreLogo")?.getAttribute("src") || settings.logo_url || "";
+  const invoiceCode = document.getElementById("prevInvCode")?.textContent || "";
+  const invoiceDate = document.getElementById("prevInvDate")?.textContent || "";
 
   const style = document.createElement("style");
   style.id = "ahDirectPrintStyle";
   style.textContent = `
-    @page { size: ${isThermal ? "80mm auto" : "A4 portrait"}; margin: 0; }
+    @page { size: ${isThermal ? "80mm auto" : "A4 portrait"}; margin: ${isThermal ? "0" : "29mm 12mm 19mm"}; }
     @media print {
-      html, body { margin:0!important; padding:0!important; background:#fff!important; }
+      html, body { margin:0!important; padding:0!important; background:#fff!important; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
       body > *:not(#ahDirectPrintLayer) { display:none!important; }
-      #ahDirectPrintLayer { display:block!important; position:static!important; width:${contentWidth}; margin:0 auto!important; padding:${contentPadding}; background:#fff!important; color:#111!important; }
-      #ahDirectPrintLayer * { font-family:'Cairo',Tahoma,Arial,sans-serif!important; box-sizing:border-box; }
+      #ahDirectPrintLayer { display:block!important; position:static!important; width:${isThermal ? "72mm" : "100%"}; margin:0!important; padding:${isThermal ? "3mm 2mm" : "0"}!important; background:#fff!important; color:#172033!important; overflow:visible!important; }
+      #ahDirectPrintLayer * { font-family:'Cairo',Tahoma,Arial,sans-serif!important; box-sizing:border-box!important; color:#172033; }
       #ahDirectPrintLayer .no-print { display:none!important; }
       #ahDirectPrintLayer img { max-width:100%; }
+      #ahDirectPrintLayer .ah-print-running-header { display:${isThermal ? "none" : "flex"}!important; position:fixed!important; top:-25mm; right:0; left:0; height:22mm; align-items:center; justify-content:space-between; gap:10px; padding:3mm 0 2mm; background:#fff!important; border-bottom:2px solid #17345b; }
+      #ahDirectPrintLayer .ah-print-running-header .ah-print-brand { font-size:16px!important; font-weight:800!important; color:#17345b!important; margin:0 0 3px!important; }
+      #ahDirectPrintLayer .ah-print-running-header .ah-print-detail { font-size:9px!important; color:#475569!important; margin:0!important; }
+      #ahDirectPrintLayer .ah-print-running-header img { max-height:17mm!important; max-width:24mm!important; object-fit:contain!important; }
+      #ahDirectPrintLayer .ah-print-running-footer { display:${isThermal ? "none" : "block"}!important; position:fixed!important; bottom:-16mm; right:0; left:0; border-top:1px solid #cbd5e1; padding-top:2mm; font-size:8px!important; color:#64748b!important; text-align:center!important; background:#fff!important; }
+      #ahDirectPrintLayer .invoice-print-container { width:100%!important; max-width:none!important; padding:0!important; margin:0!important; border:0!important; box-shadow:none!important; overflow:visible!important; }
+      #ahDirectPrintLayer .invoice-header-flex { display:none!important; }
+      #ahDirectPrintLayer .ah-print-doc-title { display:block!important; text-align:center!important; margin:0 0 5mm!important; padding:3mm!important; border:1px solid #dbe3ed!important; border-right:4px solid #c7a14a!important; background:#f8fafc!important; font-size:15px!important; font-weight:800!important; }
+      #ahDirectPrintLayer .invoice-meta-grid { display:grid!important; grid-template-columns:1fr 1fr!important; gap:2mm 5mm!important; padding:3mm!important; margin:0 0 4mm!important; border:1px solid #dbe3ed!important; border-radius:2mm!important; background:#fff!important; font-size:10px!important; break-inside:avoid!important; }
+      #ahDirectPrintLayer table { width:100%!important; border-collapse:collapse!important; table-layout:auto!important; margin:0 0 5mm!important; font-size:${isThermal ? "9px" : "10px"}!important; }
+      #ahDirectPrintLayer thead { display:table-header-group!important; }
+      #ahDirectPrintLayer tfoot { display:table-footer-group!important; }
+      #ahDirectPrintLayer tr { break-inside:avoid!important; page-break-inside:avoid!important; }
+      #ahDirectPrintLayer th { background:#17345b!important; color:#fff!important; font-weight:700!important; }
+      #ahDirectPrintLayer th,#ahDirectPrintLayer td { padding:${isThermal ? "2mm 1mm" : "2.2mm 1.8mm"}!important; border:1px solid #d8e0ea!important; overflow-wrap:anywhere!important; }
+      #ahDirectPrintLayer .ah-print-total-area { break-inside:avoid!important; page-break-inside:avoid!important; margin-top:4mm!important; }
+      #ahDirectPrintLayer .ah-print-thanks { border-top:1px solid #dbe3ed!important; padding-top:3mm!important; margin-top:5mm!important; font-size:9px!important; text-align:center!important; }
       ${isThermal ? `
-      #ahDirectPrintLayer .invoice-header-flex{display:block!important;text-align:center!important;background:#fff!important;color:#111!important;border-bottom:1px dashed #111!important;border-radius:0!important;padding:0 0 8px!important;margin-bottom:8px!important}
-      #ahDirectPrintLayer .invoice-header-flex h2{color:#111!important;font-size:15px!important}
-      #ahDirectPrintLayer .invoice-header-flex p{color:#333!important;font-size:10px!important}
-      #ahDirectPrintLayer .invoice-header-flex img{max-height:45px!important;margin:5px auto!important;display:block!important}
-      #ahDirectPrintLayer .invoice-meta-grid{display:block!important;background:#fff!important;border:0!important;padding:0!important;font-size:10px!important}
-      #ahDirectPrintLayer .invoice-meta-grid>div{padding:2px 0!important}
-      #ahDirectPrintLayer table{font-size:9px!important}
-      #ahDirectPrintLayer th,#ahDirectPrintLayer td{padding:3px 2px!important}
+        #ahDirectPrintLayer { width:72mm!important; font-size:10px!important; }
+        #ahDirectPrintLayer .invoice-meta-grid { display:block!important; border:0!important; padding:0!important; }
+        #ahDirectPrintLayer .invoice-meta-grid>div { padding:1mm 0!important; }
+        #ahDirectPrintLayer .ah-print-doc-title { border:0!important; border-bottom:1px dashed #111!important; background:#fff!important; padding:2mm 0!important; margin-bottom:3mm!important; }
+        #ahDirectPrintLayer table { table-layout:fixed!important; font-size:9px!important; }
+        #ahDirectPrintLayer th,#ahDirectPrintLayer td { border-left:0!important; border-right:0!important; padding:1.5mm .5mm!important; }
+        #ahDirectPrintLayer .invoice-meta-grid { font-size:10px!important; }
       ` : `
-      #ahDirectPrintLayer .invoice-print-container table{font-size:11px!important}
+        #ahDirectPrintLayer .invoice-meta-grid>div { min-width:0!important; }
+        #ahDirectPrintLayer .invoice-meta-grid>div b { color:#334155!important; }
       `}
     }
   `;
@@ -3717,24 +3770,65 @@ function printInvoiceDocument(elementId, mode = "a4") {
   layer.id = "ahDirectPrintLayer";
   layer.style.display = "none";
   layer.innerHTML = source.outerHTML;
-  document.body.appendChild(layer);
+  if (isThermal) {
+    const thermalRoot = layer.querySelector("#printableThermalReceipt");
+    if (thermalRoot) {
+      thermalRoot.classList.remove("hidden");
+      thermalRoot.classList.add("invoice-print-container");
+      thermalRoot.style.display = "block";
+      thermalRoot.style.width = "72mm";
+      thermalRoot.style.padding = "0";
+      if (storeAddress) {
+        const addressLine = document.createElement("div");
+        addressLine.style.cssText = "font-size:10px;text-align:center;margin:3px 0;";
+        addressLine.textContent = "العنوان: " + storeAddress;
+        thermalRoot.querySelector("#thStorePhone")?.after(addressLine);
+      }
+    }
+  }
+  const printHeader = document.createElement("div");
+  printHeader.className = "ah-print-running-header";
+  printHeader.innerHTML = `<div><div class="ah-print-brand">${safe(storeName)}</div><p class="ah-print-detail">${safe(storeDetails || "مواد البناء والتشطيبات")}</p><p class="ah-print-detail">فاتورة رقم: ${safe(invoiceCode)} &nbsp;|&nbsp; ${safe(invoiceDate)}</p></div>${logo ? `<img src="${safe(logo)}" alt="شعار المكتب">` : ""}`;
+  layer.prepend(printHeader);
+  const printFooter = document.createElement("div");
+  printFooter.className = "ah-print-running-footer";
+  printFooter.textContent = [settings.invoice_footer || "شكرًا لتعاملكم مع مكتب الحمد", storePhone ? "هاتف: " + storePhone : "", storeAddress].filter(Boolean).join(" • ");
+  layer.appendChild(printFooter);
 
+  const docTitle = document.createElement("div");
+  docTitle.className = "ah-print-doc-title";
+  docTitle.textContent = isThermal ? "إيصال مبيعات" : "فاتورة مبيعات";
+  const container = layer.querySelector(".invoice-print-container");
+  if (container) {
+    const oldTitle = Array.from(container.querySelectorAll("h3")).find(el => /فاتورة مبيعات|إيصال مبيعات/.test(el.textContent || ""));
+    if (oldTitle && oldTitle.parentElement) oldTitle.parentElement.remove();
+    container.prepend(docTitle);
+  } else if (isThermal) {
+    const thermalRoot = layer.querySelector("#printableThermalReceipt");
+    if (thermalRoot) thermalRoot.prepend(docTitle);
+  }
+  const table = layer.querySelector("table");
+  if (table) table.setAttribute("aria-label", "تفاصيل الفاتورة");
+  const totals = layer.querySelector("#prevSubTotal")?.closest("div[style*='width']");
+  if (totals) totals.classList.add("ah-print-total-area");
+  const footer = layer.querySelector("#prevFooterText, #thFooter");
+  if (footer) footer.classList.add("ah-print-thanks");
+
+  document.body.appendChild(layer);
   const cleanup = () => {
     setTimeout(() => {
-      const l = document.getElementById("ahDirectPrintLayer"); if (l) l.remove();
-      const st = document.getElementById("ahDirectPrintStyle"); if (st) st.remove();
+      document.getElementById("ahDirectPrintLayer")?.remove();
+      document.getElementById("ahDirectPrintStyle")?.remove();
       window.removeEventListener("afterprint", cleanup);
-    }, 250);
+    }, 400);
   };
   window.addEventListener("afterprint", cleanup);
-
   layer.style.display = "block";
   setTimeout(() => {
     try { window.print(); }
     catch (e) { cleanup(); alert("تعذر فتح الطباعة: " + e.message); }
-  }, 50);
+  }, 150);
 }
-
 
 
 function printInvoiceA4() {
@@ -5799,7 +5893,7 @@ function exportTableToPDF(tableId, titleText = 'تقرير مكتب الحمد')
         <td><b>${ar(qty)}</b></td><td>${ar(num(p.min_quantity))}</td><td>${ar(moneySafe(p.buy_price))}</td>
         <td>${ar(moneySafe(p.sell_price))}</td><td><b>${ar(moneySafe(val))} ج.م</b></td>
         <td><span class="stock-badge ${cls}">${label}</span></td>
-        <td><div class="stock-v11-product-actions"><button class="stock-mini-btn primary" onclick="openStockV11Movements('${escSafe(p.id)}')">الحركة</button><button class="stock-mini-btn warn" onclick="stockV11AddFor('${escSafe(p.id)}')">+ كمية</button></div></td>
+        <td><div class="stock-v11-product-actions"><button class="stock-mini-btn primary" onclick="editProductPrices('${escSafe(p.id)}')">💰 الأسعار</button><button class="stock-mini-btn primary" onclick="openStockV11Movements('${escSafe(p.id)}')">الحركة</button><button class="stock-mini-btn warn" onclick="stockV11AddFor('${escSafe(p.id)}')">+ كمية</button></div></td>
       </tr>`;
     }).join('');
   }
